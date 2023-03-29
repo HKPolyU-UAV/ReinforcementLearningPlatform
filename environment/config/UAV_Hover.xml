@@ -1,0 +1,62 @@
+<Plant name="uav_hover" author="Yefeng YANG" date="2023.02.27" E-mail="yefeng.yang@connect.polyu.hk; 18B904013@stu.hit.edu.cn">
+	<RL_Base>
+		<state_dim>15</state_dim>
+		<state_num>[inf, inf, inf, inf, inf, inf, inf, inf, inf, inf, inf, inf, inf, inf, inf]</state_num>
+		<state_step>[None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]</state_step>
+		<state_space>[None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]</state_space>
+		<state_range>[[-2, 2], [-2, 2], [-2, 2], [-2, 2], [-2, 2], [-2, 2], [-2, 2], [-2, 2], [-2, 2], [-2, 2], [-2, 2], [-2, 2], [-2, 2], [-2, 2], [-2, 2]]</state_range>
+		<isStateContinuous>[True, True, True, True, True, True, True, True, True, True, True, True, True, True, True]</isStateContinuous>
+		<initial_state>[0.  0.  0.4 0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0. ]</initial_state>
+		<current_state>[0.  0.  0.4 0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0. ]</current_state>
+		<next_state>[0.  0.  0.4 0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0. ]</next_state>
+		<action_dim>4</action_dim>
+		<action_step>[None, None, None, None]</action_step>
+		<action_range>[[0, 10], [0, 10], [0, 10], [0, 10]]</action_range>
+		<action_num>[inf, inf, inf, inf]</action_num>
+		<action_space>[None, None, None, None]</action_space>
+		<isActionContinuous>[True, True, True, True]</isActionContinuous>
+		<initial_action>[0.0, 0.0, 0.0, 0.0]</initial_action>
+		<current_action>[0.0, 0.0, 0.0, 0.0]</current_action>
+		<is_terminal>False</is_terminal>
+		<staticGain>2</staticGain>
+	</RL_Base>
+	<Physical>
+		<m>0.8</m>
+		<g>9.8</g>
+		<Jxx>0.004212</Jxx>
+		<Jyy>0.004212</Jyy>
+		<Jzz>0.008255</Jzz>
+		<d>0.12</d>
+		<CT>2.168e-06</CT>
+		<CM>2.136e-08</CM>
+		<J0>1.01e-05</J0>
+		<pos>[0 0 0]</pos>
+		<vel>[0 0 0]</vel>
+		<angle>[0 0 0]</angle>
+		<omega_iner>[0 0 0]</omega_iner>
+		<omega_body>[0 0 0]</omega_body>
+		<pos_max>[10 10 10]</pos_max>
+		<pos_min>[-10 -10 -10]</pos_min>
+		<vel_max>[10 10 10]</vel_max>
+		<vel_min>[-10 -10 -10]</vel_min>
+		<angle_max>[1.3962634  1.3962634  3.14159265]</angle_max>
+		<angle_min>[-1.3962634  -1.3962634  -3.14159265]</angle_min>
+		<dangle_max>[18.84955592 18.84955592 12.56637061]</dangle_max>
+		<dangle_min>[-18.84955592 -18.84955592 -12.56637061]</dangle_min>
+		<force>[0 0 0 0]</force>
+		<fmax>10</fmax>
+		<fmin>0</fmin>
+		<w_rotor>[0. 0. 0. 0.]</w_rotor>
+		<dt>0.01</dt>
+		<time>0.0</time>
+		<tmax>30</tmax>
+		<targetpos>[0 0 4]</targetpos>
+	</Physical>
+	<Image>
+		<figsize>[9, 9]</figsize>
+		<xbound>[-10  10]</xbound>
+		<ybound>[-10  10]</ybound>
+		<zbound>[-10  10]</zbound>
+		<length_per_n>0.6</length_per_n>
+	</Image>
+</Plant>

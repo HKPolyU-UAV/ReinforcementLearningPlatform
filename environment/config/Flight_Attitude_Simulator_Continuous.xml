@@ -1,0 +1,60 @@
+<Plant E-mail="yefeng.yang@connect.polyu.hk" author="Yefeng YANG" date="2023.03.02" name="Flight_Attitude_Simulator_Continuous2">
+	<RL_Base>
+		<state_dim>4</state_dim>
+		<state_num>[inf, inf, inf, inf]</state_num>
+		<state_step>[None, None, None, None]</state_step>
+		<state_space>[None, None, None, None]</state_space>
+		<state_range>[[-2, 2], [-2, 2], [-2, 2], [-2, 2]]</state_range>
+		<isStateContinuous>[True, True, True, True]</isStateContinuous>
+		<initial_state>[ 1.04719755  1.04719755  0.         -1.04719755]</initial_state>
+		<current_state>[ 1.04719755  1.04719755  0.         -1.04719755]</current_state>
+		<next_state>[ 1.04719755  1.04719755  0.         -1.04719755]</next_state>
+		<action_dim>1</action_dim>
+		<action_step>[None]</action_step>
+		<action_range>[[-1.5, 3.5]]</action_range>
+		<action_num>[inf]</action_num>
+		<action_space>[None]</action_space>
+		<isActionContinuous>True</isActionContinuous>
+		<initial_action>[0.]</initial_action>
+		<current_action>[0.]</current_action>
+		<Q>1</Q>
+		<R>0.1</R>
+		<is_terminal>False</is_terminal>
+	</RL_Base>
+	<Physical>
+		<initTheta>1.0471975511965976</initTheta>
+		<setTheta>0.0</setTheta>
+		<force>0</force>
+		<f_max>3.5</f_max>
+		<f_min>-1.5</f_min>
+		<minTheta>-1.0471975511965976</minTheta>
+		<maxTheta>1.0471975511965976</maxTheta>
+		<min_omega>-1.5707963267948966</min_omega>
+		<max_omega>1.5707963267948966</max_omega>
+		<min_theta_e>-1.0471975511965976</min_theta_e>
+		<max_theta_e>1.0471975511965976</max_theta_e>
+		<theta>1.0471975511965976</theta>
+		<dTheta>0.0</dTheta>
+		<dt>0.02</dt>
+		<Lw>0.02</Lw>
+		<L>0.362</L>
+		<J>0.082</J>
+		<k>0.09</k>
+		<m>0.3</m>
+		<dis>0.3</dis>
+		<copperl>0.06</copperl>
+		<copperw>0.03</copperw>
+		<g>9.8</g>
+	</Physical>
+	<Image>
+		<width>400</width>
+		<height>400</height>
+		<name4image>Flight attitude simulator</name4image>
+		<scale>250</scale>
+		<ybias>360</ybias>
+		<base_hor_w>0.4</base_hor_w>
+		<base_hor_h>0.02</base_hor_h>
+		<base_ver_w>0.02</base_ver_w>
+		<base_ver_h>0.8</base_ver_h>
+	</Image>
+</Plant>

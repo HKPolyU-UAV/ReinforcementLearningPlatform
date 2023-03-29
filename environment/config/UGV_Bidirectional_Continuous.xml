@@ -1,0 +1,53 @@
+<Plant name="UGV_Bidirectional_Continuous" author="Yefeng YANG" date="2022.01.11" E-mail="yefeng.yang@connect.polyu.hk; 18B904013@stu.hit.edu.cn">
+	<RL_Base>
+		<state_dim>8</state_dim>
+		<state_num>[inf, inf, inf, inf, inf, inf, inf, inf]</state_num>
+		<state_step>[None, None, None, None, None, None, None, None]</state_step>
+		<state_space>[None, None, None, None, None, None, None, None]</state_space>
+		<state_range>[[-10.0, 10.0], [-10.0, 10.0], [0, 10.0], [0, 10.0], [-inf, inf], [-1.0, 1.0], [-1.0, 1.0], [0.6666666666666667, -0.6666666666666667]]</state_range>
+		<isStateContinuous>[True, True, True, True, True, True, True, True]</isStateContinuous>
+		<initial_state>[2.0, 2.0, 2.0, 2.0, -2.356194490192345, 0, 0, 0]</initial_state>
+		<current_state>[2.0, 2.0, 2.0, 2.0, -2.356194490192345, 0, 0, 0]</current_state>
+		<next_state>[2.0, 2.0, 2.0, 2.0, -2.356194490192345, 0, 0, 0]</next_state>
+		<action_dim>2</action_dim>
+		<action_step>[None, None]</action_step>
+		<action_range>[[-10, 10], [-10, 10]]</action_range>
+		<action_num>[inf, inf]</action_num>
+		<action_space>[None, None]</action_space>
+		<isActionContinuous>[True, True]</isActionContinuous>
+		<initial_action>[0.0, 0.0]</initial_action>
+		<current_action>[0.0, 0.0]</current_action>
+		<is_terminal>False</is_terminal>
+	</RL_Base>
+	<Physical>
+		<initX>2.0</initX>
+		<initY>2.0</initY>
+		<initPhi>-2.356194490192345</initPhi>
+		<x>2.0</x>
+		<y>2.0</y>
+		<phi>-2.356194490192345</phi>
+		<dx>0</dx>
+		<dy>0</dy>
+		<dphi>0</dphi>
+		<wLeft>0.0</wLeft>
+		<wRight>0.0</wRight>
+		<wMax>10</wMax>
+		<r>0.1</r>
+		<l_wheel>0.06</l_wheel>
+		<rBody>0.15</rBody>
+		<L>0.3</L>
+		<dt>0.02</dt>
+		<time>0.0</time>
+		<x_size>10.0</x_size>
+		<y_size>10.0</y_size>
+		<miss>0.4</miss>
+	</Physical>
+	<Image>
+		<width>400</width>
+		<height>400</height>
+		<name4image>TwoWheelUGV</name4image>
+		<x_offset>2</x_offset>
+		<y_offset>2</y_offset>
+		<pixel_per_meter>39.6</pixel_per_meter>
+	</Image>
+</Plant>

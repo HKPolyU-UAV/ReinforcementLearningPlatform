@@ -1,0 +1,13 @@
+Actor: 		两个隐藏层都是128个神经元
+Critic:		两个隐藏层都是128个神经元
+输入输出维度取决于被控对象本身
+强化学习参数：
+gamma=0.9,
+actor_learning_rate=1e-4,
+critic_learning_rate=1e-3,
+actor_soft_update=1e-2,
+critic_soft_update=1e-2,
+memory_capacity=20000,  # 10000
+batch_size=256
+
+测试：起点随机，终点都是0度
