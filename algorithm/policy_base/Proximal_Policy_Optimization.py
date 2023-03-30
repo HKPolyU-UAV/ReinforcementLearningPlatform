@@ -1,7 +1,5 @@
 from common.common_func import *
 from common.common_cls import *
-from environment.config.xml_write import xml_cfg
-from tensorboardX import SummaryWriter
 import cv2 as cv
 
 """use CPU or GPU"""

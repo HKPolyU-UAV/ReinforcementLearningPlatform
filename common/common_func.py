@@ -103,7 +103,7 @@ def points_rotate(pts: list, theta: float) -> list:
         return [math.cos(theta) * pts[0] - math.sin(theta) * pts[1], math.sin(theta) * pts[0] + math.cos(theta) * pts[1]]
 
 
-def points_move(pts: list, dis: list) -> list:
+def points_move(pts: list, dis) -> list:
     if type(pts[0]) == list:
         return [[pt[0] + dis[0], pt[1] + dis[1]] for pt in pts]
     else:

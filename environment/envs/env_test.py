@@ -45,7 +45,7 @@ def test_flight_attitude_simulator_continuous():
 
 def test_flight_attitude_simulator_2state_continuous():
     from FlightAttitudeSimulator.flight_attitude_simulator_2state_continuous import Flight_Attitude_Simulator_2State_Continuous as FAS_2S_Con
-    env = FAS_2S_Con(initTheta=deg2rad(60.0), setTheta=0., save_cfg=True)
+    env = FAS_2S_Con(initTheta=deg2rad(60.0), save_cfg=True)
     test_num = 1
     for _ in range(test_num):
         # env.reset_random()
@@ -77,6 +77,40 @@ def test_ugv_bidirectional_continuous():
             env.show_dynamic_image(isWait=False)
             action = [-3, 3]
             env.step_update(action=action)
+            # print(env.reward)
+            # print(env.current_state)
+
+
+def test_UGVBodorectional2():
+    from UGV2.UGVBidirectional import UGV_Bidirectional as env
+    env = env(pos0=np.array([2.0, 2.0]), map_size=np.array([5.0, 5.0]))    # 其余参数默认
+
+    for _ in range(5):
+        env.reset()
+        # env.phi = -np.pi/2
+        while not env.is_terminal:
+            # print(env.time)
+            env.show_dynamic_image(isWait=True)
+            action = np.array([6, 15.0])
+            env.step_update(action=action)
+            print(env.vel)
+            # print(env.reward)
+            # print(env.current_state)
+
+
+def test_SecondOrderIntegration():
+    from SecondOrderIntegration.SecondOrderIntegration import SecondOrderIntegration as env
+    env = env(pos0=np.array([2.0, 2.0]), map_size=np.array([10.0, 10.0]))    # 其余参数默认
+
+    for _ in range(5):
+        env.reset()
+        # env.phi = -np.pi/2
+        while not env.is_terminal:
+            # print(env.time)
+            env.show_dynamic_image(isWait=True)
+            action = np.array([5, 0])
+            env.step_update(action=action)
+            print(env.vel)
             # print(env.reward)
             # print(env.current_state)
 
@@ -134,6 +168,7 @@ def test_ugv_forward_obstacles_continuous():
             #     print(env.reward)
             # print(env.current _state)
         num += 1
+
 
 # UGV Forward Discrete Test
 def test_ugv_forward_discrete():
@@ -200,6 +235,7 @@ def test_cartpole():
             print(env.time)
         num += 1
 
+
 def test_cartpoleangleonly():
     from cartpole.cartpole_angleonly import CartPoleAngleOnly
     env = CartPoleAngleOnly(initTheta=deg2rad(10), save_cfg=True)
@@ -222,6 +258,7 @@ def test_cartpoleangleonly():
             # print(env.time)
         num += 1
 
+
 def test_cartpole_discrete_angleonly():
     from cartpole.cartpole_discrete_angle_only import CartPoleDiscreteAngleOnly
     env = CartPoleDiscreteAngleOnly(initTheta=deg2rad(10), save_cfg=True)
@@ -239,6 +276,7 @@ def test_cartpole_discrete_angleonly():
             env.show_dynamic_image(isWait=False)
             i += 1
         num += 1
+
 
 def test_uav_hover():
     from UAV.uav_hover import UAV_Hover
@@ -262,7 +300,9 @@ if __name__ == '__main__':
     # test_flight_attitude_simulator()
     # test_flight_attitude_simulator_continuous()
     # test_flight_attitude_simulator_2state_continuous()
-    test_ugv_bidirectional_continuous()
+    # test_ugv_bidirectional_continuous()
+    test_UGVBodorectional2()
+    # test_SecondOrderIntegration()
     # test_ugv_forward_continuous()
     # test_ugv_forward_obstacles_continuous()
     # test_ugv_forward_discrete()

@@ -1,5 +1,6 @@
 # Installation
 This platform can be implemented on both windows and ubuntu if you have installed python3. Currently, there is no ROS-related packages.
+It only requires pytorch, numpy, and opencv except original python packages.
 ## Python version
 Python higher than 3.8 is recommended.
 ## Installation

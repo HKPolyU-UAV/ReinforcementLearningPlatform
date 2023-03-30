@@ -185,3 +185,13 @@ Tips：
     ReinforcementLearning_V2 所有的功能与用法均与 ReinforcementLearning 完全相同，之前训练好的控制器也能直接在 V2 上运行 (如果没有bug)。
     当 V2 的调试完全结束之后，ReinforcementLearning_V2 会被重新命名为 ReinforcementLearning 以覆盖目前的版本。
 =================奥利给兄弟们干他就完了=================
+
+
+====================嗨嗨嗨我又来了啊====================
+Log_num: 10
+Date: 2023.03.30
+Time: 22:59
+Contents:
+    1). Add new env: UGV2.UGVBidirectional
+    2). Add new env: SecondOrderIntegrationSystem
+=================奥利给兄弟们干他就完了=================
