@@ -45,14 +45,14 @@ def test_flight_attitude_simulator_continuous():
 
 def test_flight_attitude_simulator_2state_continuous():
     from FlightAttitudeSimulator.flight_attitude_simulator_2state_continuous import Flight_Attitude_Simulator_2State_Continuous as FAS_2S_Con
-    env = FAS_2S_Con(initTheta=deg2rad(60.0), save_cfg=True)
+    env = FAS_2S_Con(initTheta=deg2rad(0.0), save_cfg=True)
     test_num = 1
     for _ in range(test_num):
         # env.reset_random()
         env.reset()
         # env.theta=0
         while not env.is_terminal:
-            env.show_dynamic_image(isWait=False)
+            env.show_dynamic_image(isWait=True)
             # action = random.choice(env.action_space)
             action = np.array([3])
             env.step_update(action=action)
@@ -108,9 +108,11 @@ def test_SecondOrderIntegration():
         while not env.is_terminal:
             # print(env.time)
             env.show_dynamic_image(isWait=True)
-            action = np.array([5, 0])
+            action = np.array([-3, 2])
             env.step_update(action=action)
-            print(env.vel)
+            print(np.hstack((env.error, env.pos, env.vel)))
+            print(env.current_state)
+            # print(env.vel)
             # print(env.reward)
             # print(env.current_state)
 
@@ -158,7 +160,7 @@ def test_ugv_forward_obstacles_continuous():
             # print(env.time)
             if cv.waitKey(1) == 27:
                 return
-            env.show_dynamic_imagewithobs(isWait=False)
+            env.show_dynamic_imagewithobs(isWait=True)
             action = env.towards_target_PID(threshold=np.inf, kp=10, kd=0, ki=0)
             # cap.write(env.save)
             # action = [0, 1 * math.pi]
@@ -246,7 +248,7 @@ def test_cartpoleangleonly():
             if cv.waitKey(1) == 27:
                 return
             env.image = env.show.copy()
-            env.show_dynamic_image(isWait=False)
+            env.show_dynamic_image(isWait=True)
             f = [5]
             # f = [random.uniform(-env.fm, env.fm)]
             # f = -1 * math.sin(2 * math.pi * env.time)
@@ -289,6 +291,7 @@ def test_uav_hover():
         env.reset_random()
         while not env.is_terminal:
             env.show_dynamic_image(per_show=1)
+            # cv.waitKey(0)
             plt.pause(0.00000001)
             f = [random.uniform(env.fmin, env.fmax) for _ in range(4)]
             env.step_update(action=f)
@@ -301,8 +304,8 @@ if __name__ == '__main__':
     # test_flight_attitude_simulator_continuous()
     # test_flight_attitude_simulator_2state_continuous()
     # test_ugv_bidirectional_continuous()
-    test_UGVBodorectional2()
-    # test_SecondOrderIntegration()
+    # test_UGVBodorectional2()
+    test_SecondOrderIntegration()
     # test_ugv_forward_continuous()
     # test_ugv_forward_obstacles_continuous()
     # test_ugv_forward_discrete()

@@ -6,9 +6,9 @@
 		<state_space>[None, None]</state_space>
 		<state_range>[[-2.0, 2.0], [-inf, inf]]</state_range>
 		<isStateContinuous>[True, True]</isStateContinuous>
-		<initial_state>[1. 0.]</initial_state>
-		<current_state>[1. 0.]</current_state>
-		<next_state>[1. 0.]</next_state>
+		<initial_state>[0.44444444 0.        ]</initial_state>
+		<current_state>[0.44444444 0.        ]</current_state>
+		<next_state>[0.44444444 0.        ]</next_state>
 		<action_dim>1</action_dim>
 		<action_step>[None]</action_step>
 		<action_range>[[-8, 8]]</action_range>
@@ -24,7 +24,7 @@
 		<theta>0.17453292519943295</theta>
 		<dtheta>0.0</dtheta>
 		<force>0.0</force>
-		<thetaMax>0.3490658503988659</thetaMax>
+		<thetaMax>0.7853981633974483</thetaMax>
 		<staticGain>2.0</staticGain>
 		<norm_4_boundless_state>4</norm_4_boundless_state>
 		<M>1.0</M>
@@ -41,7 +41,7 @@
 	<Image>
 		<width>400</width>
 		<height>200</height>
-		<name4image>cartpole</name4image>
+		<name4image>CartPoleAngleOnly</name4image>
 		<scale>133.33333333333334</scale>
 		<xoffset>0</xoffset>
 		<cart_x_pixel>40</cart_x_pixel>

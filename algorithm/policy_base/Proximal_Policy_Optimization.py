@@ -1,3 +1,5 @@
+import numpy as np
+
 from common.common_func import *
 from common.common_cls import *
 import cv2 as cv
@@ -41,6 +43,7 @@ class Proximal_Policy_Optimization:
 		self.action_std = action_std_init
 		self.path = path
 		self.buffer = RolloutBuffer(buffer_size, self.env.state_dim, self.env.action_dim)
+		self.buffer2 = RolloutBuffer2(self.env.state_dim, self.env.action_dim)
 		self.actor_lr = actor_lr
 		self.critic_lr = critic_lr
 		'''PPO'''
@@ -207,4 +210,4 @@ class Proximal_Policy_Optimization:
 			k = (maxa - mina) / 2
 			b = (maxa + mina) / 2
 			linear_action.append(k * a + b)
-		return linear_action
+		return np.array(linear_action)

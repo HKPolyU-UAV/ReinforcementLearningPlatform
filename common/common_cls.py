@@ -101,6 +101,55 @@ class RolloutBuffer:
         print('==== RolloutBuffer ====')
 
 
+class RolloutBuffer2:
+    def __init__(self, state_dim: int, action_dim: int):
+        self.buffer_size = 0
+        self.state_dim = state_dim
+        self.action_dim = action_dim
+        self.actions = np.atleast_2d([]).astype(np.float32)
+        self.states = np.atleast_2d([]).astype(np.float32)
+        self.log_probs = np.atleast_1d([]).astype(np.float32)
+        self.rewards = np.atleast_1d([]).astype(np.float32)
+        self.state_values = np.atleast_1d([]).astype(np.float32)
+        self.is_terminals = np.atleast_1d([]).astype(np.float32)
+
+    def append_traj(self, s: np.ndarray, a: np.ndarray, log_prob: np.ndarray, r: np.ndarray, sv: np.ndarray, done: np.ndarray):
+        if self.buffer_size == 0:
+            self.states = np.atleast_2d(s).astype(np.float32)
+            self.actions = np.atleast_2d(a).astype(np.float32)
+            self.log_probs = np.atleast_1d(log_prob).astype(np.float32)
+            self.rewards = np.atleast_1d(r).astype(np.float32)
+            self.state_values = np.atleast_1d(sv).astype(np.float32)
+            self.is_terminals = np.atleast_1d(done).astype(np.float32)
+        else:
+            self.states = np.vstack((self.states, s))
+            self.actions = np.vstack((self.actions, a))
+            self.log_probs = np.hstack((self.log_probs, log_prob))
+            self.rewards = np.hstack((self.rewards, r))
+            self.state_values = np.hstack((self.state_values, sv))
+            self.is_terminals= np.hstack((self.is_terminals, done))
+        self.buffer_size += len(done)
+
+    def print_size(self):
+        print('==== RolloutBuffer ====')
+        print('actions: {}'.format(self.actions.size))
+        print('states: {}'.format(self.states.size))
+        print('logprobs: {}'.format(self.log_probs.size))
+        print('rewards: {}'.format(self.rewards.size))
+        print('state_values: {}'.format(self.state_values.size))
+        print('is_terminals: {}'.format(self.is_terminals.size))
+        print('==== RolloutBuffer ====')
+
+    def clean(self):
+        self.buffer_size = 0
+        self.actions = np.atleast_2d([]).astype(np.float32)
+        self.states = np.atleast_2d([]).astype(np.float32)
+        self.log_probs = np.atleast_1d([]).astype(np.float32)
+        self.rewards = np.atleast_1d([]).astype(np.float32)
+        self.state_values = np.atleast_1d([]).astype(np.float32)
+        self.is_terminals = np.atleast_1d([]).astype(np.float32)
+
+
 class OUActionNoise(object):
     def __init__(self, mu, sigma=0.15, theta=0.2, dt=1e-2, x0=None):
         self.mu = mu

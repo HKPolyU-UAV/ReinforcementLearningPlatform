@@ -1,4 +1,4 @@
-<Plant name="Flight_Attitude_Simulator_2State_Continuous" author="Yefeng YANG" date="2023.03.15" E-mail="yefeng.yang@connect.polyu.hk">
+<Plant E-mail="yefeng.yang@connect.polyu.hk" author="Yefeng YANG" date="2023.03.15" name="Flight_Attitude_Simulator_2State_Continuous">
 	<RL_Base>
 		<state_dim>2</state_dim>
 		<state_num>[inf, inf]</state_num>
@@ -6,9 +6,9 @@
 		<state_space>[None, None]</state_space>
 		<state_range>[[-1.0471975511965976, 1.0471975511965976], [-1.5707963267948966, 1.5707963267948966]]</state_range>
 		<isStateContinuous>[True, True]</isStateContinuous>
-		<initial_state>[1.04719755 0.        ]</initial_state>
-		<current_state>[1.04719755 0.        ]</current_state>
-		<next_state>[1.04719755 0.        ]</next_state>
+		<initial_state>[0. 0.]</initial_state>
+		<current_state>[0. 0.]</current_state>
+		<next_state>[0. 0.]</next_state>
 		<action_dim>1</action_dim>
 		<action_step>[None]</action_step>
 		<action_range>[[-1.5, 4]]</action_range>
@@ -22,7 +22,7 @@
 		<is_terminal>False</is_terminal>
 	</RL_Base>
 	<Physical>
-		<initTheta>1.0471975511965976</initTheta>
+		<initTheta>0.0</initTheta>
 		<setTheta>0</setTheta>
 		<force>0</force>
 		<f_max>4</f_max>
@@ -33,7 +33,7 @@
 		<max_omega>1.5707963267948966</max_omega>
 		<min_theta_e>-1.0471975511965976</min_theta_e>
 		<max_theta_e>1.0471975511965976</max_theta_e>
-		<theta>1.0471975511965976</theta>
+		<theta>0.0</theta>
 		<dTheta>0.0</dTheta>
 		<dt>0.02</dt>
 		<Lw>0.02</Lw>

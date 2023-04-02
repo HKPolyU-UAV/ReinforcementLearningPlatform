@@ -34,7 +34,7 @@ class UGV_Bidirectional(rl_base):
 		self.a_wheel = np.zeros(2, dtype=np.float32)  # 车轮角加速度
 
 		self.wMax = 20  # 车轮最大角速度   rad/s
-		self.wMin = -20
+		self.wMin = 0
 		self.aMax = 20  # 车轮最大角加速度 rad/s^2
 		self.aMin = -20
 		self.r = 0.1  # 车轮半径
@@ -62,19 +62,20 @@ class UGV_Bidirectional(rl_base):
 		self.state_step = [None, None, None, None, None, None, None, None]
 		self.state_space = [None, None, None, None, None, None, None, None]
 		self.isStateContinuous = [True, True, True, True, True, True, True, True]
-		self.state_range = np.array(
-			[[-self.map_size[0], self.map_size[0]],
-			 [-self.map_size[1], self.map_size[1]],
-			 [0, self.map_size[0]],
-			 [0, self.map_size[1]],
-			 [self.r * self.wMin, self.r * self.wMax],
-			 [self.r * self.wMin, self.r * self.wMax],
-			 [self.phiMin, self.phiMax],
-			 [self.omegaMin, self.omegaMax]]
-		)
 		if self.use_normalization:
+			self.state_range = np.array([[-self.static_gain, self.static_gain] for _ in range(self.state_dim)])
 			self.initial_state = self.state_norm()
 		else:
+			self.state_range = np.array(
+				[[-self.map_size[0], self.map_size[0]],
+				 [-self.map_size[1], self.map_size[1]],
+				 [0, self.map_size[0]],
+				 [0, self.map_size[1]],
+				 [self.r * self.wMin, self.r * self.wMax],
+				 [self.r * self.wMin, self.r * self.wMax],
+				 [self.phiMin, self.phiMax],
+				 [self.omegaMin, self.omegaMax]]
+			)
 			self.initial_state = np.append(np.hstack((self.error, self.pos, self.vel)), [self.phi, self.omega])
 		self.current_state = self.initial_state.copy()
 		self.next_state = self.initial_state.copy()

@@ -1,4 +1,4 @@
-<Plant name="uav_hover" author="Yefeng YANG" date="2023.02.27" E-mail="yefeng.yang@connect.polyu.hk; 18B904013@stu.hit.edu.cn">
+<Plant E-mail="yefeng.yang@connect.polyu.hk; 18B904013@stu.hit.edu.cn" author="Yefeng YANG" date="2023.02.27" name="uav_hover">
 	<RL_Base>
 		<state_dim>15</state_dim>
 		<state_num>[inf, inf, inf, inf, inf, inf, inf, inf, inf, inf, inf, inf, inf, inf, inf]</state_num>
