@@ -79,10 +79,10 @@ class SecondOrderIntegration(rl_base):
 		'''visualization'''
 		self.x_offset = 20
 		self.y_offset = 20
-		self.board = 100
+		self.board = 150
 		self.pixel_per_meter = 50
 		self.image_size = (np.array(self.pixel_per_meter * self.map_size) + 2 * np.array([self.x_offset, self.y_offset])).astype(int)
-		self.image_size[1] += self.board
+		self.image_size[0] += self.board
 		self.image = np.zeros([self.image_size[1], self.image_size[0], 3], np.uint8)
 		self.image[:, :, 0] = np.ones([self.image_size[1], self.image_size[0]]) * 255
 		self.image[:, :, 1] = np.ones([self.image_size[1], self.image_size[0]]) * 255
@@ -129,11 +129,20 @@ class SecondOrderIntegration(rl_base):
 		self.draw_target()
 		self.draw_grid()
 
-		cv.putText(self.image, 'time:   %.3fs' % (round(self.time, 3)), (0, 25), cv.FONT_HERSHEY_COMPLEX, 0.6, Color().Purple, 1)
+		cv.putText(self.image, 'time:   %.3fs' % (round(self.time, 3)), (self.image_size[0] - self.board - 5, 25), cv.FONT_HERSHEY_COMPLEX, 0.4, Color().Purple, 1)
 
-		cv.putText(self.image, 'pos:    [%.2f, %.2f]m' % (round(self.pos[0], 3), round(self.pos[1], 3)), (250, 25), cv.FONT_HERSHEY_COMPLEX, 0.6, Color().Purple, 1)
-		cv.putText(self.image, 'error:  [%.2f, %.2f]m' % (round(self.error[0], 3), round(self.error[1], 3)), (250, 60), cv.FONT_HERSHEY_COMPLEX, 0.6, Color().Purple, 1)
-		cv.putText(self.image, 'vel:    [%.2f, %.2f]m/s' % (round(self.vel[0], 3), round(self.vel[1], 3)), (250, 95), cv.FONT_HERSHEY_COMPLEX, 0.6, Color().Purple, 1)
+		cv.putText(
+			self.image,
+			'pos: [%.2f, %.2f]m' % (round(self.pos[0], 3), round(self.pos[1], 3)),
+			(self.image_size[0] - self.board - 5, 60), cv.FONT_HERSHEY_COMPLEX, 0.4, Color().Purple, 1)
+		cv.putText(
+			self.image,
+			'error: [%.2f, %.2f]m' % (round(self.error[0], 3), round(self.error[1], 3)),
+			(self.image_size[0] - self.board - 5, 95), cv.FONT_HERSHEY_COMPLEX, 0.4, Color().Purple, 1)
+		cv.putText(
+			self.image,
+			'vel: [%.2f, %.2f]m/s' % (round(self.vel[0], 3), round(self.vel[1], 3)),
+			(self.image_size[0] - self.board - 5, 140), cv.FONT_HERSHEY_COMPLEX, 0.4, Color().Purple, 1)
 
 		cv.imshow(self.name, self.image)
 		cv.waitKey(0) if isWait else cv.waitKey(1)
@@ -173,17 +182,17 @@ class SecondOrderIntegration(rl_base):
 			pass
 
 	def draw_boundary(self):
-		cv.line(self.image, (self.x_offset, self.y_offset + self.board), (self.image_size[0] - self.x_offset, self.y_offset + self.board), Color().Black, 2)
-		cv.line(self.image, (self.x_offset, self.y_offset + self.board), (self.x_offset, self.image_size[1] - self.y_offset), Color().Black, 2)
+		cv.line(self.image, (self.x_offset, self.y_offset), (self.image_size[0] - self.x_offset - self.board, self.y_offset), Color().Black, 2)
+		cv.line(self.image, (self.x_offset, self.y_offset), (self.x_offset, self.image_size[1] - self.y_offset), Color().Black, 2)
 		cv.line(
 			self.image,
-			(self.image_size[0] - self.x_offset, self.image_size[1] - self.y_offset),
+			(self.image_size[0] - self.x_offset - self.board, self.image_size[1] - self.y_offset),
 			(self.x_offset, self.image_size[1] - self.y_offset), Color().Black, 2
 		)
 		cv.line(
 			self.image,
-			(self.image_size[0] - self.x_offset, self.image_size[1] - self.y_offset),
-			(self.image_size[0] - self.x_offset, self.y_offset + self.board), Color().Black, 2
+			(self.image_size[0] - self.x_offset - self.board, self.image_size[1] - self.y_offset),
+			(self.image_size[0] - self.x_offset - self.board, self.y_offset), Color().Black, 2
 		)
 
 	def draw_target(self):
@@ -224,18 +233,18 @@ class SecondOrderIntegration(rl_base):
 		return False
 
 	def is_Terminal(self, param=None):
-		if self.is_out():
-			print('...out...')
-			self.terminal_flag = 1
-			return True
+		# if self.is_out():
+		# 	# print('...out...')
+		# 	self.terminal_flag = 1
+		# 	return True
 		if self.time > self.timeMax:
-			print('...time out...')
+			# print('...time out...')
 			self.terminal_flag = 2
 			return True
 		if self.is_success():
 			print('...success...')
 			self.terminal_flag = 3
-			return False
+			# return True
 		self.terminal_flag = 0
 		return False
 
@@ -260,15 +269,6 @@ class SecondOrderIntegration(rl_base):
 		else:
 			r1 = 0
 			# r1 = -nex_error ** 2 * R_e  # 位置二次型惩罚，走得越远罚得越多
-
-		# R_v = 0.01
-		# r2 = self.vMax ** 2 * R_v - nex_vel ** 2 * R_v
-		r2 = 0
-		if np.sign(self.init_target[0] - self.init_pos[0]) * np.sign(nex_s[4]) > 0:
-			r2 += 0.5
-		if np.sign(self.init_target[1] - self.init_pos[1]) * np.sign(nex_s[5]) > 0:
-			r2 += 0.5
-
 
 		# if nex_error < cur_error:
 
@@ -363,17 +363,28 @@ class SecondOrderIntegration(rl_base):
 
 		'''4. 其他'''
 		if self.terminal_flag == 3:  # 成功
-			r4 = 10
+			r4 = 100
 		elif self.terminal_flag == 2:  # 超时
 			r4 = 0
 		elif self.terminal_flag == 1:  # 出界
-			r4 = -200
+			r4 = -0
 		else:
 			r4 = 0
 		'''4. 其他'''
 		# self.reward = rx_v + rx_e + ry_v + ry_e + r4		# s2
 		# self.reward = r1 + r2 + r3 + r4					# s1
-		self.reward = -(nex_error / np.linalg.norm(self.map_size)) ** 2 * 5 + r4
+		yyf_x0 = nex_error / np.linalg.norm(self.map_size)
+		if yyf_x0 < 0.25:
+			kk = -180 * yyf_x0 + 50
+		else:
+			kk = 5
+		r1 = (-yyf_x0 + 0.5) * kk
+		theta = np.arccos(np.dot(nex_s[4: 6], nex_s[0: 2]) / (np.linalg.norm(nex_s[0: 2]) * np.linalg.norm(nex_s[4: 6])))
+		if theta < rad2deg(45):			# 小于 45 度，不罚
+			r2 = 0
+		else:
+			r2 = -(theta - rad2deg(45)) ** kk
+		self.reward = r1 + r2 + r4
 
 	def ode(self, xx: np.ndarray):
 		"""
@@ -454,13 +465,15 @@ class SecondOrderIntegration(rl_base):
 		self.terminal_flag = 0
 
 	def reset_random(self):
-		self.init_pos = np.array([np.random.uniform(0 + 0.03, self.map_size[0] - 0.03),
-								  np.random.uniform(0 + 0.03, self.map_size[1] - 0.03)])
+		# self.init_pos = np.array([np.random.uniform(0 + 0.03, self.map_size[0] - 0.03),
+		# 						  np.random.uniform(0 + 0.03, self.map_size[1] - 0.03)])
+
+		self.init_pos = self.map_size / 2
 
 		self.init_vel = np.array([np.random.uniform(self.vMin, self.vMax),
 									 np.random.uniform(self.vMin, self.vMax)])
-		self.init_target = np.array([np.random.uniform(0 + 0.03, self.map_size[0] - 0.03),
-								  np.random.uniform(0 + 0.03, self.map_size[1] - 0.03)])
+		self.init_target = np.array([np.random.uniform(0 + 0.1, self.map_size[0] - 0.1),
+								  np.random.uniform(0 + 0.1, self.map_size[1] - 0.1)])
 
 		self.pos = self.init_pos.copy()
 		self.vel = self.init_vel.copy()

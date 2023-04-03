@@ -148,6 +148,13 @@ The result should be similar to the following.
     <img src="https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/datasave/video/gif/DDPG-4-UGV-Obstacle2.gif" width="400px">
 </div>
 
+### A DPPO controller for SecondOrderIntegration system.
+The result should be similar to the following.
+
+<div align=center>
+    <img src="https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/datasave/video/gif/DPPO-4-SecondOrderIntegration.gif" width="400px">
+</div>
+
 # TODO
 ## Algorithms
 - [x] Add A2C

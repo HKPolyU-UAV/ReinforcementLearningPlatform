@@ -46,21 +46,21 @@ class PPOActorCritic(nn.Module):
 		# 应该是初始化方差，一个动作就一个方差，两个动作就两个方差，std 是标准差
 		self.action_var = torch.full((self.action_dim,), self.action_std_init * self.action_std_init)	# 是一个向量
 		self.actor = nn.Sequential(
-			nn.Linear(self.state_dim, 64),
+			nn.Linear(self.state_dim, 128),
 			nn.ReLU(),
-			nn.Linear(64, 64),
+			nn.Linear(128, 128),
 			nn.ReLU(),
-			nn.Linear(64, 32),
+			nn.Linear(128, 64),
 			nn.ReLU(),
-			nn.Linear(32, self.action_dim),
+			nn.Linear(64, self.action_dim),
 			nn.Tanh()
 		)
 		self.critic = nn.Sequential(
-			nn.Linear(self.state_dim, 64),
+			nn.Linear(self.state_dim, 128),
 			nn.ReLU(),
-			nn.Linear(64, 64),
+			nn.Linear(128, 128),
 			nn.ReLU(),
-			nn.Linear(64, 32),
+			nn.Linear(128, 32),
 			nn.ReLU(),
 			nn.Linear(32, 1)
 		)
@@ -146,7 +146,7 @@ if __name__ == '__main__':
 					actor_lr=3e-4,
 					critic_lr=1e-3,
 					gamma=0.99,
-					K_epochs=80,
+					K_epochs=200,
 					eps_clip=0.2,
 					action_std_init=action_std_init,
 					buffer_size=int(env.timeMax / env.dt * 2),  # 假设可以包含两条完整的最长时间的轨迹
@@ -259,8 +259,8 @@ if __name__ == '__main__':
 				agent.episode += 1
 
 				'''学习'''
-				# if env.terminal_flag == 2:		# 首先，必须是不出界的轨迹
-				if True:
+				if env.terminal_flag == 2:		# 首先，必须是不出界的轨迹
+				# if True:
 					print('得到一条轨迹，添加...')
 					print('cumulative reward: ', sumr)
 					timestep += _localTimeStep
@@ -271,7 +271,7 @@ if __name__ == '__main__':
 						agent.learn()
 						agent.buffer2.clean()
 						train_num += 1
-						if train_num % 20 == 0 and train_num > 0:
+						if train_num % 50 == 0 and train_num > 0:
 							average_test_r = agent.agent_evaluate(5)
 							test_num += 1
 							print('check point save')
@@ -282,7 +282,7 @@ if __name__ == '__main__':
 						print('========== LEARN ==========')
 				'''学习'''
 
-				if train_num % 200 == 0 and train_num > 0:		# 训练 200 次，减小方差
+				if train_num % 500 == 0 and train_num > 0:		# 训练 200 次，减小方差
 					print('减小方差')
 					agent.decay_action_std(action_std_decay_rate, min_action_std)
 

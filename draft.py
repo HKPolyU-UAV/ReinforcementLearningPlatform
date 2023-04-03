@@ -36,8 +36,8 @@ from torch.distributions import MultivariateNormal
 
 
 if __name__ == '__main__':
-	a = np.atleast_1d([1, 2, 3]).astype(np.float32)
-	print(a)
-	a = np.hstack((a, 1))
-	print(a)
+	a = np.array([1, 0])
+	b = np.array([-1, 0])
+	angle = np.arccos(a.dot(b) / (np.linalg.norm(a) * np.linalg.norm(b))) * 180 / np.pi
+	print(angle)
 	pass

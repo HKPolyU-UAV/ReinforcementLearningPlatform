@@ -1,4 +1,6 @@
 import cv2 as cv
+import numpy as np
+
 from common.common_cls import *
 import torch.multiprocessing as mp
 import pandas as pd
@@ -43,6 +45,7 @@ class Worker(mp.Process):
 		self.queue = _queue
 		self.lock = _lock
 		self.buffer = RolloutBuffer(int(self.env.timeMax / self.env.dt * 2), self.env.state_dim, self.env.action_dim)
+		self.buffer2 = RolloutBuffer2(self.env.state_dim, self.env.action_dim)
 		self.gamma = _ppo_msg['gamma']
 		self.k_epo = _ppo_msg['k_epo']
 		self.eps_c = _ppo_msg['eps_c']
@@ -61,7 +64,7 @@ class Worker(mp.Process):
 			rewards.insert(0, discounted_reward)
 
 		rewards = torch.tensor(rewards, dtype=torch.float32).to(self.device)
-		rewards = (rewards - rewards.mean()) / (rewards.std() + 1e-7)
+		# rewards = (rewards - rewards.mean()) / (rewards.std() + 1e-7)
 
 		with torch.no_grad():
 			old_states = torch.FloatTensor(self.buffer.states).detach().to(self.device)
@@ -104,7 +107,7 @@ class Worker(mp.Process):
 			k = (maxa - mina) / 2
 			b = (maxa + mina) / 2
 			linear_action.append(k * a + b)
-		return linear_action
+		return np.array(linear_action)
 
 	def set_action_std(self, new_action_std):
 		self.action_std = new_action_std
@@ -121,11 +124,11 @@ class Worker(mp.Process):
 		self.set_action_std(self.action_std)
 
 	def run(self):
-		max_training_timestep = int(self.env.timeMax / self.env.dt) * 5000  # 5000 最长回合的数据
+		max_training_timestep = int(self.env.timeMax / self.env.dt) * 20000  # 5000 最长回合的数据
 		# max_training_timestep = 5000
-		action_std_decay_freq = int(2e5)  # 每隔这么多个 timestep 把探索方差减小点
-		action_std_decay_rate = 0.05  # linearly decay action_std (action_std = action_std - action_std_decay_rate)
-		min_action_std = 0.1  # 方差最小不能小于 0.1，不管啥时候，都得适当探索
+		action_std_decay_freq = int(8e5)  # 每隔这么多个 timestep 把探索方差减小点
+		action_std_decay_rate = 0.02  # linearly decay action_std (action_std = action_std - action_std_decay_rate)
+		min_action_std = 0.4  # 方差最小不能小于 0.1，不管啥时候，都得适当探索
 		train_num = 0
 		timestep = 0
 		start_eps = 0
@@ -136,6 +139,7 @@ class Worker(mp.Process):
 			'''收集数据'''
 			while index < self.buffer.batch_size:
 				self.env.reset_random()
+				# self.env.reset()
 				while not self.env.is_terminal:
 					self.env.current_state = self.env.next_state.copy()
 					action_from_actor, s, a_log_prob, s_value = self.choose_action(self.env.current_state)  # 返回三个没有梯度的tensor
@@ -158,7 +162,7 @@ class Worker(mp.Process):
 						break
 			'''收集数据'''
 			'''学习'''
-			print('========== LEARN ' + self.name + '==========')
+			# print('========== LEARN ' + self.name + '==========')
 			# print('Num of learning: {}'.format(train_num))
 			self.learn()
 			train_num += 1
@@ -166,8 +170,8 @@ class Worker(mp.Process):
 			start_eps = self.episode
 			with self.lock:
 				self.global_training_num.value += 1
-				print('Global training: ', self.global_training_num.value)
-			print('========== LEARN ==========')
+				# print('Global training: ', self.global_training_num.value)
+			# print('========== LEARN ==========')
 			'''学习'''
 			self.episode += 1
 			self.queue.put(round(sumr / (self.episode + 1 - start_eps), 3))
@@ -225,30 +229,42 @@ class Distributed_PPO:
 			training_r = self.queue.get()
 			if training_r is None:
 				break
-			else:
-				self.training_record.append(training_r)
-				if len(self.training_record) % 100 == 0:	# 就往文件里面存一下
-					self.save_training_record()
-			if self.global_training_num.value % 100 == 0 and self.global_training_num.value > 0:
-				self.eval_policy.load_state_dict(self.global_policy.state_dict())  # 复制 global policy
-				print('...saving check point... ', int(self.global_training_num.value / 50))
-				self.save_models()
-				eval_num = 5
-				r = 0
-				for i in range(eval_num):
-					self.env.reset_random()
-					while not self.env.is_terminal:
-						self.env.current_state = self.env.next_state.copy()
-						action_from_actor = self.evaluate(self.env.current_state)
-						action_from_actor = action_from_actor.numpy()
-						action = self.action_linear_trans(action_from_actor.flatten())  # 将动作转换到实际范围上
-						self.env.step_update(action)  # 环境更新的action需要是物理的action
-						r += self.env.reward
-						self.env.show_dynamic_image(isWait=False)  # 画图
-				cv.destroyAllWindows()
-				r /= eval_num
-				self.evaluate_record.append(r)
-				self.save_evaluation_record()
+
+			# if self.global_training_num.value % 100 == 0:
+			# 	print('Training count:, ', self.global_training_num.value)
+			'''主进程不停地测试，每次随机选择 500 个回合。保存每次记录开始时候的网络，直至循环完成或者强制停止'''
+			training_num_temp = self.global_training_num.value 		# 记录一下当前的数字，因为测试和学习同时进行的，号码容易窜
+			self.eval_policy.load_state_dict(self.global_policy.state_dict())  # 复制 global policy
+			print('...saving check point... ', int(training_num_temp))
+			self.global_policy.save_checkpoint(name='Policy_PPO', path=self.path, num=training_num_temp)
+			# self.save_models()
+			eval_num = 500
+			r = 0
+			error = []
+			for i in range(eval_num):
+				if i % 100 == 0:
+					print('测试: ', i)
+				self.env.reset_random()
+				# self.env.reset()
+				while not self.env.is_terminal:
+					self.env.current_state = self.env.next_state.copy()
+					action_from_actor = self.evaluate(self.env.current_state)
+					action_from_actor = action_from_actor.numpy()
+					action = self.action_linear_trans(action_from_actor.flatten())  # 将动作转换到实际范围上
+					self.env.step_update(action)  # 环境更新的action需要是物理的action
+					r += self.env.reward
+					# self.env.show_dynamic_image(isWait=False)  # 画图
+				error.append(np.linalg.norm(self.env.error))
+			cv.destroyAllWindows()
+			error = np.array(error)
+			with open(self.path + str(training_num_temp) + '.txt', 'w') as f:
+				f.write('mean error: %.3f\n' % (error.mean()))
+				f.write('std error: %.3f\n' % (error.std()))
+				f.write('max error: %.3f\n' % (np.max(error)))
+				f.write('min error: %.3f\n' % (np.min(error)))
+				# r /= eval_num
+				# self.evaluate_record.append(r)
+				# self.save_evaluation_record()
 		print('...training end...')
 
 	def add_worker(self, worker: Worker):
@@ -297,7 +313,7 @@ class Distributed_PPO:
 			k = (maxa - mina) / 2
 			b = (maxa + mina) / 2
 			linear_action.append(k * a + b)
-		return linear_action
+		return np.array(linear_action)
 
 	def save_training_record(self):
 		pd.DataFrame({'training record': self.training_record}).to_csv(self.path + 'train_record.csv', index=True, sep=',')
