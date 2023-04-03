@@ -1,0 +1,4 @@
+mean error: 0.100
+std error: 0.059
+max error: 0.285
+min error: 0.011
