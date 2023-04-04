@@ -270,97 +270,6 @@ class SecondOrderIntegration(rl_base):
 			r1 = 0
 			# r1 = -nex_error ** 2 * R_e  # 位置二次型惩罚，走得越远罚得越多
 
-		# if nex_error < cur_error:
-
-		r3 = 0
-
-		'''s2'''
-		# t0 = self.vMax / self.aMax  # 加速到最大速度最短时间
-		# s0 = 0.5 * self.aMax * t0 ** 2  # s = a t ^ 2 / 2
-		#
-		# def cal_ref_x(_t: float, _has_max: bool):
-		# 	init_e = np.fabs(self.init_target[0] - self.init_pos[0])
-		# 	if _has_max:	# 有平的一段
-		# 		_tm = init_e / self.aMax / t0 + t0
-		# 		if _t <= t0:
-		# 			ref_v = self.aMax * _t
-		# 			ref_s = 0.5 * self.aMax * _t ** 2
-		# 		elif t0 < _t <= _tm - t0:
-		# 			ref_v = self.vMax
-		# 			ref_s = 0.5 * self.aMax * t0 ** 2 + self.vMax * (_t - t0)
-		# 		elif _tm - t0 < _t <= _tm:
-		# 			ref_v = self.aMax * (_tm - _t)
-		# 			ref_s = init_e - 0.5 * self.aMax * (_tm - _t) ** 2
-		# 		else:
-		# 			ref_v = 0.
-		# 			ref_s = init_e
-		# 	else:			# 没有平的一段
-		# 		t1 = np.sqrt(init_e / self.aMax)
-		# 		if _t < t1:
-		# 			ref_v = self.aMax * _t
-		# 			ref_s = 0.5 * self.aMax * _t ** 2
-		# 		elif t1 <= _t < 2 * t1:
-		# 			ref_v = self.aMax * (2 * t1 - _t)
-		# 			ref_s = init_e - 0.5 * self.aMax * (2 * t1 - _t) ** 2
-		# 		else:
-		# 			ref_v = 0.
-		# 			ref_s = init_e
-		# 	if self.init_target[0] - self.init_pos[0] >= 0:
-		# 		return ref_v, init_e - ref_s
-		# 	else:
-		# 		return -ref_v, -init_e + ref_s
-		#
-		#
-		# def cal_ref_y(_t: float, _has_max: bool):
-		# 	init_e = np.fabs(self.init_target[1] - self.init_pos[1])
-		# 	if _has_max:	# 有平的一段
-		# 		_tm = init_e / self.aMax / t0 + t0
-		# 		if _t <= t0:
-		# 			ref_v = self.aMax * _t
-		# 			ref_s = 0.5 * self.aMax * _t ** 2
-		# 		elif t0 < _t <= _tm - t0:
-		# 			ref_v = self.vMax
-		# 			ref_s = 0.5 * self.aMax * t0 ** 2 + self.vMax * (_t - t0)
-		# 		elif _tm - t0 < _t <= _tm:
-		# 			ref_v = self.aMax * (_tm - _t)
-		# 			ref_s = init_e - 0.5 * self.aMax * (_tm - _t) ** 2
-		# 		else:
-		# 			ref_v = 0.
-		# 			ref_s = init_e
-		# 	else:			# 没有平的一段
-		# 		t1 = np.sqrt(init_e / self.aMax)
-		# 		if _t < t1:
-		# 			ref_v = self.aMax * _t
-		# 			ref_s = 0.5 * self.aMax * _t ** 2
-		# 		elif t1 <= _t < 2 * t1:
-		# 			ref_v = self.aMax * (2 * t1 - _t)
-		# 			ref_s = init_e - 0.5 * self.aMax * (2 * t1 - _t) ** 2
-		# 		else:
-		# 			ref_v = 0.
-		# 			ref_s = init_e
-		# 	if self.init_target[1] - self.init_pos[1] >= 0:
-		# 		return ref_v, init_e - ref_s
-		# 	else:
-		# 		return -ref_v, -init_e + ref_s
-		#
-		#
-		# '''X'''
-		# has_max = np.fabs(self.init_target[0] - self.init_pos[0]) > 2 * s0
-		# ref_v, ref_e = cal_ref_x(self.time, has_max)
-		# rx_v = -(cur_s[4] - ref_v) ** 2 * 0.1
-		# rx_e = -(cur_s[0] - ref_e) ** 2
-		# '''X'''
-		#
-		# '''Y'''
-		# has_max = np.fabs(self.init_target[1] - self.init_pos[1]) > 2 * s0
-		# ref_v, ref_e = cal_ref_y(self.time, has_max)
-		# ry_v = -(cur_s[5] - ref_v) ** 2 * 0.001
-		# ry_e = -(cur_s[1] - ref_e) ** 2 * 0.01
-		# '''Y'''
-
-		'''s3'''
-
-
 		'''4. 其他'''
 		if self.terminal_flag == 3:  # 成功
 			r4 = 100
@@ -383,7 +292,7 @@ class SecondOrderIntegration(rl_base):
 		if theta < rad2deg(45):			# 小于 45 度，不罚
 			r2 = 0
 		else:
-			r2 = -(theta - rad2deg(45)) ** kk
+			r2 = -(theta - rad2deg(45)) * kk
 		self.reward = r1 + r2 + r4
 
 	def ode(self, xx: np.ndarray):

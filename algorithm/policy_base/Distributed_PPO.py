@@ -127,8 +127,8 @@ class Worker(mp.Process):
 		max_training_timestep = int(self.env.timeMax / self.env.dt) * 20000  # 5000 最长回合的数据
 		# max_training_timestep = 5000
 		action_std_decay_freq = int(8e5)  # 每隔这么多个 timestep 把探索方差减小点
-		action_std_decay_rate = 0.02  # linearly decay action_std (action_std = action_std - action_std_decay_rate)
-		min_action_std = 0.4  # 方差最小不能小于 0.1，不管啥时候，都得适当探索
+		action_std_decay_rate = 0.05  # linearly decay action_std (action_std = action_std - action_std_decay_rate)
+		min_action_std = 0.4  # 方差最小不能小于 0.4，不管啥时候，都得适当探索
 		train_num = 0
 		timestep = 0
 		start_eps = 0
@@ -145,7 +145,7 @@ class Worker(mp.Process):
 					action_from_actor, s, a_log_prob, s_value = self.choose_action(self.env.current_state)  # 返回三个没有梯度的tensor
 					action_from_actor = action_from_actor.numpy()
 					action = self.action_linear_trans(action_from_actor.flatten())  # 将动作转换到实际范围上
-					self.env.step_update(action)  # 环境更新的action需要是物理的action
+					self.env.step_update(action.astype(np.float32))  # 环境更新的action需要是物理的action
 					sumr += self.env.reward
 					self.buffer.append(s=self.env.current_state,
 									   a=action_from_actor,
@@ -177,6 +177,76 @@ class Worker(mp.Process):
 			self.queue.put(round(sumr / (self.episode + 1 - start_eps), 3))
 
 		self.queue.put(None)  # 这个进程结束了，就把None放进去，用于global判断
+
+	'''这个run是给UGVBi用的'''
+	# def run(self):
+	# 	max_training_timestep = int(self.env.timeMax / self.env.dt) * 20000  # 5000 最长回合的数据
+	# 	# max_training_timestep = 5000
+	# 	action_std_decay_freq = int(2.5e5)  # 每隔这么多个 timestep 把探索方差减小点
+	# 	action_std_decay_rate = 0.05  # linearly decay action_std (action_std = action_std - action_std_decay_rate)
+	# 	min_action_std = 0.4  # 方差最小不能小于 0.1，不管啥时候，都得适当探索
+	# 	train_num = 0
+	# 	timestep = 0
+	# 	start_eps = 0
+	# 	while timestep <= max_training_timestep:
+	# 		sumr = 0
+	# 		self.l_pi.load_state_dict(self.g_pi.state_dict())  # 从全局 policy 中加载网络
+	# 		'''收集数据'''
+	# 		_temp_s = np.atleast_2d([]).astype(np.float32)
+	# 		_temp_a = np.atleast_2d([]).astype(np.float32)
+	# 		_temp_log_prob = np.atleast_1d([]).astype(np.float32)
+	# 		_temp_r = np.atleast_1d([]).astype(np.float32)
+	# 		_temp_sv = np.atleast_1d([]).astype(np.float32)
+	# 		_temp_done = np.atleast_1d([]).astype(np.float32)
+	# 		_localTimeStep = 0
+	# 		self.env.reset_random()
+	# 		# self.env.reset()
+	# 		while not self.env.is_terminal:
+	# 			self.env.current_state = self.env.next_state.copy()
+	# 			action_from_actor, s, a_log_prob, s_value = self.choose_action(self.env.current_state)  # 返回三个没有梯度的tensor
+	# 			action_from_actor = action_from_actor.numpy()
+	# 			action = self.action_linear_trans(action_from_actor.flatten())  # 将动作转换到实际范围上
+	# 			self.env.step_update(action)  # 环境更新的action需要是物理的action
+	# 			self.env.show_dynamic_image(False)
+	# 			sumr += self.env.reward
+	# 			'''临时存数'''
+	# 			if len(_temp_done) == 0:
+	# 				_temp_s = np.atleast_2d(self.env.current_state).astype(np.float32)
+	# 				_temp_a = np.atleast_2d(action_from_actor).astype(np.float32)
+	# 				_temp_log_prob = np.atleast_1d(a_log_prob.numpy()).astype(np.float32)
+	# 				_temp_r = np.atleast_1d(self.env.reward).astype(np.float32)
+	# 				_temp_sv = np.atleast_1d(s_value.numpy()).astype(np.float32)
+	# 				_temp_done = np.atleast_1d(1.0 if self.env.is_terminal else 0.0).astype(np.float32)
+	# 			else:
+	# 				_temp_s = np.vstack((_temp_s, self.env.current_state))
+	# 				_temp_a = np.vstack((_temp_a, action_from_actor))
+	# 				_temp_log_prob = np.hstack((_temp_log_prob, a_log_prob.numpy()))
+	# 				_temp_r = np.hstack((_temp_r, self.env.reward))
+	# 				_temp_sv = np.hstack((_temp_sv, s_value.numpy()))
+	# 				_temp_done = np.hstack((_temp_done, 1.0 if self.env.is_terminal else 0.0))
+	# 			_localTimeStep += 1
+	# 			'''临时存数'''
+	# 		'''收集数据'''
+	#
+	# 		'''走到这，回合肯定结束了'''
+	# 		if self.env.terminal_flag != 4:
+	# 			self.episode += 1
+	# 			can_train = self.buffer.append_traj(_temp_s, _temp_a, _temp_log_prob, _temp_r, _temp_sv, _temp_done)
+	# 			if can_train:
+	# 				timestep += _localTimeStep
+	# 				'''学习'''
+	# 				self.learn()
+	# 				train_num += 1
+	# 				start_eps = self.episode
+	# 				with self.lock:
+	# 					self.global_training_num.value += 1
+	# 				'''学习'''
+	# 				if timestep > action_std_decay_freq:
+	# 					action_std_decay_freq *= 2
+	# 					self.decay_action_std(action_std_decay_rate, min_action_std)
+	# 				self.queue.put(round(sumr / (self.episode + 1 - start_eps), 3))
+	#
+	# 	self.queue.put(None)  # 这个进程结束了，就把None放进去，用于global判断
 
 
 class Distributed_PPO:
@@ -229,39 +299,41 @@ class Distributed_PPO:
 			training_r = self.queue.get()
 			if training_r is None:
 				break
-
-			# if self.global_training_num.value % 100 == 0:
-			# 	print('Training count:, ', self.global_training_num.value)
-			'''主进程不停地测试，每次随机选择 500 个回合。保存每次记录开始时候的网络，直至循环完成或者强制停止'''
-			training_num_temp = self.global_training_num.value 		# 记录一下当前的数字，因为测试和学习同时进行的，号码容易窜
-			self.eval_policy.load_state_dict(self.global_policy.state_dict())  # 复制 global policy
-			print('...saving check point... ', int(training_num_temp))
-			self.global_policy.save_checkpoint(name='Policy_PPO', path=self.path, num=training_num_temp)
-			# self.save_models()
-			eval_num = 500
-			r = 0
-			error = []
-			for i in range(eval_num):
-				if i % 100 == 0:
-					print('测试: ', i)
-				self.env.reset_random()
-				# self.env.reset()
-				while not self.env.is_terminal:
-					self.env.current_state = self.env.next_state.copy()
-					action_from_actor = self.evaluate(self.env.current_state)
-					action_from_actor = action_from_actor.numpy()
-					action = self.action_linear_trans(action_from_actor.flatten())  # 将动作转换到实际范围上
-					self.env.step_update(action)  # 环境更新的action需要是物理的action
-					r += self.env.reward
-					# self.env.show_dynamic_image(isWait=False)  # 画图
-				error.append(np.linalg.norm(self.env.error))
-			cv.destroyAllWindows()
-			error = np.array(error)
-			with open(self.path + str(training_num_temp) + '.txt', 'w') as f:
-				f.write('mean error: %.3f\n' % (error.mean()))
-				f.write('std error: %.3f\n' % (error.std()))
-				f.write('max error: %.3f\n' % (np.max(error)))
-				f.write('min error: %.3f\n' % (np.min(error)))
+			if self.global_training_num.value % 50 == 0:
+				print('Training count:, ', self.global_training_num.value)
+			if self.global_training_num.value % 300 == 0:
+				# 	print('Training count:, ', self.global_training_num.value)
+				'''主进程不停地测试，每次随机选择 500 个回合。保存每次记录开始时候的网络，直至循环完成或者强制停止'''
+				training_num_temp = self.global_training_num.value 		# 记录一下当前的数字，因为测试和学习同时进行的，号码容易窜
+				self.eval_policy.load_state_dict(self.global_policy.state_dict())  # 复制 global policy
+				print('...saving check point... ', int(training_num_temp))
+				self.global_policy.save_checkpoint(name='Policy_PPO', path=self.path, num=training_num_temp)
+				# self.save_models()
+				eval_num = 10
+				r = 0
+				error = []
+				for i in range(eval_num):
+					if i % 100 == 0:
+						print('测试: ', i)
+					self.env.reset_random()
+					# self.env.reset()
+					while not self.env.is_terminal:
+						self.env.current_state = self.env.next_state.copy()
+						action_from_actor = self.evaluate(self.env.current_state)
+						action_from_actor = action_from_actor.numpy()
+						action = self.action_linear_trans(action_from_actor.flatten())  # 将动作转换到实际范围上
+						# print(action_from_actor, action)
+						self.env.step_update(action.astype(np.float32))  # 环境更新的action需要是物理的action
+						r += self.env.reward
+						self.env.show_dynamic_image(isWait=False)  # 画图
+					error.append(np.linalg.norm(self.env.error))
+				cv.destroyAllWindows()
+			# error = np.array(error)
+			# with open(self.path + str(training_num_temp) + '.txt', 'w') as f:
+			# 	f.write('mean error: %.3f\n' % (error.mean()))
+			# 	f.write('std error: %.3f\n' % (error.std()))
+			# 	f.write('max error: %.3f\n' % (np.max(error)))
+			# 	f.write('min error: %.3f\n' % (np.min(error)))
 				# r /= eval_num
 				# self.evaluate_record.append(r)
 				# self.save_evaluation_record()

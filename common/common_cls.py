@@ -81,6 +81,7 @@ class RolloutBuffer:
         self.rewards = np.zeros(batch_size)
         self.state_values = np.zeros(batch_size)
         self.is_terminals = np.zeros(batch_size, dtype=np.float)
+        self.index = 0
 
     def append(self, s: np.ndarray, a: np.ndarray, log_prob: float, r: float, sv: float, done: float, index: int):
         self.actions[index] = a
@@ -89,6 +90,22 @@ class RolloutBuffer:
         self.rewards[index] = r
         self.state_values[index] = sv
         self.is_terminals[index] = done
+
+    def append_traj(self, s: np.ndarray, a: np.ndarray, log_prob: np.ndarray, r: np.ndarray, sv: np.ndarray, done: np.ndarray):
+        _l = len(done)
+        for i in range(_l):
+            if self.index == self.batch_size:
+                self.index = 0
+                return True
+            else:
+                self.actions[self.index] = a[i]
+                self.states[self.index] = s[i]
+                self.log_probs[self.index] = log_prob[i]
+                self.rewards[self.index] = r[i]
+                self.state_values[self.index] = sv[i]
+                self.is_terminals[self.index] = done[i]
+                self.index += 1
+        return False
 
     def print_size(self):
         print('==== RolloutBuffer ====')
