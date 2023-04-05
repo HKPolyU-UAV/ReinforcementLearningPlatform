@@ -265,6 +265,7 @@ class UGV_Forward(rl_base):
 
 		cur_error = np.linalg.norm(cur_s[0: 2])
 		nex_error = np.linalg.norm(nex_s[0: 2])
+		yyf_x0 = nex_error / np.linalg.norm(self.map_size)
 
 		if self.sum_d_theta > 4 * np.pi:  # 如果转的超过两圈
 			self.terminal_flag = 4
@@ -283,7 +284,7 @@ class UGV_Forward(rl_base):
 		'''4. 其他'''
 		# ex, ey, x, y, dx, dy, phi, dphi
 		'''r1 是位置'''
-		yyf_x0 = nex_error / np.linalg.norm(self.map_size)
+
 		if yyf_x0 >= 0.25:
 			kk = -180 * yyf_x0 + 45  # yyf_x0 = 0.25 时，kk = 0，误差大于0.25，开始罚，误差小于 0.25 开始奖励
 			r1 = yyf_x0 * kk  # nex_error
@@ -291,7 +292,7 @@ class UGV_Forward(rl_base):
 			kk = -180 * yyf_x0 + 45
 			r1 = (0.25 - yyf_x0) * kk
 		k1 = 5
-		r1 = -(yyf_x0 * 2) ** 2 * k1
+		r1 = -(yyf_x0 * 4) ** 2 * k1
 
 		'''r2 是角度'''
 		nex_phi = nex_s[-2]  # 车的朝向角
@@ -301,7 +302,7 @@ class UGV_Forward(rl_base):
 		theta = np.arccos(np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2)))
 		# theta = min(theta, np.pi - theta)
 		kk2 = 5
-		if nex_error < 2 * self.miss:  # 如果误差比较小，就不考虑角度了
+		if nex_error < 1 * self.miss:  # 如果误差比较小，就不考虑角度了
 			r2 = 0
 		else:
 			r2 = -(theta) ** 2 * kk2
@@ -425,6 +426,10 @@ class UGV_Forward(rl_base):
 		self.init_omega = self.r / self.L * (self.w_wheel[1] - self.w_wheel[0])
 		self.init_target = np.array([np.random.uniform(0 + self.rBody + 0.1, self.map_size[0] - self.rBody - 0.1),
 									 np.random.uniform(0 + self.rBody + 0.1, self.map_size[1] - self.rBody - 0.1)])
+		'''初始点与目标点不可以距离太近'''
+		while np.linalg.norm(self.init_target - self.init_pos) < 4 * self.miss:
+			self.init_target = np.array([np.random.uniform(0 + self.rBody + 0.1, self.map_size[0] - self.rBody - 0.1),
+										 np.random.uniform(0 + self.rBody + 0.1, self.map_size[1] - self.rBody - 0.1)])
 
 		self.pos = self.init_pos.copy()
 		self.vel = self.init_vel.copy()

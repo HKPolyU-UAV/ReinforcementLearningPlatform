@@ -50,6 +50,7 @@ class UGV_Forward_Continuous(samplingmap, rl_base):
         self.dTheta = 0.
         self.ddTheta = 0.
         self.intdTheta = 0.
+        self.name = 'UGVForwardContinuous'
         '''physical parameters'''
 
         '''rl_base'''
@@ -197,8 +198,8 @@ class UGV_Forward_Continuous(samplingmap, rl_base):
             return True
         if self.is_out():
             # print('...out...')
-            # self.terminal_flag = 1
-            return True
+            self.terminal_flag = 1
+            # return True
         return False
 
     def get_reward(self, param=None):
@@ -212,9 +213,9 @@ class UGV_Forward_Continuous(samplingmap, rl_base):
         r1 = -1  # 常值误差，每运行一步，就 -1
 
         if currentError > nextError + 1e-3:
-            r2 = 5
+            r2 = 0
         elif 1e-3 + currentError < nextError:
-            r2 = -5
+            r2 = -3
         else:
             r2 = 0
 
@@ -222,20 +223,21 @@ class UGV_Forward_Continuous(samplingmap, rl_base):
         nextTheta = cal_vector_rad([nex, ney], [math.cos(self.next_state[4]), math.sin(self.next_state[4])])
         # print(currentTheta, nextTheta)
         if currentTheta > nextTheta + 1e-2:
-            r3 = 2
+            r3 = 0
         elif 1e-2 + currentTheta < nextTheta:
-            r3 = -2
+            r3 = -5
         else:
             r3 = 0
         '''4. 其他'''
         r4 = 0
         if self.terminal_flag == 3:
-            r4 = 200
+            r4 = 1000
         if self.terminal_flag == 1:  # 出界
-            r4 = -2
+            r4 = -1
         '''4. 其他'''
         # print('r1=', r1, 'r2=', r2, 'r3=', r3, 'r4=', r4)
-        self.reward = r1 + r2 + r3 + r4
+        self.reward = -nextError ** 2 * 5 - nextTheta ** 2 * 1 + r4
+        # self.reward = r1 + r2 + r3 + r4
 
     def f(self, _phi):
         _dx = self.r / 2 * (self.wLeft + self.wRight) * math.cos(_phi)
@@ -243,7 +245,7 @@ class UGV_Forward_Continuous(samplingmap, rl_base):
         _dphi = self.r / self.rBody * (self.wRight - self.wLeft)
         return np.array([_dx, _dy, _dphi])
 
-    def step_update(self, action: list):
+    def step_update(self, action: np.ndarray):
         self.wLeft = max(min(action[0], self.wMax), 0)
         self.wRight = max(min(action[1], self.wMax), 0)
         self.current_action = action.copy()

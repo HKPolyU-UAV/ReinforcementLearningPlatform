@@ -128,7 +128,7 @@ class Worker(mp.Process):
 		# max_training_timestep = 5000
 		action_std_decay_freq = int(8e5)  # 每隔这么多个 timestep 把探索方差减小点
 		action_std_decay_rate = 0.05  # linearly decay action_std (action_std = action_std - action_std_decay_rate)
-		min_action_std = 0.4  # 方差最小不能小于 0.4，不管啥时候，都得适当探索
+		min_action_std = 0.6  # 方差最小不能小于 0.4，不管啥时候，都得适当探索
 		train_num = 0
 		timestep = 0
 		start_eps = 0
@@ -326,7 +326,7 @@ class Distributed_PPO:
 						self.env.step_update(action.astype(np.float32))  # 环境更新的action需要是物理的action
 						r += self.env.reward
 						self.env.show_dynamic_image(isWait=False)  # 画图
-					error.append(np.linalg.norm(self.env.error))
+					# error.append(np.linalg.norm(self.env.error))
 				cv.destroyAllWindows()
 			# error = np.array(error)
 			# with open(self.path + str(training_num_temp) + '.txt', 'w') as f:
