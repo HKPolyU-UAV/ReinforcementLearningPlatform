@@ -343,11 +343,7 @@ class UGV_Forward(rl_base):
 			xx_new[3] = np.clip(xx_new[3], self.wMin, self.wMax)
 			xx_new[4] = np.clip(xx_new[4], self.wMin, self.wMax)
 			[self.pos[0], self.pos[1], self.phi, self.w_wheel[0], self.w_wheel[1]] = xx_new.copy()
-			# self.w_wheel[0] = np.clip(self.w_wheel[0], self.wMin, self.wMax)
-			# self.w_wheel[1] = np.clip(self.w_wheel[1], self.wMin, self.wMax)
 			self.time += h
-		# self.w_wheel[0] = np.clip(self.w_wheel[0], self.wMin, self.wMax)
-		# self.w_wheel[1] = np.clip(self.w_wheel[1], self.wMin, self.wMax)
 		self.vel[0] = self.r / 2 * (self.w_wheel[0] + self.w_wheel[1]) * np.cos(self.phi)
 		self.vel[1] = self.r / 2 * (self.w_wheel[0] + self.w_wheel[1]) * np.sin(self.phi)
 		self.omega = self.r / self.L * (self.w_wheel[1] - self.w_wheel[0])

@@ -90,15 +90,14 @@ def test_UGVBidirectional2():
 
 	for _ in range(5):
 		env.reset()
-		# env.phi = -np.pi/2
 		while not env.is_terminal:
 			# print(env.time)
 			env.show_dynamic_image(isWait=True)
 			action = np.array([10, -10])
+			print(env.current_state)
 			env.step_update(action=action)
-			print(rad2deg(env.sum_d_theta))
+			# print(rad2deg(env.sum_d_theta))
 			# print(env.reward)
-			# print(env.current_state)
 
 
 def test_SecondOrderIntegration():
@@ -330,10 +329,10 @@ if __name__ == '__main__':
 	# test_flight_attitude_simulator_continuous()
 	# test_flight_attitude_simulator_2state_continuous()
 	# test_ugv_bidirectional_continuous()
-	# test_UGVBidirectional2()
+	test_UGVBidirectional2()
 	# test_SecondOrderIntegration()
 	# test_ugv_forward_continuous()
-	test_UGVForward()
+	# test_UGVForward()
 	# test_ugv_forward_obstacles_continuous()
 	# test_ugv_forward_discrete()
 	# test_ugv_forward_obstacles_discrete()

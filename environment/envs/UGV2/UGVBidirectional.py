@@ -46,8 +46,8 @@ class UGV_Bidirectional(rl_base):
 
 		self.phiMax = deg2rad(180)  # 车体最大角度
 		self.phiMin = -deg2rad(180)
-		self.vMax = self.r * self.wMax	# 2 m/s
-		self.vMin = self.r * self.wMin	# -2 m/s
+		self.vMax = self.r * self.wMax  	# 2 m/s
+		self.vMin = self.r * self.wMin		# -2 m/s
 		self.omegaMax = self.r / self.L * (self.wMax - self.wMin)  # 车体最大角速度
 		self.omegaMin = self.r / self.L * (self.wMin - self.wMax)
 
@@ -57,25 +57,35 @@ class UGV_Bidirectional(rl_base):
 		'''rl_base'''
 		self.use_normalization = True
 		self.static_gain = 2
-		self.state_dim = 8  # ex, ey, x, y, dx, dy, phi, dphi	(暂时没给轮速)
-		self.state_num = [math.inf, math.inf, math.inf, math.inf, math.inf, math.inf, math.inf, math.inf]
-		self.state_step = [None, None, None, None, None, None, None, None]
-		self.state_space = [None, None, None, None, None, None, None, None]
-		self.isStateContinuous = [True, True, True, True, True, True, True, True]
+		# self.state_dim = 8  # ex, ey, x, y, dx, dy, phi, dphi	(暂时没给轮速)
+		self.state_dim = 6  # ex, ey, wl, wr, phi, dphi 位置误差，轮速，角度，角速度
+		self.state_num = [math.inf for _ in range(self.state_dim)]
+		self.state_step = [None for _ in range(self.state_dim)]
+		self.state_space = [None for _ in range(self.state_dim)]
+		self.isStateContinuous = [True for _ in range(self.state_dim)]
+		# self.state_range = np.array(
+		# 	[[-self.map_size[0], self.map_size[0]],
+		# 	 [-self.map_size[1], self.map_size[1]],
+		# 	 [0, self.map_size[0]],
+		# 	 [0, self.map_size[1]],
+		# 	 [self.r * self.wMin, self.r * self.wMax],
+		# 	 [self.r * self.wMin, self.r * self.wMax],
+		# 	 [self.phiMin, self.phiMax],
+		# 	 [self.omegaMin, self.omegaMax]]
+		# )
 		self.state_range = np.array(
 			[[-self.map_size[0], self.map_size[0]],
 			 [-self.map_size[1], self.map_size[1]],
-			 [0, self.map_size[0]],
-			 [0, self.map_size[1]],
-			 [self.r * self.wMin, self.r * self.wMax],
-			 [self.r * self.wMin, self.r * self.wMax],
+			 [self.wMin, self.wMax],
+			 [self.wMin, self.wMax],
 			 [self.phiMin, self.phiMax],
 			 [self.omegaMin, self.omegaMax]]
 		)
 		if self.use_normalization:
 			self.initial_state = self.state_norm()
 		else:
-			self.initial_state = np.append(np.hstack((self.error, self.pos, self.vel)), [self.phi, self.omega])
+			self.initial_state = np.append(np.hstack((self.error, self.w_wheel)), [self.phi, self.omega])
+		# self.initial_state = np.append(np.hstack((self.error, self.pos, self.vel)), [self.phi, self.omega])
 		self.current_state = self.initial_state.copy()
 		self.next_state = self.initial_state.copy()
 
@@ -110,7 +120,8 @@ class UGV_Bidirectional(rl_base):
 		self.sum_d_theta = 0.
 
 	def state_norm(self):
-		state = np.append(np.hstack((self.error, self.pos, self.vel)), [self.phi, self.omega])
+		# state = np.append(np.hstack((self.error, self.pos, self.vel)), [self.phi, self.omega])
+		state = np.append(np.hstack((self.error, self.w_wheel)), [self.phi, self.omega])
 		norm_min = self.state_range[:, 0]
 		norm_max = self.state_range[:, 1]
 		norm_s = (2 * state - (norm_min + norm_max)) / (norm_max - norm_min) * self.static_gain
@@ -244,7 +255,7 @@ class UGV_Bidirectional(rl_base):
 		if self.is_success():
 			print('...success...')
 			self.terminal_flag = 3
-			# return True
+			return True
 		self.terminal_flag = 0
 		return False
 
@@ -259,14 +270,30 @@ class UGV_Bidirectional(rl_base):
 		cur_error = np.linalg.norm(cur_s[0: 2])
 		nex_error = np.linalg.norm(nex_s[0: 2])
 
-		if self.sum_d_theta > 4 * np.pi:		# 如果转的超过两圈
+		cur_norm_error = cur_error / np.linalg.norm(self.map_size)
+		nex_norm_error = nex_error / np.linalg.norm(self.map_size)
+
+		cur_phi = cur_s[-2]
+		cur_v_head = np.array([np.cos(cur_phi), np.sin(cur_phi)])
+		cur_error_theta = np.arccos(np.dot(cur_s[0: 2], cur_v_head) / np.linalg.norm(cur_s[0: 2]))
+		cur_error_theta = min(cur_error_theta, np.pi - cur_error_theta)
+		cur_norm_error_theta = cur_error_theta / np.pi
+
+		nex_phi = nex_s[-2]
+		nex_v_head = np.array([np.cos(nex_phi), np.sin(nex_phi)])
+		nex_error_theta = np.arccos(np.dot(nex_s[0: 2], nex_v_head) / np.linalg.norm(nex_s[0: 2]))
+		nex_error_theta = min(nex_error_theta, np.pi - nex_error_theta)
+		nex_norm_error_theta = nex_error_theta / np.pi
+
+		if self.sum_d_theta > 4 * np.pi:  # 如果转的超过两圈
 			self.terminal_flag = 4
-			# self.is_terminal = True
+		# self.is_terminal = True
+
 		'''4. 其他'''
-		if self.terminal_flag == 4:		# 瞎几把转
-			r4 = -20
+		if self.terminal_flag == 4:  # 瞎几把转
+			r4 = -0
 		elif self.terminal_flag == 3:  # 成功
-			r4 = 50
+			r4 = 1000
 		elif self.terminal_flag == 2:  # 超时
 			r4 = -0
 		elif self.terminal_flag == 1:  # 出界
@@ -274,28 +301,21 @@ class UGV_Bidirectional(rl_base):
 		else:
 			r4 = 0
 		'''4. 其他'''
-		# ex, ey, x, y, dx, dy, phi, dphi
+		# ex, ey, wl, wr, phi, dphi
 		'''r1 是位置'''
-		yyf_x0 = nex_error / np.linalg.norm(self.map_size)
-		if yyf_x0 >= 0.25:
-			kk = -180 * yyf_x0 + 45		# yyf_x0 = 0.25 时，kk = 0，误差大于0.25，开始罚，误差小于 0.25 开始奖励
-			r1 = yyf_x0 * kk	#  nex_error
-		else:
-			kk = -180 * yyf_x0 + 45
-			r1 = (0.25 - yyf_x0) * kk
+		# if nex_norm_error >= 0.25:
+		# 	kk = -180 * nex_norm_error + 45  # yyf_x0 = 0.25 时，kk = 0，误差大于0.25，开始罚，误差小于 0.25 开始奖励
+		# 	r1 = nex_norm_error * kk  # nex_error
+		# else:
+		# 	kk = -180 * nex_norm_error + 45
+		# 	r1 = (0.25 - nex_norm_error) * kk
+		r1 = -(nex_norm_error * 5) ** 2
 
 		'''r2 是角度'''
-		nex_phi = nex_s[-2]		# 车的朝向角
-		nex_theta = np.arccos(np.dot(nex_s[0: 2], [1, 0]) / (np.linalg.norm(nex_s[0: 2]) * np.linalg.norm([1, 0])))	# 误差向量与 +x 的夹角
-		v1 = [np.cos(nex_phi), np.sin(nex_phi)]
-		v2 = [np.cos(nex_theta), np.sin(nex_theta)]
-		theta = np.arccos(np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2)))
-		theta = min(theta, np.pi - theta)
-		kk2 = 5
-		if nex_error < 2 * self.miss:	# 如果误差比较小，就不考虑角度了
+		if nex_error < 4 * self.miss:  # 如果误差比较小，就不考虑角度了
 			r2 = 0
 		else:
-			r2 = -theta * kk2
+			r2 = -(nex_norm_error_theta * 5) ** 2
 		# r2 = 0
 		self.reward = r1 + r2 + r4
 
@@ -307,6 +327,8 @@ class UGV_Bidirectional(rl_base):
 		@return:	dx = f(x, t)，返回值当然是 \dot{xx}
 		"""
 		[_x, _y, _phi, _wl, _wr] = xx[:]
+		_wl = np.clip(_wl, self.wMin, self.wMax)
+		_wr = np.clip(_wr, self.wMin, self.wMax)
 		_dx = self.r / 2 * (_wl + _wr) * np.cos(_phi)
 		_dy = self.r / 2 * (_wl + _wr) * np.sin(_phi)
 		_dphi = self.r / self.L * (_wr - _wl)
@@ -326,13 +348,10 @@ class UGV_Bidirectional(rl_base):
 			K3 = h * self.ode(xx_old + K2 / 2)
 			K4 = h * self.ode(xx_old + K3)
 			xx_new = xx_old + (K1 + 2 * K2 + 2 * K3 + K4) / 6
-			# self.pos[:] = xx_new[0: 2]
-			# self.phi = xx_new[2]
-			# self.w_wheel[:] = xx_new[3: 5]
+			xx_new[3] = np.clip(xx_new[3], self.wMin, self.wMax)
+			xx_new[4] = np.clip(xx_new[4], self.wMin, self.wMax)
 			[self.pos[0], self.pos[1], self.phi, self.w_wheel[0], self.w_wheel[1]] = xx_new.copy()
 			self.time += h
-		self.w_wheel[0] = np.clip(self.w_wheel[0], self.wMin, self.wMax)
-		self.w_wheel[1] = np.clip(self.w_wheel[1], self.wMin, self.wMax)
 		self.vel[0] = self.r / 2 * (self.w_wheel[0] + self.w_wheel[1]) * np.cos(self.phi)
 		self.vel[1] = self.r / 2 * (self.w_wheel[0] + self.w_wheel[1]) * np.sin(self.phi)
 		self.omega = self.r / self.L * (self.w_wheel[1] - self.w_wheel[0])
@@ -352,10 +371,11 @@ class UGV_Bidirectional(rl_base):
 		if self.use_normalization:
 			self.current_state = self.state_norm()
 		else:
-			self.current_state = np.append(np.hstack((self.error, self.pos, self.vel)), [self.phi, self.omega])
+			# self.current_state = np.append(np.hstack((self.error, self.pos, self.vel)), [self.phi, self.omega])
+			self.current_state = np.append(np.hstack((self.error, self.w_wheel)), [self.phi, self.omega])
 
 		'''rk44'''
-		self.rk44(action=action)	# 在微分方程里的，不在里面的，都更新了，角度也有判断
+		self.rk44(action=action)  # 在微分方程里的，不在里面的，都更新了，角度也有判断
 		'''rk44'''
 
 		self.is_terminal = self.is_Terminal()
@@ -363,7 +383,8 @@ class UGV_Bidirectional(rl_base):
 		if self.use_normalization:
 			self.next_state = self.state_norm()
 		else:
-			self.next_state = np.append(np.hstack((self.error, self.pos, self.vel)), [self.phi, self.omega])
+			# self.next_state = np.append(np.hstack((self.error, self.pos, self.vel)), [self.phi, self.omega])
+			self.next_state = np.append(np.hstack((self.error, self.w_wheel)), [self.phi, self.omega])
 		self.get_reward()
 
 		'''其他'''
@@ -385,7 +406,8 @@ class UGV_Bidirectional(rl_base):
 		if self.use_normalization:
 			self.initial_state = self.state_norm()
 		else:
-			self.initial_state = np.append(np.hstack((self.error, self.pos, self.vel)), [self.phi, self.omega])
+			# self.initial_state = np.append(np.hstack((self.error, self.pos, self.vel)), [self.phi, self.omega])
+			self.initial_state = np.append(np.hstack((self.error, self.w_wheel)), [self.phi, self.omega])
 		self.current_state = self.initial_state.copy()
 		self.next_state = self.initial_state.copy()
 		self.initial_action = self.a_wheel.copy()
@@ -425,7 +447,8 @@ class UGV_Bidirectional(rl_base):
 		if self.use_normalization:
 			self.initial_state = self.state_norm()
 		else:
-			self.initial_state = np.append(np.hstack((self.error, self.pos, self.vel)), [self.phi, self.omega])
+			# self.initial_state = np.append(np.hstack((self.error, self.pos, self.vel)), [self.phi, self.omega])
+			self.initial_state = np.append(np.hstack((self.error, self.w_wheel)), [self.phi, self.omega])
 		self.current_state = self.initial_state.copy()
 		self.next_state = self.initial_state.copy()
 		self.initial_action = self.a_wheel.copy()
