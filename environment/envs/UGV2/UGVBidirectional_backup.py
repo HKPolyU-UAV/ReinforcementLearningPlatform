@@ -1,92 +1,101 @@
+import cv2 as cv
 import numpy as np
 
 from common.common_func import *
+# from common.common_cls import *
 from environment.envs import *
 
 
 class UGV_Bidirectional(rl_base):
 	def __init__(self,
 				 pos0: np.ndarray = np.array([5.0, 5.0]),
-				 vel0: float = 0.,
+				 vel0: np.ndarray = np.array([0.0, 0.0]),
 				 phi0: float = 0.,
 				 omega0: float = 0.,
 				 map_size: np.ndarray = np.array([10.0, 10.0]),
 				 target: np.ndarray = np.array([5.0, 5.0])):
 		super(UGV_Bidirectional, self).__init__()
 
-		self.init_pos = pos0  # 初始位置
-		self.init_vel = vel0  # 初始线速度
-		self.init_phi = phi0  # 初始角度
-		self.init_omega = omega0  # 初始角速度
-		self.init_target = target  # 初始目标
+		self.init_pos = pos0
+		self.init_vel = vel0
+		self.init_phi = phi0
+		self.init_omega = omega0
+		self.init_target = target
 
-		self.pos = pos0  # 位置
-		self.vel = vel0  # 线速度
-		self.phi = phi0  # 角度
-		self.omega = omega0  # 角速度
-		self.map_size = map_size  # 地图大小
-		self.target = target  # 目标位置
-		self.error = self.target - self.pos  # 位置误差
+		self.pos = pos0
+		self.vel = vel0
+		self.phi = phi0
+		self.omega = omega0
+		self.map_size = map_size
+		self.target = target
+		self.error = self.target - self.pos
 
-		'''hyper-parameters'''
-		self.mass = 2.0  # 车体质量
-		self.rBody = 0.25  # 车体半径
-		self.J = self.mass * self.rBody ** 2 / 2  # 车体转动惯量
+		self.w_wheel = np.zeros(2, dtype=np.float32)  # 车轮角速度
+		self.a_wheel = np.zeros(2, dtype=np.float32)  # 车轮角加速度
+
+		self.wMax = 20  # 车轮最大角速度   rad/s
+		self.wMin = -20
+		self.aMax = 20  # 车轮最大角加速度 rad/s^2
+		self.aMin = -20
+		self.r = 0.1  # 车轮半径
+		self.rBody = 0.15  # 车主体半径 0.5
+		self.L = 2 * self.rBody  # 车主体直径
 		self.dt = 0.02  # 50Hz
 		self.time = 0.  # time
-		self.timeMax = 6.0  # 每回合最大时间
-		self.f = 0.  # 推力
-		self.torque = 0.  # 转矩
-		self.kf = 0.1  # 推力阻力系数
-		self.kt = 0.1  # 转矩阻力系数
-		'''hyper-parameters'''
+		self.timeMax = 10.0  # 每回合最大时间
 
-		'''state limitation'''
-		self.vMax = 2  # 最大线速度
-		self.vMin = -2  # 最小线速度 (最大反向速度)
-		self.fMax = 6  # 最大推力
-		self.fMin = -6  # 最小推力 (最大拉力)
-		self.tMax = np.pi / 4  # 最大转矩
-		self.tMin = -np.pi / 4  # 最小转矩 (最大反向转矩)
+		self.phiMax = deg2rad(180)  # 车体最大角度
+		self.phiMin = -deg2rad(180)
+		self.vMax = self.r * self.wMax  	# 2 m/s
+		self.vMin = self.r * self.wMin		# -2 m/s
+		self.omegaMax = self.r / self.L * (self.wMax - self.wMin)  # 车体最大角速度
+		self.omegaMin = self.r / self.L * (self.wMin - self.wMax)
 
-		self.phiMax = np.pi  # 车体最大角度
-		self.phiMin = -np.pi  # 车体最小角度
-		self.omegaMax = 2 * np.pi  # 车体最大角速度
-		self.omegaMin = -2 * np.pi  # 车体最小角速度
-		'''state limitation'''
-
-		self.miss = self.rBody  # 容许误差
+		self.miss = self.rBody / 2  # 容许误差
 		self.name = 'UGVBidirectional'
 
 		'''rl_base'''
 		self.use_normalization = True
 		self.static_gain = 2
-		self.state_dim = 5  # ex, ey, v, phi, dphi 位置误差，线速度，角度，角速度
+		# self.state_dim = 8  # ex, ey, x, y, dx, dy, phi, dphi	(暂时没给轮速)
+		self.state_dim = 6  # ex, ey, wl, wr, phi, dphi 位置误差，轮速，角度，角速度
 		self.state_num = [math.inf for _ in range(self.state_dim)]
 		self.state_step = [None for _ in range(self.state_dim)]
 		self.state_space = [None for _ in range(self.state_dim)]
 		self.isStateContinuous = [True for _ in range(self.state_dim)]
+		# self.state_range = np.array(
+		# 	[[-self.map_size[0], self.map_size[0]],
+		# 	 [-self.map_size[1], self.map_size[1]],
+		# 	 [0, self.map_size[0]],
+		# 	 [0, self.map_size[1]],
+		# 	 [self.r * self.wMin, self.r * self.wMax],
+		# 	 [self.r * self.wMin, self.r * self.wMax],
+		# 	 [self.phiMin, self.phiMax],
+		# 	 [self.omegaMin, self.omegaMax]]
+		# )
 		self.state_range = np.array(
 			[[-self.map_size[0], self.map_size[0]],
 			 [-self.map_size[1], self.map_size[1]],
-			 [self.vMin, self.vMax],
+			 [self.wMin, self.wMax],
+			 [self.wMin, self.wMax],
 			 [self.phiMin, self.phiMax],
 			 [self.omegaMin, self.omegaMax]]
 		)
 		if self.use_normalization:
 			self.initial_state = self.state_norm()
 		else:
-			self.initial_state = np.append(self.error, [self.vel, self.phi, self.omega])
+			self.initial_state = np.append(np.hstack((self.error, self.w_wheel)), [self.phi, self.omega])
+		# self.initial_state = np.append(np.hstack((self.error, self.pos, self.vel)), [self.phi, self.omega])
 		self.current_state = self.initial_state.copy()
 		self.next_state = self.initial_state.copy()
 
 		self.action_dim = 2
 		self.action_step = [None, None]
-		self.action_range = [[self.fMin, self.fMax], [self.tMin, self.tMax]]
+		self.action_range = [[self.aMin, self.aMax], [self.aMin, self.aMax]]
 		self.action_num = [math.inf, math.inf]
 		self.action_space = [None, None]
 		self.isActionContinuous = [True, True]
-		self.initial_action = np.array([self.f, self.torque])
+		self.initial_action = self.a_wheel.copy()
 		self.current_action = self.initial_action.copy()
 
 		self.reward = 0.0
@@ -97,10 +106,10 @@ class UGV_Bidirectional(rl_base):
 		'''visualization'''
 		self.x_offset = 20
 		self.y_offset = 20
-		self.board = 170
+		self.board = 100
 		self.pixel_per_meter = 50
 		self.image_size = (np.array(self.pixel_per_meter * self.map_size) + 2 * np.array([self.x_offset, self.y_offset])).astype(int)
-		self.image_size[0] += self.board
+		self.image_size[1] += self.board
 		self.image = np.zeros([self.image_size[1], self.image_size[0], 3], np.uint8)
 		self.image[:, :, 0] = np.ones([self.image_size[1], self.image_size[0]]) * 255
 		self.image[:, :, 1] = np.ones([self.image_size[1], self.image_size[0]]) * 255
@@ -111,7 +120,8 @@ class UGV_Bidirectional(rl_base):
 		self.sum_d_theta = 0.
 
 	def state_norm(self):
-		state = np.append(self.error, [self.vel, self.phi, self.omega])
+		# state = np.append(np.hstack((self.error, self.pos, self.vel)), [self.phi, self.omega])
+		state = np.append(np.hstack((self.error, self.w_wheel)), [self.phi, self.omega])
 		norm_min = self.state_range[:, 0]
 		norm_max = self.state_range[:, 1]
 		norm_s = (2 * state - (norm_min + norm_max)) / (norm_max - norm_min) * self.static_gain
@@ -142,38 +152,31 @@ class UGV_Bidirectional(rl_base):
 		self.draw_target()
 		self.draw_grid()
 
-		cv.putText(
-			self.image,
-			'time:   %.3fs' % (round(self.time, 3)),
-			(self.image_size[0] - self.board - 5, 25), cv.FONT_HERSHEY_COMPLEX, 0.5, Color().Purple, 1)
+		cv.putText(self.image, 'time:   %.3fs' % (round(self.time, 3)), (0, 25), cv.FONT_HERSHEY_COMPLEX, 0.6, Color().Purple, 1)
+		cv.putText(self.image, 'angle:  %.1f ' % (round(rad2deg(self.phi), 1)), (0, 60), cv.FONT_HERSHEY_COMPLEX, 0.6, Color().Purple, 1)
+		cv.putText(self.image, 'omega:  %.2f pi' % (round(self.omega / np.pi, 2)), (0, 95), cv.FONT_HERSHEY_COMPLEX, 0.6, Color().Purple, 1)
 
-		cv.putText(
-			self.image,
-			'pos: [%.2f, %.2f]m' % (round(self.pos[0], 3), round(self.pos[1], 3)),
-			(self.image_size[0] - self.board - 5, 60), cv.FONT_HERSHEY_COMPLEX, 0.5, Color().Purple, 1)
-		cv.putText(
-			self.image,
-			'error: [%.2f, %.2f]m' % (round(self.error[0], 3), round(self.error[1], 3)),
-			(self.image_size[0] - self.board - 5, 95), cv.FONT_HERSHEY_COMPLEX, 0.5, Color().Purple, 1)
-		cv.putText(
-			self.image,
-			'vel: %.2fm/s' % (round(self.vel, 2)),
-			(self.image_size[0] - self.board - 5, 130), cv.FONT_HERSHEY_COMPLEX, 0.5, Color().Purple, 1)
-		cv.putText(
-			self.image,
-			'phi: %.2f ' % (round(rad2deg(self.phi), 2)),
-			(self.image_size[0] - self.board - 5, 165), cv.FONT_HERSHEY_COMPLEX, 0.5, Color().Purple, 1)
-		cv.putText(
-			self.image,
-			'omega: %.2f PI' % (round(self.omega / np.pi, 2)),
-			(self.image_size[0] - self.board - 5, 200), cv.FONT_HERSHEY_COMPLEX, 0.5, Color().Purple, 1)
+		cv.putText(self.image, 'pos:    [%.2f, %.2f]m' % (round(self.pos[0], 3), round(self.pos[1], 3)), (250, 25), cv.FONT_HERSHEY_COMPLEX, 0.6, Color().Purple, 1)
+		cv.putText(self.image, 'error:  [%.2f, %.2f]m' % (round(self.error[0], 3), round(self.error[1], 3)), (250, 60), cv.FONT_HERSHEY_COMPLEX, 0.6, Color().Purple, 1)
+		cv.putText(self.image, 'vel:    [%.2f, %.2f]m/s' % (round(self.vel[0], 3), round(self.vel[1], 3)), (250, 95), cv.FONT_HERSHEY_COMPLEX, 0.6, Color().Purple, 1)
 
 		cv.imshow(self.name, self.image)
 		cv.waitKey(0) if isWait else cv.waitKey(1)
 
 	def draw_car(self):
 		cv.circle(self.image, self.dis2pixel(self.pos), self.length2pixel(self.rBody), Color().Orange, -1)  # 主体
-
+		l_wheel = self.r / 2
+		'''两个车轮'''
+		# left
+		pts_left = [[self.r, self.rBody], [self.r, self.rBody - l_wheel], [-self.r, self.rBody - l_wheel], [-self.r, self.rBody]]
+		pts_left = points_rotate(pts_left, self.phi)
+		pts_left = points_move(pts_left, self.pos)
+		cv.fillConvexPoly(self.image, points=np.array([list(self.dis2pixel(pt)) for pt in pts_left]), color=Color().Red)
+		# right
+		pts_right = [[self.r, -self.rBody], [self.r, -self.rBody + l_wheel], [-self.r, -self.rBody + l_wheel], [-self.r, -self.rBody]]
+		pts_right = points_rotate(pts_right, self.phi)
+		pts_right = points_move(pts_right, self.pos)
+		cv.fillConvexPoly(self.image, points=np.array([list(self.dis2pixel(pt)) for pt in pts_right]), color=Color().Red)
 		'''两个车轮'''
 		# 额外画一个圆形，标志头
 		line = points_move(points_rotate([[self.rBody, 0], [3 * self.rBody, 0]], self.phi), self.pos)
@@ -182,17 +185,17 @@ class UGV_Bidirectional(rl_base):
 		cv.circle(self.image, self.dis2pixel(ball), self.length2pixel(0.08), Color().Red, -1)  # 主体
 
 	def draw_boundary(self):
-		cv.line(self.image, (self.x_offset, self.y_offset), (self.image_size[0] - self.x_offset - self.board, self.y_offset), Color().Black, 2)
-		cv.line(self.image, (self.x_offset, self.y_offset), (self.x_offset, self.image_size[1] - self.y_offset), Color().Black, 2)
+		cv.line(self.image, (self.x_offset, self.y_offset + self.board), (self.image_size[0] - self.x_offset, self.y_offset + self.board), Color().Black, 2)
+		cv.line(self.image, (self.x_offset, self.y_offset + self.board), (self.x_offset, self.image_size[1] - self.y_offset), Color().Black, 2)
 		cv.line(
 			self.image,
-			(self.image_size[0] - self.x_offset - self.board, self.image_size[1] - self.y_offset),
+			(self.image_size[0] - self.x_offset, self.image_size[1] - self.y_offset),
 			(self.x_offset, self.image_size[1] - self.y_offset), Color().Black, 2
 		)
 		cv.line(
 			self.image,
-			(self.image_size[0] - self.x_offset - self.board, self.image_size[1] - self.y_offset),
-			(self.image_size[0] - self.x_offset - self.board, self.y_offset), Color().Black, 2
+			(self.image_size[0] - self.x_offset, self.image_size[1] - self.y_offset),
+			(self.image_size[0] - self.x_offset, self.y_offset + self.board), Color().Black, 2
 		)
 
 	def draw_target(self):
@@ -235,9 +238,9 @@ class UGV_Bidirectional(rl_base):
 		return False
 
 	def is_success(self):
-		b1 = np.linalg.norm(self.error) <= self.miss  # 位置误差小于 miss
-		b2 = np.fabs(self.omega) < deg2rad(5)  # 角速度小于 5 度/秒
-		b3 = np.linalg.norm(self.vel) < 0.02  # 线速度小于 0.02 m/s
+		b1 = np.linalg.norm(self.error) <= self.miss
+		b2 = np.fabs(self.omega) < deg2rad(1)
+		b3 = np.linalg.norm(self.vel) < 0.01
 		return b1 and b2 and b3
 
 	def is_Terminal(self, param=None):
@@ -263,7 +266,7 @@ class UGV_Bidirectional(rl_base):
 		else:
 			cur_s = self.current_state
 			nex_s = self.next_state
-		# ex ey v phi omega
+
 		cur_error = np.linalg.norm(cur_s[0: 2])
 		nex_error = np.linalg.norm(nex_s[0: 2])
 
@@ -272,13 +275,13 @@ class UGV_Bidirectional(rl_base):
 
 		cur_phi = cur_s[-2]
 		cur_v_head = np.array([np.cos(cur_phi), np.sin(cur_phi)])
-		cur_error_theta = np.arccos(np.clip(np.dot(cur_s[0: 2], cur_v_head) / np.linalg.norm(cur_s[0: 2]), -1, 1))
+		cur_error_theta = np.arccos(np.dot(cur_s[0: 2], cur_v_head) / np.linalg.norm(cur_s[0: 2]))
 		cur_error_theta = min(cur_error_theta, np.pi - cur_error_theta)
 		cur_norm_error_theta = cur_error_theta / np.pi
 
 		nex_phi = nex_s[-2]
 		nex_v_head = np.array([np.cos(nex_phi), np.sin(nex_phi)])
-		nex_error_theta = np.arccos(np.clip(np.dot(nex_s[0: 2], nex_v_head) / np.linalg.norm(nex_s[0: 2]), -1, 1))
+		nex_error_theta = np.arccos(np.dot(nex_s[0: 2], nex_v_head) / np.linalg.norm(nex_s[0: 2]))
 		nex_error_theta = min(nex_error_theta, np.pi - nex_error_theta)
 		nex_norm_error_theta = nex_error_theta / np.pi
 
@@ -306,46 +309,52 @@ class UGV_Bidirectional(rl_base):
 		# else:
 		# 	kk = -180 * nex_norm_error + 45
 		# 	r1 = (0.25 - nex_norm_error) * kk
-		r1 = -(nex_norm_error * 2) ** 2
+		r1 = -(nex_norm_error * 5) ** 2
 
 		'''r2 是角度'''
 		if nex_error < 4 * self.miss:  # 如果误差比较小，就不考虑角度了
 			r2 = 0
 		else:
-			r2 = -(nex_norm_error_theta * 1) ** 2
+			r2 = -(nex_norm_error_theta * 5) ** 2
 		# r2 = 0
 		self.reward = r1 + r2 + r4
 
 	def ode(self, xx: np.ndarray):
 		"""
+		@note:		注意，是微分方程里面的装填，不是 RL 的状态。
+					xx = [x, y, phi, wl, wr]，微分方程里面就这5个状态就可以，剩下的可以算出来
 		@param xx:	state
-		@return:	dx = f(x, t)，返回值当然是  dot{xx}
+		@return:	dx = f(x, t)，返回值当然是 \dot{xx}
 		"""
-		[_x, _y, _phi, _omega, _vel] = xx[:]
-		# _phi = np.clip(_phi, self.phiMin, self.phiMax)			# 角度限制
-		_dx = _vel * np.cos(_phi)
-		_dy = _vel * np.sin(_phi)
-		_dphi = _omega
-		_domega = (self.torque - self.kt * _omega) / self.J
-		_dvel = (self.f - self.kf * _vel) / self.mass
-		return np.array([_dx, _dy, _dphi, _domega, _dvel])
+		[_x, _y, _phi, _wl, _wr] = xx[:]
+		_wl = np.clip(_wl, self.wMin, self.wMax)
+		_wr = np.clip(_wr, self.wMin, self.wMax)
+		_dx = self.r / 2 * (_wl + _wr) * np.cos(_phi)
+		_dy = self.r / 2 * (_wl + _wr) * np.sin(_phi)
+		_dphi = self.r / self.L * (_wr - _wl)
+		_dwl = self.a_wheel[0]
+		_dwr = self.a_wheel[1]
+		return np.array([_dx, _dy, _dphi, _dwl, _dwr])
 
 	def rk44(self, action: np.ndarray):
-		[self.f, self.torque] = action.copy()
+		self.a_wheel = action.copy()
 		h = self.dt / 1
 		tt = self.time + self.dt
 		phi = self.phi
 		while self.time < tt:
-			xx_old = np.array([self.pos[0], self.pos[1], self.phi, self.omega, self.vel])
+			xx_old = np.array([self.pos[0], self.pos[1], self.phi, self.w_wheel[0], self.w_wheel[1]])
 			K1 = h * self.ode(xx_old)
 			K2 = h * self.ode(xx_old + K1 / 2)
 			K3 = h * self.ode(xx_old + K2 / 2)
 			K4 = h * self.ode(xx_old + K3)
 			xx_new = xx_old + (K1 + 2 * K2 + 2 * K3 + K4) / 6
-			[self.pos[0], self.pos[1], self.phi, self.omega, self.vel] = xx_new.copy()
-			self.omega = np.clip(self.omega, self.omegaMin, self.omegaMax)  # 角速度限制
-			self.vel = np.clip(self.vel, self.vMin, self.vMax)  # 速度限制
+			xx_new[3] = np.clip(xx_new[3], self.wMin, self.wMax)
+			xx_new[4] = np.clip(xx_new[4], self.wMin, self.wMax)
+			[self.pos[0], self.pos[1], self.phi, self.w_wheel[0], self.w_wheel[1]] = xx_new.copy()
 			self.time += h
+		self.vel[0] = self.r / 2 * (self.w_wheel[0] + self.w_wheel[1]) * np.cos(self.phi)
+		self.vel[1] = self.r / 2 * (self.w_wheel[0] + self.w_wheel[1]) * np.sin(self.phi)
+		self.omega = self.r / self.L * (self.w_wheel[1] - self.w_wheel[0])
 		self.error = self.target - self.pos
 		self.sum_d_theta += np.fabs(phi - self.phi)
 		if self.phi > self.phiMax:
@@ -362,7 +371,8 @@ class UGV_Bidirectional(rl_base):
 		if self.use_normalization:
 			self.current_state = self.state_norm()
 		else:
-			self.current_state = np.append(self.error, [self.vel, self.phi, self.omega])
+			# self.current_state = np.append(np.hstack((self.error, self.pos, self.vel)), [self.phi, self.omega])
+			self.current_state = np.append(np.hstack((self.error, self.w_wheel)), [self.phi, self.omega])
 
 		'''rk44'''
 		self.rk44(action=action)  # 在微分方程里的，不在里面的，都更新了，角度也有判断
@@ -373,7 +383,8 @@ class UGV_Bidirectional(rl_base):
 		if self.use_normalization:
 			self.next_state = self.state_norm()
 		else:
-			self.next_state = np.append(self.error, [self.vel, self.phi, self.omega])
+			# self.next_state = np.append(np.hstack((self.error, self.pos, self.vel)), [self.phi, self.omega])
+			self.next_state = np.append(np.hstack((self.error, self.w_wheel)), [self.phi, self.omega])
 		self.get_reward()
 
 		'''其他'''
@@ -382,58 +393,65 @@ class UGV_Bidirectional(rl_base):
 
 	def reset(self):
 		self.pos = self.init_pos.copy()
-		self.vel = self.init_vel
+		self.vel = self.init_vel.copy()
 		self.phi = self.init_phi
 		self.omega = self.init_omega
 		self.target = self.init_target.copy()
 		self.error = self.target - self.pos
+		self.w_wheel = np.zeros(2)
+		self.a_wheel = np.zeros(2)
 		self.time = 0.
 		self.sum_d_theta = 0.
-		self.f = 0.
-		self.torque = 0.
 
 		if self.use_normalization:
 			self.initial_state = self.state_norm()
 		else:
-			self.initial_state = np.append(self.error, [self.vel, self.phi, self.omega])
+			# self.initial_state = np.append(np.hstack((self.error, self.pos, self.vel)), [self.phi, self.omega])
+			self.initial_state = np.append(np.hstack((self.error, self.w_wheel)), [self.phi, self.omega])
 		self.current_state = self.initial_state.copy()
 		self.next_state = self.initial_state.copy()
-		self.initial_action = np.array([self.f, self.torque])
+		self.initial_action = self.a_wheel.copy()
 		self.current_action = self.initial_action.copy()
 		self.reward = 0.0
 		self.is_terminal = False
 		self.terminal_flag = 0  # 0-正常 1-出界 2-超时 3-成功
 
 	def reset_random(self):
-		self.init_pos = np.array([np.random.uniform(0 + self.rBody + 0.03, self.map_size[0] - self.rBody - 0.03),
-								  np.random.uniform(0 + self.rBody + 0.03, self.map_size[1] - self.rBody - 0.03)])
-		# self.init_pos = self.map_size / 2.0
+		# self.init_pos = np.array([np.random.uniform(0 + self.rBody + 0.03, self.map_size[0] - self.rBody - 0.03),
+		# 						  np.random.uniform(0 + self.rBody + 0.03, self.map_size[1] - self.rBody - 0.03)])
+		self.init_pos = self.map_size / 2.0
 		self.init_phi = np.random.uniform(self.phiMin, self.phiMax)
 		# self.init_phi = 0.
 
+		'''给随机初始的轮速'''
+		# self.w_wheel = np.array([np.random.uniform(self.wMin, self.wMax),np.random.uniform(self.wMin, self.wMax)])
+		self.w_wheel = np.array([0., 0.])
 		'''计算初始速度'''
-		self.init_vel = np.random.uniform(self.vMin, self.vMax)
-
-		self.init_omega = 0.
+		self.init_vel[0] = self.r / 2 * (self.w_wheel[0] + self.w_wheel[1]) * np.cos(self.init_phi)
+		self.init_vel[1] = self.r / 2 * (self.w_wheel[0] + self.w_wheel[1]) * np.sin(self.init_phi)
+		'''计算初始角速度'''
+		self.init_omega = self.r / self.L * (self.w_wheel[1] - self.w_wheel[0])
 		self.init_target = np.array([np.random.uniform(0 + self.rBody + 0.1, self.map_size[0] - self.rBody - 0.1),
 									 np.random.uniform(0 + self.rBody + 0.1, self.map_size[1] - self.rBody - 0.1)])
 
 		self.pos = self.init_pos.copy()
-		self.vel = self.init_vel
+		self.vel = self.init_vel.copy()
 		self.phi = self.init_phi
 		self.omega = self.init_omega
 		self.target = self.init_target.copy()
 		self.error = self.target - self.pos
+		self.a_wheel = np.zeros(2)
 		self.time = 0.
 		self.sum_d_theta = 0.
 
 		if self.use_normalization:
 			self.initial_state = self.state_norm()
 		else:
-			self.initial_state = np.append(self.error, [self.vel, self.phi, self.omega])
+			# self.initial_state = np.append(np.hstack((self.error, self.pos, self.vel)), [self.phi, self.omega])
+			self.initial_state = np.append(np.hstack((self.error, self.w_wheel)), [self.phi, self.omega])
 		self.current_state = self.initial_state.copy()
 		self.next_state = self.initial_state.copy()
-		self.initial_action = np.array([self.f, self.torque])
+		self.initial_action = self.a_wheel.copy()
 		self.current_action = self.initial_action.copy()
 		self.reward = 0.0
 		self.is_terminal = False

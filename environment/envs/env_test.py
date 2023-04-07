@@ -84,20 +84,26 @@ def test_ugv_bidirectional_continuous():
 def test_UGVBidirectional2():
 	from UGV2.UGVBidirectional import UGV_Bidirectional as env
 	env = env(pos0=np.array([1.0, 1.0]),
-			  phi0=deg2rad(0),
-			  target=np.array([1.0, 4.0]),
+			  phi0=deg2rad(45),
+			  target=np.array([4.5, 4.5]),
 			  map_size=np.array([5.0, 5.0]))  # 其余参数默认
 
 	for _ in range(5):
 		env.reset()
+		sumr = 0
 		while not env.is_terminal:
 			# print(env.time)
 			env.show_dynamic_image(isWait=True)
-			action = np.array([10, -10])
-			print(env.current_state)
+			action = np.array([6, 0])		# np.pi/16
+			# print('error: [%.2f, %.2f]' % (env.pos[0], env.pos[1]))
+			# print('phi: %.1f' % (rad2deg(env.phi)))
+			# print('omega: %.1f' % (rad2deg(env.omega)))
+			# print(env.current_state)
 			env.step_update(action=action)
+			sumr += env.reward
 			# print(rad2deg(env.sum_d_theta))
 			# print(env.reward)
+			print(sumr)
 
 
 def test_SecondOrderIntegration():

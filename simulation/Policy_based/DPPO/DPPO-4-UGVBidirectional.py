@@ -123,7 +123,7 @@ if __name__ == '__main__':
 	TEST = not TRAIN
 
 	env = env(pos0=np.array([1.0, 1.0]),
-			  vel0=np.array([0.0, 0.0]),
+			  vel0=0.,
 			  map_size=np.array([5.0, 5.0]),
 			  target=np.array([4.0, 4.0]))
 
