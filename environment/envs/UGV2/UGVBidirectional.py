@@ -38,7 +38,7 @@ class UGV_Bidirectional(rl_base):
 		self.f = 0.  # 推力
 		self.torque = 0.  # 转矩
 		self.kf = 0.1  # 推力阻力系数
-		self.kt = 0.1  # 转矩阻力系数
+		self.kt = 0.3  # 转矩阻力系数
 		'''hyper-parameters'''
 
 		'''state limitation'''
@@ -313,7 +313,7 @@ class UGV_Bidirectional(rl_base):
 			r2 = 0
 		else:
 			r2 = -(nex_norm_error_theta * 1) ** 2
-		# r2 = 0
+		r2 = 0
 		self.reward = r1 + r2 + r4
 
 	def ode(self, xx: np.ndarray):
@@ -405,11 +405,11 @@ class UGV_Bidirectional(rl_base):
 		self.terminal_flag = 0  # 0-正常 1-出界 2-超时 3-成功
 
 	def reset_random(self):
-		self.init_pos = np.array([np.random.uniform(0 + self.rBody + 0.03, self.map_size[0] - self.rBody - 0.03),
-								  np.random.uniform(0 + self.rBody + 0.03, self.map_size[1] - self.rBody - 0.03)])
-		# self.init_pos = self.map_size / 2.0
-		self.init_phi = np.random.uniform(self.phiMin, self.phiMax)
-		# self.init_phi = 0.
+		# self.init_pos = np.array([np.random.uniform(0 + self.rBody + 0.03, self.map_size[0] - self.rBody - 0.03),
+		# 						  np.random.uniform(0 + self.rBody + 0.03, self.map_size[1] - self.rBody - 0.03)])
+		self.init_pos = self.map_size / 2.0
+		# self.init_phi = np.random.uniform(self.phiMin, self.phiMax)
+		self.init_phi = 0.
 
 		'''计算初始速度'''
 		self.init_vel = np.random.uniform(self.vMin, self.vMax)

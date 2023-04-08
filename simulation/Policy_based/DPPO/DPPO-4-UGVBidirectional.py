@@ -42,22 +42,33 @@ class PPOActorCritic(nn.Module):
 		# 应该是初始化方差，一个动作就一个方差，两个动作就两个方差，std 是标准差
 		self.action_var = torch.full((self.action_dim,), self.action_std_init * self.action_std_init)
 		self.actor = nn.Sequential(
-			nn.Linear(self.state_dim, 64),
+			nn.Linear(self.state_dim, 128),
 			nn.Tanh(),
-			nn.Linear(64, 64),
+			nn.Linear(128, 128),
+			nn.Tanh(),
+			nn.Linear(128, 64),
 			nn.Tanh(),
 			nn.Linear(64, self.action_dim),
 			nn.Tanh()
 		)
 		self.critic = nn.Sequential(
-			nn.Linear(self.state_dim, 64),
+			nn.Linear(self.state_dim, 128),
 			nn.Tanh(),
-			nn.Linear(64, 64),
+			nn.Linear(128, 128),
+			nn.Tanh(),
+			nn.Linear(128, 64),
 			nn.Tanh(),
 			nn.Linear(64, 1)
 		)
+
 		self.device = 'cpu'
 		self.to(self.device)
+
+	def reset_critic(self):
+		self.critic[0].reset_parameters()
+		self.critic[2].reset_parameters()
+		self.critic[4].reset_parameters()
+		self.critic[6].reset_parameters()
 
 	def set_action_std(self, new_action_std):
 		self.action_var = torch.full((self.action_dim,), new_action_std * new_action_std).to(self.device)
@@ -118,8 +129,8 @@ if __name__ == '__main__':
 	simulationPath = log_dir + datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d-%H-%M-%S') + '-' + ENV + '/'
 	os.mkdir(simulationPath)
 	c = cv.waitKey(1)
-	TRAIN = True  # 直接训练
-	RETRAIN = False  # 基于之前的训练结果重新训练
+	TRAIN = False  # 直接训练
+	RETRAIN = True  # 基于之前的训练结果重新训练
 	TEST = not TRAIN
 
 	env = env(pos0=np.array([1.0, 1.0]),
@@ -132,8 +143,8 @@ if __name__ == '__main__':
 		mp.set_start_method('spawn', force=True)
 
 		'''2. 定义 DPPO 机器基本参数'''
-		process_num = 6
-		actor_lr = 3e-4 / min(process_num, 5)
+		process_num = 5
+		actor_lr = 1e-4 / min(process_num, 5)		# 最开始是3e-4
 		critic_lr = 1e-4 / min(process_num, 5)		# 一直都是 1e-3
 		action_std = 0.9
 		k_epo = int(100 / process_num * 1.1)		# int(100 / process_num * 1.1)
@@ -143,7 +154,8 @@ if __name__ == '__main__':
 		agent.global_policy = PPOActorCritic(agent.env.state_dim, agent.env.action_dim, action_std, 'GlobalPolicy', simulationPath)
 		agent.eval_policy = PPOActorCritic(agent.env.state_dim, agent.env.action_dim, action_std, 'EvalPolicy', simulationPath)
 		if RETRAIN:
-			agent.global_policy.load_state_dict(torch.load('Policy_PPO-1-20400'))
+			agent.global_policy.load_state_dict(torch.load('Policy_PPO-1-96900'))
+			agent.global_policy.reset_critic()
 		agent.global_policy.share_memory()
 		agent.optimizer = SharedAdam([
 			{'params': agent.global_policy.actor.parameters(), 'lr': actor_lr},
@@ -177,8 +189,9 @@ if __name__ == '__main__':
 	else:
 		agent = DPPO(env=env, actor_lr=3e-4, critic_lr=1e-3, num_of_pro=0, path=simulationPath)
 		agent.global_policy = PPOActorCritic(agent.env.state_dim, agent.env.action_dim, 0.1, 'GlobalPolicy', simulationPath)
+		agent.eval_policy = PPOActorCritic(agent.env.state_dim, agent.env.action_dim, 0.1, 'EvalPolicy', simulationPath)
 		# agent.load_models(optPath + 'DPPO-4-SecondOrderIntegration/')
-		agent.global_policy.load_state_dict(torch.load('Policy_PPO20400'))
+		agent.global_policy.load_state_dict(torch.load('Policy_PPO26100'))
 		agent.eval_policy.load_state_dict(agent.global_policy.state_dict())
 		test_num = 10
 		error = []

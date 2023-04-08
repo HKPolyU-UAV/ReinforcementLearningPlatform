@@ -85,7 +85,7 @@ def test_UGVBidirectional2():
 	from UGV2.UGVBidirectional import UGV_Bidirectional as env
 	env = env(pos0=np.array([1.0, 1.0]),
 			  phi0=deg2rad(45),
-			  target=np.array([4.5, 4.5]),
+			  target=np.array([4., 1]),
 			  map_size=np.array([5.0, 5.0]))  # 其余参数默认
 
 	for _ in range(5):
