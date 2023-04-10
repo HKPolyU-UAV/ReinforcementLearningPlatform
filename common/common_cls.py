@@ -8,6 +8,7 @@ import torch.nn.functional as func
 import torch
 from torch.distributions import Normal
 from torch.distributions import MultivariateNormal
+from torch.distributions import Categorical
 
 
 # import scipy.spatial as spt
@@ -475,25 +476,66 @@ class ProbActor(nn.Module):
 
 
 class SoftmaxActor(nn.Module):
-    def __init__(self, alpha=1e-4, state_dim=1, action_num=1, name='DiscreteActor', chkpt_dir=''):
+    def __init__(self, alpha=1e-4, state_dim=1, action_dim=1, action_num=None, name='DiscreteActor', chkpt_dir=''):
         super(SoftmaxActor, self).__init__()
-        self.state_dim = state_dim
-        self.action_dim = action_num
+        self.state_dim = state_dim              # 状态的维度，即 ”有几个状态“
+        self.action_dim = action_dim            # 动作的维度，即 "有几个动作"
+        if action_num is None:
+            self.action_num = [3, 3, 3, 3]      # 每个动作有几个取值，离散动作空间特有
         self.alpha = alpha
-        self.checkpoint_file = chkpt_dir + name + '_ddpg'
-        self.checkpoint_file_whole_net = chkpt_dir + name + '_ddpgALL'
-        self.layer = nn.Linear(state_dim, action_num)
+        self.checkpoint_file = chkpt_dir + name + '_PPO_Dis'
+        self.checkpoint_file_whole_net = chkpt_dir + name + '_PPO_DisALL'
+
+        self.fc1 = nn.Linear(state_dim, 64)
+        self.fc2 = nn.Linear(64, 64)
+        self.out = [nn.Linear(64, self.action_num[i]) for i in range(self.action_dim)]
         self.optimizer = torch.optim.Adam(self.parameters(), lr=alpha)
-        self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+
+        self.initialization()
+
+        # self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+        self.device = 'cpu'
         self.to(self.device)
 
-    def initialization(self):
-        pass
+    @staticmethod
+    def orthogonal_init(layer, gain=1.0):
+        nn.init.orthogonal_(layer.weight, gain=gain)
+        nn.init.constant_(layer.bias, 0)
 
-    def forward(self, state):
-        x = func.relu(self.layer(state))
-        x = func.softmax(x, dim=1)
-        return x
+    def initialization(self):
+        self.orthogonal_init(self.fc1)
+        self.orthogonal_init(self.fc2)
+        for i in range(self.action_dim):
+            self.orthogonal_init(self.out[i], gain=0.01)
+
+    def forward(self, xx: torch.Tensor):
+        xx = torch.tanh(self.fc1(xx))       # xx -> 第一层 -> tanh
+        xx = torch.tanh(self.fc2(xx))       # xx -> 第二层 -> tanh
+        a_prob = []
+        for i in range(self.action_dim):
+            a_prob.append(func.softmax(self.out[i](xx), dim=1).T)   # xx -> 每个动作维度的第三层 -> softmax
+        return nn.utils.rnn.pad_sequence(a_prob).T      # 得到很多分布列，分布列合并，差的数用 0 补齐，不影响 log_prob 和 entropy
+
+    def evaluate(self, xx: torch.Tensor):
+        xx = torch.unsqueeze(xx, 0)
+        a_prob = self.forward(xx)
+        _a = torch.argmax(a_prob, dim=2)
+        return _a
+
+    def choose_action(self, xx):  # choose action 默认是在训练情况下的函数，默认有batch
+        # xx = torch.unsqueeze(xx, 0)
+        with torch.no_grad():
+            dist = Categorical(probs=self.forward(xx))
+            _a = dist.sample()
+            _a_logprob = dist.log_prob(_a)
+            _a_entropy = dist.entropy()
+        '''
+            这里跟连续系统不一样的地方在于，这里的概率是多个分布列，pytorch 或许无法表示多维分布列。
+            所以用了 mean 函数，但是主观分析不影响结果，因为 mean 的单调性与 sum 是一样的。
+            连续动作有多维联合高斯分布，但是协方差矩阵都是对角阵，所以跟多个一维的也没区别。
+        '''
+        return _a, torch.mean(_a_logprob, dim=1), torch.mean(_a_entropy, dim=1)
+        # return _a
 
     def save_checkpoint(self, name=None, path='', num=None):
         print('...saving checkpoint...')

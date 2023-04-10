@@ -11,7 +11,17 @@ class UGV_Bidirectional(rl_base):
 				 phi0: float = 0.,
 				 omega0: float = 0.,
 				 map_size: np.ndarray = np.array([10.0, 10.0]),
-				 target: np.ndarray = np.array([5.0, 5.0])):
+				 target: np.ndarray = np.array([5.0, 5.0]),
+				 is_controller_Bang3: bool = False):
+		"""
+		@param pos0:					initial position
+		@param vel0:					initial velocity
+		@param phi0:					initial heading angle
+		@param omega0:					initial angular rate
+		@param map_size:				map size
+		@param target:					target
+		@param is_controller_Bang3:		using Bang-3 control or not
+		"""
 		super(UGV_Bidirectional, self).__init__()
 
 		self.init_pos = pos0  # 初始位置
@@ -81,13 +91,22 @@ class UGV_Bidirectional(rl_base):
 		self.next_state = self.initial_state.copy()
 
 		self.action_dim = 2
-		self.action_step = [None, None]
-		self.action_range = [[self.fMin, self.fMax], [self.tMin, self.tMax]]
-		self.action_num = [math.inf, math.inf]
-		self.action_space = [None, None]
-		self.isActionContinuous = [True, True]
-		self.initial_action = np.array([self.f, self.torque])
-		self.current_action = self.initial_action.copy()
+		if is_controller_Bang3:
+			self.action_step = [None, None]		# 正常来说应该有数，但是这里不写也行，因为不会被调用
+			self.action_range = [[self.fMin, self.fMax], [self.tMin, self.tMax]]
+			self.action_num = [3, 3]
+			self.action_space = [[self.fMin, 0, self.fMax], [self.tMin, 0, self.tMax]]
+			self.isActionContinuous = [False, False]
+			self.initial_action = np.array([self.f, self.torque])
+			self.current_action = self.initial_action.copy()
+		else:
+			self.action_step = [None, None]
+			self.action_range = [[self.fMin, self.fMax], [self.tMin, self.tMax]]
+			self.action_num = [math.inf, math.inf]
+			self.action_space = [None, None]
+			self.isActionContinuous = [True, True]
+			self.initial_action = np.array([self.f, self.torque])
+			self.current_action = self.initial_action.copy()
 
 		self.reward = 0.0
 		self.is_terminal = False

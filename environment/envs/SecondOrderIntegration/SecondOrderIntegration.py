@@ -10,7 +10,8 @@ class SecondOrderIntegration(rl_base):
 				 pos0: np.ndarray = np.array([5.0, 5.0]),
 				 vel0: np.ndarray = np.array([0.0, 0.0]),
 				 map_size: np.ndarray = np.array([10.0, 10.0]),
-				 target: np.ndarray = np.array([5.0, 5.0])):
+				 target: np.ndarray = np.array([5.0, 5.0]),
+				 is_controller_Bang3: bool = False):
 		super(SecondOrderIntegration, self).__init__()
 		self.name = 'SecondOrderIntegration'
 		self.init_pos = pos0
@@ -37,6 +38,7 @@ class SecondOrderIntegration(rl_base):
 		self.dt = 0.02  # 50Hz
 		self.time = 0.  # time
 		self.timeMax = 5.0  # 每回合最大时间
+		self.is_controller_Bang3 = is_controller_Bang3		# 是否使用离散动作空间 BangBang 控制或者 Bang-3 控制
 
 		'''rl_base'''
 		self.use_normalization = True
@@ -55,7 +57,6 @@ class SecondOrderIntegration(rl_base):
 			 [self.vMin, self.vMax]]
 		)
 		if self.use_normalization:
-			# self.state_range = np.array([[-self.static_gain, self.static_gain] for _ in range(self.state_dim)])
 			self.initial_state = self.state_norm()
 		else:
 			self.initial_state = np.hstack((self.error, self.pos, self.vel))
@@ -65,9 +66,14 @@ class SecondOrderIntegration(rl_base):
 		self.action_dim = 2
 		self.action_step = [None, None]
 		self.action_range = [[self.fMin, self.fMax], [self.fMin, self.fMax]]
-		self.action_num = [math.inf, math.inf]
-		self.action_space = [None, None]
-		self.isActionContinuous = [True, True]
+		if self.is_controller_Bang3:
+			self.action_num = [3, 3]
+			self.action_space = [[self.fMin,0,self.fMax], [self.fMin,0,self.fMax]]
+			self.isActionContinuous = [False, False]
+		else:
+			self.action_num = [math.inf, math.inf]
+			self.action_space = [None, None]
+			self.isActionContinuous = [True, True]
 		self.initial_action = self.force.copy()
 		self.current_action = self.initial_action.copy()
 
@@ -244,56 +250,86 @@ class SecondOrderIntegration(rl_base):
 		if self.is_success():
 			print('...success...')
 			self.terminal_flag = 3
-			# return True
+			return True
 		self.terminal_flag = 0
 		return False
 
 	def get_reward(self, param=None):
-		if self.use_normalization:
-			cur_s = self.inverse_state_norm(self.current_state)	# e, pos, vel
-			nex_s = self.inverse_state_norm(self.next_state)
-		else:
-			cur_s = self.current_state
-			nex_s = self.next_state
+		if self.is_controller_Bang3:
+			if self.use_normalization:
+				cur_s = self.inverse_state_norm(self.current_state)	# e, pos, vel
+				nex_s = self.inverse_state_norm(self.next_state)
+			else:
+				cur_s = self.current_state
+				nex_s = self.next_state
 
-		'''s1'''
-		cur_error = np.linalg.norm(cur_s[0: 2])
-		nex_error = np.linalg.norm(nex_s[0: 2])
+			cur_e = np.linalg.norm(cur_s[0: 2])
+			nex_e = np.linalg.norm(nex_s[0: 2])
 
-		nex_vel = np.linalg.norm(nex_s[4: 6])
+			nex_norm_e = nex_e / np.linalg.norm(self.map_size)
+			# r1 = -nex_norm_e ** 2 * 1
 
-		R_e = 0.1
-		# r1 = 0
-		if cur_error > nex_error:		# 如果朝着正确的方向走
-			r1 = np.linalg.norm(self.map_size) * R_e - nex_error ** 2 * R_e		# 位置二次型奖励
-		else:
-			r1 = 0
-			# r1 = -nex_error ** 2 * R_e  # 位置二次型惩罚，走得越远罚得越多
+			if cur_e > nex_e:
+				r1 = 0
+			else:
+				r1 = -2
 
-		'''4. 其他'''
-		if self.terminal_flag == 3:  # 成功
-			r4 = 100
-		elif self.terminal_flag == 2:  # 超时
-			r4 = 0
-		elif self.terminal_flag == 1:  # 出界
-			r4 = -0
+			if self.terminal_flag == 3:  # 成功
+				r4 = 1000
+			elif self.terminal_flag == 2:  # 超时
+				r4 = 0
+			elif self.terminal_flag == 1:  # 出界
+				r4 = -0
+			else:
+				r4 = 0
+
+			self.reward = -1 + r1 + r4
 		else:
-			r4 = 0
-		'''4. 其他'''
-		# self.reward = rx_v + rx_e + ry_v + ry_e + r4		# s2
-		# self.reward = r1 + r2 + r3 + r4					# s1
-		yyf_x0 = nex_error / np.linalg.norm(self.map_size)
-		if yyf_x0 < 0.25:
-			kk = -180 * yyf_x0 + 50
-		else:
-			kk = 5
-		r1 = (-yyf_x0 + 0.5) * kk
-		theta = np.arccos(np.dot(nex_s[4: 6], nex_s[0: 2]) / (np.linalg.norm(nex_s[0: 2]) * np.linalg.norm(nex_s[4: 6])))
-		if theta < rad2deg(45):			# 小于 45 度，不罚
-			r2 = 0
-		else:
-			r2 = -(theta - rad2deg(45)) * kk
-		self.reward = r1 + r2 + r4
+			if self.use_normalization:
+				cur_s = self.inverse_state_norm(self.current_state)	# e, pos, vel
+				nex_s = self.inverse_state_norm(self.next_state)
+			else:
+				cur_s = self.current_state
+				nex_s = self.next_state
+
+			'''s1'''
+			cur_error = np.linalg.norm(cur_s[0: 2])
+			nex_error = np.linalg.norm(nex_s[0: 2])
+
+			nex_vel = np.linalg.norm(nex_s[4: 6])
+
+			R_e = 0.1
+			# r1 = 0
+			if cur_error > nex_error:		# 如果朝着正确的方向走
+				r1 = np.linalg.norm(self.map_size) * R_e - nex_error ** 2 * R_e		# 位置二次型奖励
+			else:
+				r1 = 0
+				# r1 = -nex_error ** 2 * R_e  # 位置二次型惩罚，走得越远罚得越多
+
+			'''4. 其他'''
+			if self.terminal_flag == 3:  # 成功
+				r4 = 100
+			elif self.terminal_flag == 2:  # 超时
+				r4 = 0
+			elif self.terminal_flag == 1:  # 出界
+				r4 = -0
+			else:
+				r4 = 0
+			'''4. 其他'''
+			# self.reward = rx_v + rx_e + ry_v + ry_e + r4		# s2
+			# self.reward = r1 + r2 + r3 + r4					# s1
+			yyf_x0 = nex_error / np.linalg.norm(self.map_size)
+			if yyf_x0 < 0.25:
+				kk = -180 * yyf_x0 + 50
+			else:
+				kk = 5
+			r1 = (-yyf_x0 + 0.5) * kk
+			theta = np.arccos(np.dot(nex_s[4: 6], nex_s[0: 2]) / (np.linalg.norm(nex_s[0: 2]) * np.linalg.norm(nex_s[4: 6])))
+			if theta < rad2deg(45):			# 小于 45 度，不罚
+				r2 = 0
+			else:
+				r2 = -(theta - rad2deg(45)) * kk
+			self.reward = r1 + r2 + r4
 
 	def ode(self, xx: np.ndarray):
 		"""

@@ -66,10 +66,6 @@ class Proximal_Policy_Optimization:
 		self.episode = 0
 		self.reward = 0
 
-		self.save_episode = []  # 保存的每一个回合的回合数
-		self.save_reward = []  # 保存的每一个回合的奖励
-		self.save_time = []
-		self.save_step = []  # 保存的每一步的步数
 		# self.writer = SummaryWriter(path)
 
 	def set_action_std(self, new_action_std):
