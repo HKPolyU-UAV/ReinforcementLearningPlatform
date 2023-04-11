@@ -3,15 +3,9 @@ import sys
 import datetime
 import time
 import cv2 as cv
-import numpy as np
-import torch
-from torch.distributions import Categorical
-
 import visdom
-import matplotlib.pyplot as plt
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../../")
-
 from environment.envs.SecondOrderIntegration.SecondOrderIntegration import SecondOrderIntegration as env
 from algorithm.policy_base.Proximal_Policy_Optimization_Discrete import Proximal_Policy_Optimization_Discrete as PPO_Dis
 from common.common_cls import *
@@ -175,11 +169,11 @@ if __name__ == '__main__':
     simulationPath = log_dir + datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d-%H-%M-%S') + '-' + ALGORITHM + '-' + ENV + '/'
     os.mkdir(simulationPath)
     c = cv.waitKey(1)
-    TRAIN = False  # 直接训练
+    TRAIN = True  # 直接训练
     RETRAIN = False  # 基于之前的训练结果重新训练
     TEST = not TRAIN
 
-    env = env(pos0=np.array([1.0, 1.0]),
+    env = env(pos0=np.array([2.5, 2.5]),
               vel0=np.array([0.0, 0.0]),
               map_size=np.array([5.0, 5.0]),
               target=np.array([4.5, 4.5]),
@@ -200,8 +194,13 @@ if __name__ == '__main__':
                         critic=critic,
                         path=simulationPath)
         '''重新加载Policy网络结构，这是必须的操作'''
-
         agent.PPO_info()
+
+        if RETRAIN:
+            agent.actor.load_state_dict(torch.load('Actor_PPO1950'))
+            agent.critic.load_state_dict(torch.load('Critic_PPO1950'))
+            # agent.agent_evaluate(50, True)
+
         max_training_timestep = int(env.timeMax / env.dt) * 20000  # 10000回合
         action_std_decay_freq = int(5e6)
         action_std_decay_rate = 0.05  # linearly decay action_std (action_std = action_std - action_std_decay_rate)
@@ -251,26 +250,88 @@ if __name__ == '__main__':
                     start_eps = agent.episode
                     sumr = 0
                     index = 0
-                    if train_num % 50 == 0 and train_num > 0:
-                        rr, ee = agent.agent_evaluate(50, True)
-                        print(rr)
-                        print(ee)
-                        if train_num == 50:
-                            evaluate_r = rr.copy()
-                            evaluate_e = ee.copy()
-                        else:
-                            evaluate_r = np.hstack((evaluate_r, rr))
-                            evaluate_e = np.hstack((evaluate_e, ee))
-                        test_num += 1
-                        xx = np.arange(train_num - 50, train_num, 1)
-                        vis.line(X=xx, Y=rr, win='reward', update='append' if train_num > 50 else None, opts=dict(title='reward'))
-                        vis.line(X=xx, Y=ee, win='position error', update='append' if train_num > 50 else None, opts=dict(title='position error'))
+                    if train_num % 50 == 0 and train_num > 0:    # '1' should be 50
+                        # rr, ee = agent.agent_evaluate(50, False)
+                        # # print(rr)
+                        # print('----- position errors -----')
+                        # print('Training num:  ', train_num)
+                        # print(ee)
+                        # print('----- position errors -----')
+                        # if train_num == 50:
+                        #     evaluate_r = rr.copy()
+                        #     evaluate_e = ee.copy()
+                        # else:
+                        #     evaluate_r = np.hstack((evaluate_r, rr))
+                        #     evaluate_e = np.hstack((evaluate_e, ee))
+                        # test_num += 1
+                        # xx = np.arange(train_num - 50, train_num, 1)
+                        # vis.line(X=xx, Y=rr, win='reward', update='append' if train_num > 50 else None, opts=dict(title='reward'))
+                        # vis.line(X=xx, Y=ee, win='position error', update='append' if train_num > 50 else None, opts=dict(title='position error'))
                         print('check point save')
-                        temp = simulationPath + 'episode' + '_' + str(train_num) + '_save/'
+                        temp = simulationPath + 'training' + '_' + str(train_num) + '_save/'
                         os.mkdir(temp)
                         time.sleep(0.01)
-                        agent.actor.save_checkpoint(name='Actor_PPO', path=temp, num=train_num)
-                        agent.critic.save_checkpoint(name='Critic_PPO', path=temp, num=train_num)
+                        torch.save(agent.actor.state_dict(), 'fuck.pkl')
+                        # agent.actor.save_checkpoint(name='Actor_PPO', path=temp, num=train_num)
+                        # agent.critic.save_checkpoint(name='Critic_PPO', path=temp, num=train_num)
+
+                        ###############################################################################################3
+                        # torch.save(agent.actor.state_dict(), 'fuck')
+                        actor_temp = SoftmaxActor(3e-4, env.state_dim, env.action_dim, env.action_num)
+                        actor_temp.load_state_dict(torch.load('fuck.pkl'))
+                        # actor_temp.load_state_dict(agent.actor.state_dict())
+                        # for p1, p2 in zip(agent.actor.parameters(), actor_temp.parameters()):
+                        #     print(torch.linalg.norm(p1 - p2))
+                        pts = np.array([
+                            [0.5, 0.5], [0.5, 1.0], [0.5, 1.5], [0.5, 2.0], [0.5, 2.5], [0.5, 3.0], [0.5, 3.5], [0.5, 4.0], [0.5, 4.5],
+                            [1.0, 0.5], [1.0, 1.0], [1.0, 1.5], [1.0, 2.0], [1.0, 2.5], [1.0, 3.0], [1.0, 3.5], [1.0, 4.0], [1.0, 4.5],
+                            [1.5, 0.5], [1.5, 1.0], [1.5, 1.5], [1.5, 2.0], [1.5, 2.5], [1.5, 3.0], [1.5, 3.5], [1.5, 4.0], [1.5, 4.5],
+                            [2.0, 0.5], [2.0, 1.0], [2.0, 1.5], [2.0, 2.0], [2.0, 2.5], [2.0, 3.0], [2.0, 3.5], [2.0, 4.0], [2.0, 4.5],
+                            [2.5, 0.5], [2.5, 1.0], [2.5, 1.5], [2.5, 2.0], [2.5, 2.5], [2.5, 3.0], [2.5, 3.5], [2.5, 4.0], [2.5, 4.5],
+                            [3.0, 0.5], [3.0, 1.0], [3.0, 1.5], [3.0, 2.0], [3.0, 2.5]
+                        ]).astype(np.float32)
+                        rr2 = []
+                        ee2 = []
+
+                        for i in range(50):
+                            print('------------------IIIII--------------------')
+                            # self.env.reset_random()
+                            env.init_target = pts[i]
+                            env.reset()
+                            r = 0
+                            # self.env.reset()
+                            while not env.is_terminal:
+                                env.current_state = env.next_state.copy()
+                                with torch.no_grad():
+                                    t_state = torch.FloatTensor(env.current_state).to('cpu')
+                                    _action_from_actor = actor_temp.evaluate(t_state)       # bad
+                                    _action_from_actor2 = agent.actor.evaluate(t_state)     # good
+                                    # for p1, p2 in zip(agent.actor.parameters(), actor_temp.parameters()):
+                                    #     print('JJJJJ')
+                                    #     print(torch.linalg.norm(p1-p2))
+                                    # print('FUCK')
+                                    # print(_action_from_actor, _action_from_actor2)
+                                _action = agent.action_linear_trans(_action_from_actor.cpu().numpy().flatten())  # 将动作转换到实际范围上
+                                env.step_update(_action)  # 环境更新的action需要是物理的action
+                                r += env.reward
+                            print(np.linalg.norm(env.error))
+
+                            env.init_target = pts[i]
+                            env.reset()
+                            while not env.is_terminal:
+                                env.current_state = env.next_state.copy()
+                                with torch.no_grad():
+                                    t_state = torch.FloatTensor(env.current_state).to('cpu')
+                                    _action_from_actor = agent.actor.evaluate(t_state)
+                                _action = agent.action_linear_trans(_action_from_actor.cpu().numpy().flatten())  # 将动作转换到实际范围上
+                                env.step_update(_action)  # 环境更新的action需要是物理的action
+                                r += env.reward
+                                # env.show_dynamic_image(isWait=False)  # 画图
+                            print(np.linalg.norm(env.error))
+                            rr2.append(r)
+                            ee2.append(np.linalg.norm(env.error))
+                        # print(np.array(ee2))
+                        ###############################################################################################3
                     print('========== LEARN ==========')
                 '''学习'''
 
@@ -280,17 +341,29 @@ if __name__ == '__main__':
 
     if TEST:
         actor = SoftmaxActor(3e-4, env.state_dim, env.action_dim, env.action_num, 'DiscreteActor', simulationPath)
-        critic = Critic(3e-4, env.state_dim, env.action_dim, 'Critic', simulationPath)
-        agent = PPO_Dis(env=env,
-                        gamma=0.99,
-                        K_epochs=40,
-                        eps_clip=0.2,
-                        buffer_size=int(env.timeMax / env.dt * 2),  # 假设可以包含两条完整的最长时间的轨迹
-                        actor=actor,
-                        critic=critic,
-                        path=simulationPath)
-        # agent.load_models(optPath + 'DPPO-4-CartPoleAngleOnly/')
-        agent.actor.load_state_dict(torch.load('Actor_PPO8400'))
-        rr, ee = agent.agent_evaluate(50, False)
-        print(rr)
-        print(ee)
+        torch.save(actor.state_dict(), 'a.pkl')
+        # for name, param in actor.named_parameters():
+        #     print(name)
+        #     print(param)
+        actor1 = SoftmaxActor(3e-4, env.state_dim, env.action_dim, env.action_num, 'DiscreteActor', simulationPath)
+        actor1.load_state_dict(torch.load('a.pkl'))
+        # actor1.load_state_dict(actor.state_dict())
+        # for name, param in actor1.named_parameters():
+        #     print(name)
+        #     print(param)
+        for p1, p2 in zip(actor.parameters(), actor1.parameters()):
+            print(torch.linalg.norm(p1-p2))
+        # critic = Critic(3e-4, env.state_dim, env.action_dim, 'Critic', simulationPath)
+        # agent = PPO_Dis(env=env,
+        #                 gamma=0.99,
+        #                 K_epochs=40,
+        #                 eps_clip=0.2,
+        #                 buffer_size=int(env.timeMax / env.dt * 2),  # 假设可以包含两条完整的最长时间的轨迹
+        #                 actor=actor,
+        #                 critic=critic,
+        #                 path=simulationPath)
+        # # agent.load_models(optPath + 'DPPO-4-CartPoleAngleOnly/')
+        # agent.actor.load_state_dict(torch.load('Actor_PPO8400'))
+        # rr, ee = agent.agent_evaluate(50, False)
+        # print(rr)
+        # print(ee)

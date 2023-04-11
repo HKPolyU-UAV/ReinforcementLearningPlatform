@@ -421,9 +421,9 @@ class SecondOrderIntegration(rl_base):
 		self.init_pos = self.map_size / 2
 
 		self.init_vel = np.array([np.random.uniform(self.vMin, self.vMax),
-									 np.random.uniform(self.vMin, self.vMax)])
+								  np.random.uniform(self.vMin, self.vMax)])
 		self.init_target = np.array([np.random.uniform(0 + 0.1, self.map_size[0] - 0.1),
-								  np.random.uniform(0 + 0.1, self.map_size[1] - 0.1)])
+									 np.random.uniform(0 + 0.1, self.map_size[1] - 0.1)])
 
 		self.pos = self.init_pos.copy()
 		self.vel = self.init_vel.copy()

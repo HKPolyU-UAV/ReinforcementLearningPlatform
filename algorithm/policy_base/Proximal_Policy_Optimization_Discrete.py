@@ -68,10 +68,22 @@ class Proximal_Policy_Optimization_Discrete:
 	def agent_evaluate(self, test_num, show):
 		rr = []
 		ee = []
-		for _ in range(test_num):
-			self.env.reset_random()
+		'''fixed initial position, velocity'''
+		# self.actor.eval()
+		pts = np.array([
+			[0.5, 0.5], [0.5, 1.0], [0.5, 1.5], [0.5, 2.0], [0.5, 2.5], [0.5, 3.0], [0.5, 3.5], [0.5, 4.0], [0.5, 4.5],
+			[1.0, 0.5], [1.0, 1.0], [1.0, 1.5], [1.0, 2.0], [1.0, 2.5], [1.0, 3.0], [1.0, 3.5], [1.0, 4.0], [1.0, 4.5],
+			[1.5, 0.5], [1.5, 1.0], [1.5, 1.5], [1.5, 2.0], [1.5, 2.5], [1.5, 3.0], [1.5, 3.5], [1.5, 4.0], [1.5, 4.5],
+			[2.0, 0.5], [2.0, 1.0], [2.0, 1.5], [2.0, 2.0], [2.0, 2.5], [2.0, 3.0], [2.0, 3.5], [2.0, 4.0], [2.0, 4.5],
+			[2.5, 0.5], [2.5, 1.0], [2.5, 1.5], [2.5, 2.0], [2.5, 2.5], [2.5, 3.0], [2.5, 3.5], [2.5, 4.0], [2.5, 4.5],
+			[3.0, 0.5], [3.0, 1.0], [3.0, 1.5], [3.0, 2.0], [3.0, 2.5]
+		]).astype(np.float32)
+
+		for i in range(test_num):
+			# self.env.reset_random()
+			self.env.init_target = pts[i]
+			self.env.reset()
 			r = 0
-			# self.env.reset()
 			while not self.env.is_terminal:
 				self.env.current_state = self.env.next_state.copy()
 				_action_from_actor = self.evaluate(self.env.current_state)
@@ -123,6 +135,9 @@ class Proximal_Policy_Optimization_Discrete:
 		advantages = rewards.detach() - old_state_values.detach()
 		if adv_norm:
 			advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-5)
+
+		# self.actor.train()
+		# self.critic.train()
 
 		'''5. 学习 K 次'''
 		for _ in range(self.K_epochs):
