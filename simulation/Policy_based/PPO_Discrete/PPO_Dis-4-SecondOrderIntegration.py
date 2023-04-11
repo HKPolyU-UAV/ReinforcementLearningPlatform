@@ -35,6 +35,9 @@ class SoftmaxActor(nn.Module):
         self.action_dim = action_dim            # 动作的维度，即 "有几个动作"
         if action_num is None:
             self.action_num = [2, 2, 2, 2]      # 每个动作有几个取值，离散动作空间特有
+        self.index = [0]
+        for i in range(action_dim):
+            self.index.append(self.index[i] + env.action_num[i])
         self.alpha = alpha
         self.checkpoint_file = chkpt_dir + name + '_PPO_Dis'
         self.checkpoint_file_whole_net = chkpt_dir + name + '_PPO_DisALL'
@@ -42,8 +45,9 @@ class SoftmaxActor(nn.Module):
         self.fc1 = nn.Linear(state_dim, 64)
         self.fc2 = nn.Linear(64, 64)
         # self.out = [nn.Linear(64, env.action_num[i]) for i in range(self.action_dim)]
-        self.out1 = nn.Linear(64, env.action_num[0])
-        self.out2 = nn.Linear(64, env.action_num[1])
+        # self.out1 = nn.Linear(64, env.action_num[0])
+        # self.out2 = nn.Linear(64, env.action_num[1])
+        self.out = nn.Linear(64, sum(env.action_num))
         self.optimizer = torch.optim.Adam(self.parameters(), lr=alpha)
 
         self.initialization()
@@ -60,18 +64,19 @@ class SoftmaxActor(nn.Module):
     def initialization(self):
         self.orthogonal_init(self.fc1)
         self.orthogonal_init(self.fc2)
-        for i in range(self.action_dim):
-            self.orthogonal_init(self.out[i], gain=0.01)
+        self.orthogonal_init(self.out)
+        # for i in range(self.action_dim):
+        #     self.orthogonal_init(self.out[i], gain=0.01)
 
     def forward(self, xx: torch.Tensor):
         xx = torch.tanh(self.fc1(xx))       # xx -> 第一层 -> tanh
         xx = torch.tanh(self.fc2(xx))       # xx -> 第二层 -> tanh
-        # a_prob = []
-        # for i in range(self.action_dim):
-        #     a_prob.append(func.softmax(self.out[i](xx), dim=1).T)   # xx -> 每个动作维度的第三层 -> softmax
-        a1 = func.softmax(self.out1(xx), dim=1)
-        a2 = func.softmax(self.out2(xx), dim=1)
-        a_prob = [a1.T, a2.T]
+        a_prob = []
+        for i in range(self.nAction):
+            a_prob.append(func.softmax(xx[:, self.index[i]:self.index[i + 1]], dim=1).T)
+        # a1 = func.softmax(self.out1(xx), dim=1)
+        # a2 = func.softmax(self.out2(xx), dim=1)
+        # a_prob = [a1.T, a2.T]
         return nn.utils.rnn.pad_sequence(a_prob).T      # 得到很多分布列，分布列合并，差的数用 0 补齐，不影响 log_prob 和 entropy
 
     def evaluate(self, xx: torch.Tensor):
