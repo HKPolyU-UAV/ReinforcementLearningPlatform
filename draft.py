@@ -23,36 +23,26 @@ from torch.distributions import MultivariateNormal
 
 
 class SoftmaxActor(nn.Module):
-	def __init__(self, nAction = 4, nOut=None):
+	def __init__(self, nAction = 2, nOut=3):
 		super(SoftmaxActor, self).__init__()
 		self.nAction = nAction
-		if nOut is None:
-			nOut = [4, 4, 3, 5]
-		self.fc1 = nn.Linear(4, 64)
+		self.fc1 = nn.Linear(2, 64)
 		self.fc2 = nn.Linear(64, 64)
-		self.out = [nn.Linear(64, nOut[i]) for i in range(nAction)]
-		self.initialization()
-
-	def initialization(self):
-		self.orthogonal_init(self.fc1)
-		self.orthogonal_init(self.fc2)
-		for i in range(self.nAction):
-			self.orthogonal_init(self.out[i], gain=0.01)
-
-	@staticmethod
-	def orthogonal_init(layer, gain=1.0):
-		nn.init.orthogonal_(layer.weight, gain=gain)
-		nn.init.constant_(layer.bias, 0)
+		# self.out1 = nn.Linear(64, nOut)
+		# self.out2 = nn.Linear(64, nOut)
+		self.out = [nn.Linear(64, 3) for i in range(nAction)]
+		self.fc3 = nn.Linear(64, 3)
 
 	def forward(self, xx):
 		# xx = torch.FloatTensor(xx)
 		xx = torch.tanh(self.fc1(xx))
 		xx = torch.tanh(self.fc2(xx))
+
 		a_prob = []
 		for i in range(self.nAction):
-			a_prob.append(func.softmax(self.out[i](xx), dim=1).T)
+			# a_prob.append(func.softmax(self.out[i](xx), dim=1).T)
+			a_prob.append(self.out[i](xx).T)
 		return nn.utils.rnn.pad_sequence(a_prob).T
-		# return a_prob
 
 	def evaluate(self, xx):				# evaluate 默认是在测试情况下的函数，默认没有batch
 		xx = torch.unsqueeze(xx, 0)
@@ -71,21 +61,26 @@ class SoftmaxActor(nn.Module):
 
 
 if __name__ == '__main__':
-	# actor = SoftmaxActor()
-	# xx1 = torch.randn((100, 4))
-	# # y = actor(xx1)
-	# # a = actor.evaluate(torch.squeeze(xx1))
-	# a1, a1_lg_prob, a1_entropy = actor.choose_action(xx1)
-	# # a1_lg_prob = torch.mean(a1_lg_prob, dim=1)
-	# print(a1_lg_prob.size(), a1_entropy.size())
-	#
-	# xx2 = torch.randn((100, 4))
-	# a2, a2_lg_prob, a2_entropy = actor.choose_action(xx2)
-	# #
-	# ratios = torch.exp(a2_lg_prob.detach() - a2_lg_prob.detach())
-	# print(ratios.size())
-	a1 = np.array([1.0]).astype(np.float32)
-	a2 = np.array([1.0]).astype(np.float32)
-	b = np.hstack((a1, a2))
-	print(b)
+	actor1 = SoftmaxActor()
+	actor2 = SoftmaxActor()
+	actor3 = SoftmaxActor()
+	actor4 = SoftmaxActor()
+	actor5 = SoftmaxActor()
+
+	actor2.load_state_dict(actor1.state_dict())
+	actor3.load_state_dict(actor1.state_dict())
+	actor4.load_state_dict(actor1.state_dict())
+	actor5.load_state_dict(actor1.state_dict())
+
+	xx = torch.randn((1,2))
+	y1 = actor1(xx).cpu().detach().numpy()
+	y2 = actor2(xx).cpu().detach().numpy()
+	y3 = actor3(xx).cpu().detach().numpy()
+	y4 = actor4(xx).cpu().detach().numpy()
+	y5 = actor5(xx).cpu().detach().numpy()
+	print(y1)
+	print(y2)
+	print(y3)
+	print(y4)
+	print(y5)
 	pass

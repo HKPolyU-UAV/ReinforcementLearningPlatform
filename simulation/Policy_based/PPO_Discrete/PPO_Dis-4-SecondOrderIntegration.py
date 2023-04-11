@@ -3,6 +3,7 @@ import sys
 import datetime
 import time
 import cv2 as cv
+import torch
 import visdom
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../../")
@@ -33,14 +34,16 @@ class SoftmaxActor(nn.Module):
         self.state_dim = state_dim              # 状态的维度，即 ”有几个状态“
         self.action_dim = action_dim            # 动作的维度，即 "有几个动作"
         if action_num is None:
-            self.action_num = [3, 3, 3, 3]      # 每个动作有几个取值，离散动作空间特有
+            self.action_num = [2, 2, 2, 2]      # 每个动作有几个取值，离散动作空间特有
         self.alpha = alpha
         self.checkpoint_file = chkpt_dir + name + '_PPO_Dis'
         self.checkpoint_file_whole_net = chkpt_dir + name + '_PPO_DisALL'
 
         self.fc1 = nn.Linear(state_dim, 64)
         self.fc2 = nn.Linear(64, 64)
-        self.out = [nn.Linear(64, env.action_num[i]) for i in range(self.action_dim)]
+        # self.out = [nn.Linear(64, env.action_num[i]) for i in range(self.action_dim)]
+        self.out1 = nn.Linear(64, env.action_num[0])
+        self.out2 = nn.Linear(64, env.action_num[1])
         self.optimizer = torch.optim.Adam(self.parameters(), lr=alpha)
 
         self.initialization()
@@ -63,15 +66,21 @@ class SoftmaxActor(nn.Module):
     def forward(self, xx: torch.Tensor):
         xx = torch.tanh(self.fc1(xx))       # xx -> 第一层 -> tanh
         xx = torch.tanh(self.fc2(xx))       # xx -> 第二层 -> tanh
-        a_prob = []
-        for i in range(self.action_dim):
-            a_prob.append(func.softmax(self.out[i](xx), dim=1).T)   # xx -> 每个动作维度的第三层 -> softmax
+        # a_prob = []
+        # for i in range(self.action_dim):
+        #     a_prob.append(func.softmax(self.out[i](xx), dim=1).T)   # xx -> 每个动作维度的第三层 -> softmax
+        a1 = func.softmax(self.out1(xx), dim=1)
+        a2 = func.softmax(self.out2(xx), dim=1)
+        a_prob = [a1.T, a2.T]
         return nn.utils.rnn.pad_sequence(a_prob).T      # 得到很多分布列，分布列合并，差的数用 0 补齐，不影响 log_prob 和 entropy
 
     def evaluate(self, xx: torch.Tensor):
         xx = torch.unsqueeze(xx, 0)
         a_prob = self.forward(xx)
+        # print('概率')
+        # print(xx, a_prob)
         _a = torch.argmax(a_prob, dim=2)
+        # print('尼玛')
         return _a
 
     def choose_action(self, xx):  # choose action 默认是在训练情况下的函数，默认有batch
@@ -251,87 +260,29 @@ if __name__ == '__main__':
                     sumr = 0
                     index = 0
                     if train_num % 50 == 0 and train_num > 0:    # '1' should be 50
-                        # rr, ee = agent.agent_evaluate(50, False)
+                        rr, ee = agent.agent_evaluate(50, False)
                         # # print(rr)
-                        # print('----- position errors -----')
-                        # print('Training num:  ', train_num)
-                        # print(ee)
-                        # print('----- position errors -----')
-                        # if train_num == 50:
-                        #     evaluate_r = rr.copy()
-                        #     evaluate_e = ee.copy()
-                        # else:
-                        #     evaluate_r = np.hstack((evaluate_r, rr))
-                        #     evaluate_e = np.hstack((evaluate_e, ee))
-                        # test_num += 1
-                        # xx = np.arange(train_num - 50, train_num, 1)
-                        # vis.line(X=xx, Y=rr, win='reward', update='append' if train_num > 50 else None, opts=dict(title='reward'))
-                        # vis.line(X=xx, Y=ee, win='position error', update='append' if train_num > 50 else None, opts=dict(title='position error'))
+                        print('----- position errors -----')
+                        print('Training num:  ', train_num)
+                        print(ee)
+                        print('----- position errors -----')
+                        if train_num == 50:
+                            evaluate_r = rr.copy()
+                            evaluate_e = ee.copy()
+                        else:
+                            evaluate_r = np.hstack((evaluate_r, rr))
+                            evaluate_e = np.hstack((evaluate_e, ee))
+                        test_num += 1
+                        xx = np.arange(train_num - 50, train_num, 1)
+                        vis.line(X=xx, Y=rr, win='reward', update='append' if train_num > 50 else None, opts=dict(title='reward'))
+                        vis.line(X=xx, Y=ee, win='position error', update='append' if train_num > 50 else None, opts=dict(title='position error'))
                         print('check point save')
                         temp = simulationPath + 'training' + '_' + str(train_num) + '_save/'
                         os.mkdir(temp)
                         time.sleep(0.01)
-                        torch.save(agent.actor.state_dict(), 'fuck.pkl')
-                        # agent.actor.save_checkpoint(name='Actor_PPO', path=temp, num=train_num)
-                        # agent.critic.save_checkpoint(name='Critic_PPO', path=temp, num=train_num)
+                        agent.actor.save_checkpoint(name='Actor_PPO', path=temp, num=train_num)
+                        agent.critic.save_checkpoint(name='Critic_PPO', path=temp, num=train_num)
 
-                        ###############################################################################################3
-                        # torch.save(agent.actor.state_dict(), 'fuck')
-                        actor_temp = SoftmaxActor(3e-4, env.state_dim, env.action_dim, env.action_num)
-                        actor_temp.load_state_dict(torch.load('fuck.pkl'))
-                        # actor_temp.load_state_dict(agent.actor.state_dict())
-                        # for p1, p2 in zip(agent.actor.parameters(), actor_temp.parameters()):
-                        #     print(torch.linalg.norm(p1 - p2))
-                        pts = np.array([
-                            [0.5, 0.5], [0.5, 1.0], [0.5, 1.5], [0.5, 2.0], [0.5, 2.5], [0.5, 3.0], [0.5, 3.5], [0.5, 4.0], [0.5, 4.5],
-                            [1.0, 0.5], [1.0, 1.0], [1.0, 1.5], [1.0, 2.0], [1.0, 2.5], [1.0, 3.0], [1.0, 3.5], [1.0, 4.0], [1.0, 4.5],
-                            [1.5, 0.5], [1.5, 1.0], [1.5, 1.5], [1.5, 2.0], [1.5, 2.5], [1.5, 3.0], [1.5, 3.5], [1.5, 4.0], [1.5, 4.5],
-                            [2.0, 0.5], [2.0, 1.0], [2.0, 1.5], [2.0, 2.0], [2.0, 2.5], [2.0, 3.0], [2.0, 3.5], [2.0, 4.0], [2.0, 4.5],
-                            [2.5, 0.5], [2.5, 1.0], [2.5, 1.5], [2.5, 2.0], [2.5, 2.5], [2.5, 3.0], [2.5, 3.5], [2.5, 4.0], [2.5, 4.5],
-                            [3.0, 0.5], [3.0, 1.0], [3.0, 1.5], [3.0, 2.0], [3.0, 2.5]
-                        ]).astype(np.float32)
-                        rr2 = []
-                        ee2 = []
-
-                        for i in range(50):
-                            print('------------------IIIII--------------------')
-                            # self.env.reset_random()
-                            env.init_target = pts[i]
-                            env.reset()
-                            r = 0
-                            # self.env.reset()
-                            while not env.is_terminal:
-                                env.current_state = env.next_state.copy()
-                                with torch.no_grad():
-                                    t_state = torch.FloatTensor(env.current_state).to('cpu')
-                                    _action_from_actor = actor_temp.evaluate(t_state)       # bad
-                                    _action_from_actor2 = agent.actor.evaluate(t_state)     # good
-                                    # for p1, p2 in zip(agent.actor.parameters(), actor_temp.parameters()):
-                                    #     print('JJJJJ')
-                                    #     print(torch.linalg.norm(p1-p2))
-                                    # print('FUCK')
-                                    # print(_action_from_actor, _action_from_actor2)
-                                _action = agent.action_linear_trans(_action_from_actor.cpu().numpy().flatten())  # 将动作转换到实际范围上
-                                env.step_update(_action)  # 环境更新的action需要是物理的action
-                                r += env.reward
-                            print(np.linalg.norm(env.error))
-
-                            env.init_target = pts[i]
-                            env.reset()
-                            while not env.is_terminal:
-                                env.current_state = env.next_state.copy()
-                                with torch.no_grad():
-                                    t_state = torch.FloatTensor(env.current_state).to('cpu')
-                                    _action_from_actor = agent.actor.evaluate(t_state)
-                                _action = agent.action_linear_trans(_action_from_actor.cpu().numpy().flatten())  # 将动作转换到实际范围上
-                                env.step_update(_action)  # 环境更新的action需要是物理的action
-                                r += env.reward
-                                # env.show_dynamic_image(isWait=False)  # 画图
-                            print(np.linalg.norm(env.error))
-                            rr2.append(r)
-                            ee2.append(np.linalg.norm(env.error))
-                        # print(np.array(ee2))
-                        ###############################################################################################3
                     print('========== LEARN ==========')
                 '''学习'''
 

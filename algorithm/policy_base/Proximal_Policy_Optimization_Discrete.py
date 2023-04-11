@@ -5,15 +5,24 @@ import cv2 as cv
 
 
 class Proximal_Policy_Optimization_Discrete:
+	# def __init__(self,
+	# 			 env,
+	# 			 gamma: float = 0.99,
+	# 			 K_epochs: int = 10,
+	# 			 eps_clip: float = 0.2,
+	# 			 buffer_size: int = 1200,
+	# 			 actor: SoftmaxActor = SoftmaxActor(),
+	# 			 critic: Critic = Critic(),
+	# 			 path: str = ''):
 	def __init__(self,
 				 env,
-				 gamma: float = 0.99,
-				 K_epochs: int = 10,
-				 eps_clip: float = 0.2,
-				 buffer_size: int = 1200,
-				 actor: SoftmaxActor = SoftmaxActor(),
-				 critic: Critic = Critic(),
-				 path: str = ''):
+				 gamma,
+				 K_epochs,
+				 eps_clip,
+				 buffer_size,
+				 actor,
+				 critic,
+				 path):
 		self.env = env
 		self.gamma = gamma
 
