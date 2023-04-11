@@ -11,7 +11,7 @@ class SecondOrderIntegration(rl_base):
 				 vel0: np.ndarray = np.array([0.0, 0.0]),
 				 map_size: np.ndarray = np.array([10.0, 10.0]),
 				 target: np.ndarray = np.array([5.0, 5.0]),
-				 is_controller_Bang3: bool = False):
+				 is_controller_BangBang: bool = False):
 		super(SecondOrderIntegration, self).__init__()
 		self.name = 'SecondOrderIntegration'
 		self.init_pos = pos0
@@ -38,7 +38,7 @@ class SecondOrderIntegration(rl_base):
 		self.dt = 0.02  # 50Hz
 		self.time = 0.  # time
 		self.timeMax = 5.0  # 每回合最大时间
-		self.is_controller_Bang3 = is_controller_Bang3		# 是否使用离散动作空间 BangBang 控制或者 Bang-3 控制
+		self.is_controller_BangBang = is_controller_BangBang		# 是否使用离散动作空间 BangBang 控制或者 Bang-3 控制
 
 		'''rl_base'''
 		self.use_normalization = True
@@ -66,9 +66,9 @@ class SecondOrderIntegration(rl_base):
 		self.action_dim = 2
 		self.action_step = [None, None]
 		self.action_range = [[self.fMin, self.fMax], [self.fMin, self.fMax]]
-		if self.is_controller_Bang3:
-			self.action_num = [3, 3]
-			self.action_space = [[self.fMin,0,self.fMax], [self.fMin,0,self.fMax]]
+		if self.is_controller_BangBang:
+			self.action_num = [2, 2]
+			self.action_space = [[self.fMin, self.fMax], [self.fMin, self.fMax]]
 			self.isActionContinuous = [False, False]
 		else:
 			self.action_num = [math.inf, math.inf]
@@ -255,7 +255,7 @@ class SecondOrderIntegration(rl_base):
 		return False
 
 	def get_reward(self, param=None):
-		if self.is_controller_Bang3:
+		if self.is_controller_BangBang:
 			if self.use_normalization:
 				cur_s = self.inverse_state_norm(self.current_state)	# e, pos, vel
 				nex_s = self.inverse_state_norm(self.next_state)
@@ -268,12 +268,17 @@ class SecondOrderIntegration(rl_base):
 
 			nex_norm_e = nex_e / np.linalg.norm(self.map_size)
 			# r1 = -nex_norm_e ** 2 * 1
+			# if nex_norm_e < 0.25:
+			# 	kk = -180 * nex_norm_e + 50
+			# else:
+			# 	kk = 5
+			# r1 = (-nex_norm_e + 0.5) * kk
 
 			if cur_e > nex_e:
-				r1 = 0
+				r1 = 2
 			else:
 				r1 = -2
-
+			# r1 = -nex_e
 			if self.terminal_flag == 3:  # 成功
 				r4 = 1000
 			elif self.terminal_flag == 2:  # 超时

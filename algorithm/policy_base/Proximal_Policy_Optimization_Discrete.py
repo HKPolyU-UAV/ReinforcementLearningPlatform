@@ -1,3 +1,5 @@
+import numpy as np
+
 from common.common_cls import *
 import cv2 as cv
 
@@ -58,25 +60,30 @@ class Proximal_Policy_Optimization_Discrete:
 		if self.env.action_dim == 1:
 			action = action.reshape(-1, self.env.action_dim)
 
-		_log_probs = torch.mean(_dist.log_prob(action), dim=1)
-		_dist_entropy = torch.mean(_dist.entropy(), dim=1)
+		_log_probs = torch.sum(_dist.log_prob(action), dim=1)
+		_dist_entropy = torch.sum(_dist.entropy(), dim=1)
 		_s_values = self.critic(state)
 		return _log_probs, _s_values, _dist_entropy
 
-	def agent_evaluate(self, test_num):
-		r = 0
+	def agent_evaluate(self, test_num, show):
+		rr = []
+		ee = []
 		for _ in range(test_num):
 			self.env.reset_random()
+			r = 0
+			# self.env.reset()
 			while not self.env.is_terminal:
 				self.env.current_state = self.env.next_state.copy()
 				_action_from_actor = self.evaluate(self.env.current_state)
 				_action = self.action_linear_trans(_action_from_actor.cpu().numpy().flatten())  # 将动作转换到实际范围上
 				self.env.step_update(_action)  # 环境更新的action需要是物理的action
 				r += self.env.reward
-				self.env.show_dynamic_image(isWait=False)  # 画图
+				if show:
+					self.env.show_dynamic_image(isWait=False)  # 画图
+			rr.append(r)
+			ee.append(np.linalg.norm(self.env.error))
 		cv.destroyAllWindows()
-		r /= test_num
-		return r
+		return np.array(rr).astype(np.float32), np.array(ee).astype(np.float32)
 
 	def action_linear_trans(self, action):
 		"""
@@ -152,19 +159,19 @@ class Proximal_Policy_Optimization_Discrete:
 		self.actor.save_all_net()
 		self.critic.save_all_net()
 
-	def load_models(self, path):
+	def load_models(self, path='', actor_name='PPO_Actor', critic_name='PPO_Critic'):
 		"""
 		:brief:         only for test
 		:param path:    file path
 		:return:
 		"""
 		print('...loading checkpoint...')
-		self.actor.load_state_dict(torch.load(path + 'PPO_Actor'))
-		self.critic.load_state_dict(torch.load(path + 'PPO_Critic'))
+		self.actor.load_state_dict(torch.load(path + actor_name))
+		self.critic.load_state_dict(torch.load(path + critic_name))
 
 	def PPO_info(self):
 		print('agent name：', self.env.name)
 		print('state_dim:', self.env.state_dim)
 		print('action_dim:', self.env.action_dim)
 		print('action num:', self.env.action_num)
-		print('action_range:', self.env.action_space)
+		print('action_space:', self.env.action_space)

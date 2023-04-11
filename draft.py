@@ -84,5 +84,8 @@ if __name__ == '__main__':
 	# #
 	# ratios = torch.exp(a2_lg_prob.detach() - a2_lg_prob.detach())
 	# print(ratios.size())
-	print(np.random.choice(1))
+	a1 = np.array([1.0]).astype(np.float32)
+	a2 = np.array([1.0]).astype(np.float32)
+	b = np.hstack((a1, a2))
+	print(b)
 	pass
