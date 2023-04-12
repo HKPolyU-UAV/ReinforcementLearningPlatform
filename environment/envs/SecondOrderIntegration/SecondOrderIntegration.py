@@ -274,13 +274,13 @@ class SecondOrderIntegration(rl_base):
 			# 	kk = 5
 			# r1 = (-nex_norm_e + 0.5) * kk
 
-			if cur_e > nex_e:
-				r1 = 2
-			else:
-				r1 = -2
-			# r1 = -nex_e
+			# if cur_e > nex_e:
+			# 	r1 = 2
+			# else:
+			# 	r1 = -2
+			r1 = -nex_norm_e - np.tanh(2.5 * nex_norm_e) + 1
 			if self.terminal_flag == 3:  # 成功
-				r4 = 1000
+				r4 = 500
 			elif self.terminal_flag == 2:  # 超时
 				r4 = 0
 			elif self.terminal_flag == 1:  # 出界
@@ -288,7 +288,7 @@ class SecondOrderIntegration(rl_base):
 			else:
 				r4 = 0
 
-			self.reward = -1 + r1 + r4
+			self.reward = r1 + r4
 		else:
 			if self.use_normalization:
 				cur_s = self.inverse_state_norm(self.current_state)	# e, pos, vel

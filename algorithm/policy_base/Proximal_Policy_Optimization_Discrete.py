@@ -1,28 +1,30 @@
 import numpy as np
+import torch
 
 from common.common_cls import *
 import cv2 as cv
 
 
 class Proximal_Policy_Optimization_Discrete:
-	# def __init__(self,
-	# 			 env,
-	# 			 gamma: float = 0.99,
-	# 			 K_epochs: int = 10,
-	# 			 eps_clip: float = 0.2,
-	# 			 buffer_size: int = 1200,
-	# 			 actor: SoftmaxActor = SoftmaxActor(),
-	# 			 critic: Critic = Critic(),
-	# 			 path: str = ''):
 	def __init__(self,
 				 env,
-				 gamma,
-				 K_epochs,
-				 eps_clip,
-				 buffer_size,
-				 actor,
-				 critic,
-				 path):
+				 gamma: float = 0.99,
+				 K_epochs: int = 10,
+				 eps_clip: float = 0.2,
+				 buffer_size: int = 1200,
+				 actor: SoftmaxActor = SoftmaxActor(),
+				 critic: Critic = Critic(),
+				 path: str = ''):
+		"""
+		@param env:
+		@param gamma:
+		@param K_epochs:
+		@param eps_clip:
+		@param buffer_size:
+		@param actor:
+		@param critic:
+		@param path:
+		"""
 		self.env = env
 		self.gamma = gamma
 
@@ -50,11 +52,20 @@ class Proximal_Policy_Optimization_Discrete:
 			_a.append(np.random.choice(_num))
 		return np.array(_a)
 
-	def choose_action(self, state):
+	def choose_action(self, state, exploration=-1):
 		with torch.no_grad():
 			t_state = torch.FloatTensor(state).to(self.device)
-			_a, _a_log_prob, _ = self.actor.choose_action(t_state)
 			_s_value = self.critic(t_state).cpu()
+			if 0 < exploration < 1:
+				'''random action'''
+				if np.random.uniform(0, 1) < exploration:
+					_a = torch.IntTensor(self.choose_action_random())
+					_dist = Categorical(probs=self.actor.forward(xx = torch.unsqueeze(t_state, 0)))
+					_a_log_prob = torch.mean(_dist.log_prob(_a), dim=1)
+				else:
+					_a, _a_log_prob, _ = self.actor.choose_action(t_state)
+			else:
+				_a, _a_log_prob, _ = self.actor.choose_action(t_state)
 		return _a, t_state, _a_log_prob, _s_value
 
 	def evaluate(self, state):
@@ -74,35 +85,50 @@ class Proximal_Policy_Optimization_Discrete:
 		_s_values = self.critic(state)
 		return _log_probs, _s_values, _dist_entropy
 
-	def agent_evaluate(self, test_num, show):
+	def agent_evaluate(self, show, random=False, test_num=None):
 		rr = []
 		ee = []
 		'''fixed initial position, velocity'''
-		# self.actor.eval()
-		pts = np.array([
-			[0.5, 0.5], [0.5, 1.0], [0.5, 1.5], [0.5, 2.0], [0.5, 2.5], [0.5, 3.0], [0.5, 3.5], [0.5, 4.0], [0.5, 4.5],
-			[1.0, 0.5], [1.0, 1.0], [1.0, 1.5], [1.0, 2.0], [1.0, 2.5], [1.0, 3.0], [1.0, 3.5], [1.0, 4.0], [1.0, 4.5],
-			[1.5, 0.5], [1.5, 1.0], [1.5, 1.5], [1.5, 2.0], [1.5, 2.5], [1.5, 3.0], [1.5, 3.5], [1.5, 4.0], [1.5, 4.5],
-			[2.0, 0.5], [2.0, 1.0], [2.0, 1.5], [2.0, 2.0], [2.0, 2.5], [2.0, 3.0], [2.0, 3.5], [2.0, 4.0], [2.0, 4.5],
-			[2.5, 0.5], [2.5, 1.0], [2.5, 1.5], [2.5, 2.0], [2.5, 2.5], [2.5, 3.0], [2.5, 3.5], [2.5, 4.0], [2.5, 4.5],
-			[3.0, 0.5], [3.0, 1.0], [3.0, 1.5], [3.0, 2.0], [3.0, 2.5]
-		]).astype(np.float32)
-
-		for i in range(test_num):
-			# self.env.reset_random()
-			self.env.init_target = pts[i]
-			self.env.reset()
-			r = 0
-			while not self.env.is_terminal:
-				self.env.current_state = self.env.next_state.copy()
-				_action_from_actor = self.evaluate(self.env.current_state)
-				_action = self.action_linear_trans(_action_from_actor.cpu().numpy().flatten())  # 将动作转换到实际范围上
-				self.env.step_update(_action)  # 环境更新的action需要是物理的action
-				r += self.env.reward
-				if show:
-					self.env.show_dynamic_image(isWait=False)  # 画图
-			rr.append(r)
-			ee.append(np.linalg.norm(self.env.error))
+		if random:
+			try:
+				for _ in range(test_num):
+					self.env.reset_random()
+					r = 0
+					while not self.env.is_terminal:
+						self.env.current_state = self.env.next_state.copy()
+						_action_from_actor = self.evaluate(self.env.current_state)
+						_action = self.action_linear_trans(_action_from_actor.cpu().numpy().flatten())  # 将动作转换到实际范围上
+						self.env.step_update(_action)  # 环境更新的action需要是物理的action
+						r += self.env.reward
+						if show:
+							self.env.show_dynamic_image(isWait=False)  # 画图
+					rr.append(r)
+					ee.append(np.linalg.norm(self.env.error))
+			except:
+				print('Invalid input argument: test_num.')
+		else:
+			xx = np.arange(0.5, self.env.map_size[0], 0.5)
+			yy = np.arange(0.5, self.env.map_size[1], 0.5)
+			pts = []
+			for _xx in xx:
+				for _yy in yy:
+					pts.append([_xx, _yy])
+			pts = np.array(pts).astype(np.float32)
+			for _pt in pts:
+				# self.env.reset_random()
+				self.env.init_target = _pt
+				self.env.reset()
+				r = 0
+				while not self.env.is_terminal:
+					self.env.current_state = self.env.next_state.copy()
+					_action_from_actor = self.evaluate(self.env.current_state)
+					_action = self.action_linear_trans(_action_from_actor.cpu().numpy().flatten())  # 将动作转换到实际范围上
+					self.env.step_update(_action)  # 环境更新的action需要是物理的action
+					r += self.env.reward
+					if show:
+						self.env.show_dynamic_image(isWait=False)  # 画图
+				rr.append(r)
+				ee.append(np.linalg.norm(self.env.error))
 		cv.destroyAllWindows()
 		return np.array(rr).astype(np.float32), np.array(ee).astype(np.float32)
 

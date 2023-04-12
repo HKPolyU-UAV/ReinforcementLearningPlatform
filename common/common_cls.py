@@ -482,6 +482,9 @@ class SoftmaxActor(nn.Module):
         self.action_dim = action_dim            # 动作的维度，即 "有几个动作"
         if action_num is None:
             self.action_num = [3, 3, 3, 3]      # 每个动作有几个取值，离散动作空间特有
+        self.index = [0]
+        for i in range(action_dim):
+            self.index.append(self.index[i] + self.action_num[i])
         self.alpha = alpha
         self.checkpoint_file = chkpt_dir + name + '_PPO_Dis'
         self.checkpoint_file_whole_net = chkpt_dir + name + '_PPO_DisALL'
@@ -522,8 +525,7 @@ class SoftmaxActor(nn.Module):
         _a = torch.argmax(a_prob, dim=2)
         return _a
 
-    def choose_action(self, xx):  # choose action 默认是在训练情况下的函数，默认有batch
-        # xx = torch.unsqueeze(xx, 0)
+    def choose_action(self, xx):
         with torch.no_grad():
             dist = Categorical(probs=self.forward(xx))
             _a = dist.sample()

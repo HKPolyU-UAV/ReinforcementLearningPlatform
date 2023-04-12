@@ -3,6 +3,7 @@ import sys
 import datetime
 import time
 import cv2 as cv
+import numpy as np
 import torch
 import visdom
 
@@ -44,9 +45,6 @@ class SoftmaxActor(nn.Module):
 
         self.fc1 = nn.Linear(state_dim, 64)
         self.fc2 = nn.Linear(64, 64)
-        # self.out = [nn.Linear(64, env.action_num[i]) for i in range(self.action_dim)]
-        # self.out1 = nn.Linear(64, env.action_num[0])
-        # self.out2 = nn.Linear(64, env.action_num[1])
         self.out = nn.Linear(64, sum(env.action_num))
         self.optimizer = torch.optim.Adam(self.parameters(), lr=alpha)
 
@@ -65,27 +63,19 @@ class SoftmaxActor(nn.Module):
         self.orthogonal_init(self.fc1)
         self.orthogonal_init(self.fc2)
         self.orthogonal_init(self.out)
-        # for i in range(self.action_dim):
-        #     self.orthogonal_init(self.out[i], gain=0.01)
 
     def forward(self, xx: torch.Tensor):
         xx = torch.tanh(self.fc1(xx))       # xx -> 第一层 -> tanh
         xx = torch.tanh(self.fc2(xx))       # xx -> 第二层 -> tanh
         a_prob = []
-        for i in range(self.nAction):
+        for i in range(self.action_dim):
             a_prob.append(func.softmax(xx[:, self.index[i]:self.index[i + 1]], dim=1).T)
-        # a1 = func.softmax(self.out1(xx), dim=1)
-        # a2 = func.softmax(self.out2(xx), dim=1)
-        # a_prob = [a1.T, a2.T]
         return nn.utils.rnn.pad_sequence(a_prob).T      # 得到很多分布列，分布列合并，差的数用 0 补齐，不影响 log_prob 和 entropy
 
     def evaluate(self, xx: torch.Tensor):
         xx = torch.unsqueeze(xx, 0)
         a_prob = self.forward(xx)
-        # print('概率')
-        # print(xx, a_prob)
         _a = torch.argmax(a_prob, dim=2)
-        # print('尼玛')
         return _a
 
     def choose_action(self, xx):  # choose action 默认是在训练情况下的函数，默认有batch
@@ -97,11 +87,10 @@ class SoftmaxActor(nn.Module):
             _a_entropy = dist.entropy()
         '''
             这里跟连续系统不一样的地方在于，这里的概率是多个分布列，pytorch 或许无法表示多维分布列。
-            所以用了 sum 函数，但是主观分析不影响结果，因为 sum 的单调性与 sum 是一样的。
+            所以用了 sum 函数，但是主观分析不影响结果，因为 sum 的单调性与 mean 是一样的。
             连续动作有多维联合高斯分布，但是协方差矩阵都是对角阵，所以跟多个一维的也没区别。
         '''
         return _a, torch.sum(_a_logprob, dim=1), torch.sum(_a_entropy, dim=1)
-        # return _a
 
     def save_checkpoint(self, name=None, path='', num=None):
         print('...saving checkpoint...')
@@ -183,9 +172,6 @@ if __name__ == '__main__':
     simulationPath = log_dir + datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d-%H-%M-%S') + '-' + ALGORITHM + '-' + ENV + '/'
     os.mkdir(simulationPath)
     c = cv.waitKey(1)
-    TRAIN = True  # 直接训练
-    RETRAIN = False  # 基于之前的训练结果重新训练
-    TEST = not TRAIN
 
     env = env(pos0=np.array([2.5, 2.5]),
               vel0=np.array([0.0, 0.0]),
@@ -195,131 +181,108 @@ if __name__ == '__main__':
 
     vis = visdom.Visdom(env=ALGORITHM + '4' + ENV)
 
-    if TRAIN:
-        '''重新加载Policy网络结构，这是必须的操作'''
-        actor = SoftmaxActor(3e-4, env.state_dim, env.action_dim, env.action_num, 'DiscreteActor', simulationPath)
-        critic = Critic(3e-4, env.state_dim, env.action_dim, 'Critic', simulationPath)
-        agent = PPO_Dis(env=env,
-                        gamma=0.99,
-                        K_epochs=40,
-                        eps_clip=0.2,
-                        buffer_size=int(env.timeMax / env.dt * 2),  # 假设可以包含两条完整的最长时间的轨迹
-                        actor=actor,
-                        critic=critic,
-                        path=simulationPath)
-        '''重新加载Policy网络结构，这是必须的操作'''
-        agent.PPO_info()
+    '''重新加载Policy网络结构，这是必须的操作'''
+    # 3e-4 for actor  first time
+    # 3e-4 for critic first time
+    actor = SoftmaxActor(1e-5, env.state_dim, env.action_dim, env.action_num, 'DiscreteActor', simulationPath)
+    critic = Critic(1e-5, env.state_dim, env.action_dim, 'Critic', simulationPath)
+    agent = PPO_Dis(env=env,
+                    gamma=0.99,
+                    K_epochs=40,
+                    eps_clip=0.2,
+                    buffer_size=int(env.timeMax / env.dt * 2),  # 假设可以包含两条完整的最长时间的轨迹
+                    actor=actor,
+                    critic=critic,
+                    path=simulationPath)
+    '''重新加载Policy网络结构，这是必须的操作'''
+    agent.PPO_info()
 
+    TRAIN = False  # 直接训练
+    RETRAIN = True  # 基于之前的训练结果重新训练
+    TEST = not TRAIN
+
+    if TRAIN:
         if RETRAIN:
-            agent.actor.load_state_dict(torch.load('Actor_PPO1950'))
-            agent.critic.load_state_dict(torch.load('Critic_PPO1950'))
-            # agent.agent_evaluate(50, True)
+            agent.actor.load_state_dict(torch.load('Actor_PPO'))
+            agent.critic.load_state_dict(torch.load('Critic_PPO'))
 
         max_training_timestep = int(env.timeMax / env.dt) * 20000  # 10000回合
-        action_std_decay_freq = int(5e6)
-        action_std_decay_rate = 0.05  # linearly decay action_std (action_std = action_std - action_std_decay_rate)
-        min_action_std = 0.1  # minimum action_std (stop decay after action_std <= min_action_std)
 
-        sumr = 0
-        start_eps = 0
         train_num = 0
-        test_num = 0
         index = 0
         evaluate_r = np.array([])
         evaluate_e = np.array([])
+        complete_traj_count = 0
         # while timestep <= max_training_timestep:
         while train_num < 10000:
-            env.reset_random()
-            # env.reset()
-            while not env.is_terminal:
-                env.current_state = env.next_state.copy()
-                # print(env.current_state)
-                action_from_actor, s, a_log_prob, s_value = agent.choose_action(env.current_state)  # 返回三个没有梯度的tensor
-                action_from_actor = action_from_actor.numpy()
-                action = agent.action_linear_trans(action_from_actor.flatten())  # 将动作转换到实际范围上
-                env.step_update(action)  # 环境更新的action需要是物理的action
-                # env.show_dynamic_image(isWait=False)  # 画图
-                sumr += env.reward
-                '''存数'''
-                agent.buffer.append(s=env.current_state,
-                                    a=action_from_actor,
-                                    log_prob=a_log_prob.numpy(),
-                                    r=env.reward,
-                                    sv=s_value.numpy(),
-                                    done=1.0 if env.is_terminal else 0.0,
-                                    index=index)
-                index += 1
-                timestep += 1
-                '''存数'''
-                '''学习'''
-                if timestep % agent.buffer.batch_size == 0:
-                    print('========== LEARN ==========')
-                    print('Episode: {}'.format(agent.episode))
-                    print('Num of learning: {}'.format(train_num))
-                    agent.learn()
-                    '''clear buffer'''
-                    average_train_r = round(sumr / (agent.episode + 1 - start_eps), 3)
-                    print('Average reward:', average_train_r)
-                    train_num += 1
-                    start_eps = agent.episode
-                    sumr = 0
-                    index = 0
-                    if train_num % 50 == 0 and train_num > 0:    # '1' should be 50
-                        rr, ee = agent.agent_evaluate(50, False)
-                        # # print(rr)
-                        print('----- position errors -----')
-                        print('Training num:  ', train_num)
-                        print(ee)
-                        print('----- position errors -----')
-                        if train_num == 50:
-                            evaluate_r = rr.copy()
-                            evaluate_e = ee.copy()
-                        else:
-                            evaluate_r = np.hstack((evaluate_r, rr))
-                            evaluate_e = np.hstack((evaluate_e, ee))
-                        test_num += 1
-                        xx = np.arange(train_num - 50, train_num, 1)
-                        vis.line(X=xx, Y=rr, win='reward', update='append' if train_num > 50 else None, opts=dict(title='reward'))
-                        vis.line(X=xx, Y=ee, win='position error', update='append' if train_num > 50 else None, opts=dict(title='position error'))
-                        print('check point save')
-                        temp = simulationPath + 'training' + '_' + str(train_num) + '_save/'
-                        os.mkdir(temp)
-                        time.sleep(0.01)
-                        agent.actor.save_checkpoint(name='Actor_PPO', path=temp, num=train_num)
-                        agent.critic.save_checkpoint(name='Critic_PPO', path=temp, num=train_num)
-
-                    print('========== LEARN ==========')
-                '''学习'''
-
-                # if timestep % action_std_decay_freq == 0:
-                #     agent.decay_action_std(action_std_decay_rate, min_action_std)
-            agent.episode += 1
-
+            '''存数'''
+            while index < agent.buffer.batch_size:
+                if index == agent.buffer.batch_size:
+                    break
+                env.reset_random()
+                sumr = 0
+                while not env.is_terminal:
+                    if index == agent.buffer.batch_size:
+                        break
+                    env.current_state = env.next_state.copy()
+                    action_from_actor, s, a_log_prob, s_value = agent.choose_action(env.current_state, exploration=-1)  # 返回三个没有梯度的tensor
+                    action_from_actor = action_from_actor.numpy()
+                    action = agent.action_linear_trans(action_from_actor.flatten())  # 将动作转换到实际范围上
+                    env.step_update(action)  # 环境更新的action需要是物理的action
+                    sumr += env.reward
+                    agent.buffer.append(s=env.current_state,
+                                        a=action_from_actor,
+                                        log_prob=a_log_prob.numpy(),
+                                        r=env.reward,
+                                        sv=s_value.numpy(),
+                                        done=1.0 if env.is_terminal else 0.0,
+                                        index=index)
+                    index += 1
+                    timestep += 1
+                '''One trajectory, complete'''
+                if env.time >= env.timeMax:     # which means the trajectory is complete
+                    average_r = sumr / env.time
+                    vis.line(X=np.array([complete_traj_count]), Y=np.array([average_r]),
+                             win='trajectory average reward',
+                             update='append' if complete_traj_count > 0 else None,
+                             opts=dict(title='trajectory average reward'))
+                    complete_traj_count += 1
+                '''One trajectory, complete'''
+            '''存数'''
+            '''学习'''
+            print('========== LEARN ==========')
+            print('Episode: {}'.format(agent.episode))
+            print('Num of learning: {}'.format(train_num))
+            agent.learn(adv_norm=False)     # default: False
+            train_num += 1
+            index = 0
+            if train_num % 50 == 0 and train_num > 0:    # '1' should be 50
+                rr, ee = agent.agent_evaluate(False)
+                print('----- position errors -----')
+                print('Training num:  ', train_num)
+                print(ee)
+                print('----- position errors -----')
+                if train_num == 50:
+                    evaluate_r = rr.copy()
+                    evaluate_e = ee.copy()
+                else:
+                    evaluate_r = np.hstack((evaluate_r, rr))
+                    evaluate_e = np.hstack((evaluate_e, ee))
+                xx = np.arange(int(train_num / 50 - 1) * len(ee), int(train_num / 50) * len(ee), 1)
+                # vis.line(X=xx, Y=rr, win='reward',
+                #          update='append' if train_num > 50 else None, opts=dict(title='reward'))
+                vis.line(X=xx, Y=ee, win='position error',
+                         update='append' if train_num > 50 else None, opts=dict(title='position error'))
+                dir_temp = simulationPath + 'training' + '_' + str(train_num) + '_save/'
+                os.mkdir(dir_temp)
+                time.sleep(0.01)
+                agent.actor.save_checkpoint(name='Actor_PPO', path=dir_temp, num=train_num)
+                agent.critic.save_checkpoint(name='Critic_PPO', path=dir_temp, num=train_num)
+            print('========== LEARN ==========')
+            '''学习'''
     if TEST:
-        actor = SoftmaxActor(3e-4, env.state_dim, env.action_dim, env.action_num, 'DiscreteActor', simulationPath)
-        torch.save(actor.state_dict(), 'a.pkl')
-        # for name, param in actor.named_parameters():
-        #     print(name)
-        #     print(param)
-        actor1 = SoftmaxActor(3e-4, env.state_dim, env.action_dim, env.action_num, 'DiscreteActor', simulationPath)
-        actor1.load_state_dict(torch.load('a.pkl'))
-        # actor1.load_state_dict(actor.state_dict())
-        # for name, param in actor1.named_parameters():
-        #     print(name)
-        #     print(param)
-        for p1, p2 in zip(actor.parameters(), actor1.parameters()):
-            print(torch.linalg.norm(p1-p2))
-        # critic = Critic(3e-4, env.state_dim, env.action_dim, 'Critic', simulationPath)
-        # agent = PPO_Dis(env=env,
-        #                 gamma=0.99,
-        #                 K_epochs=40,
-        #                 eps_clip=0.2,
-        #                 buffer_size=int(env.timeMax / env.dt * 2),  # 假设可以包含两条完整的最长时间的轨迹
-        #                 actor=actor,
-        #                 critic=critic,
-        #                 path=simulationPath)
-        # # agent.load_models(optPath + 'DPPO-4-CartPoleAngleOnly/')
-        # agent.actor.load_state_dict(torch.load('Actor_PPO8400'))
-        # rr, ee = agent.agent_evaluate(50, False)
-        # print(rr)
-        # print(ee)
+        agent.actor.load_state_dict(torch.load(optPath + ALGORITHM + '-' + ENV + '/' + 'Actor_PPO'))
+        # agent.actor.load_state_dict(torch.load('Actor_PPO2300'))
+        rr, ee = agent.agent_evaluate(True, random=True, test_num=50)
+        print(rr)
+        print(ee)
