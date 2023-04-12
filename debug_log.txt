@@ -213,3 +213,15 @@ Tips:
     拼算力啊......我这电脑太垃圾了，以后有机会弄个 i9 处理器，核再多点能更好 (我的电脑目前也就5个进程，想跑10个也行，但是速度跟5个区别不太大了) 再或者直接上ISSAC Gym......
     奥利给干了
 =================奥利给兄弟们干他就完了=================
+
+
+Log_num: 11
+Date: 2023.04.12
+Time: 22:29
+Contents:
+    1). Add discrete version of PPO: PPO_Discrete
+    1). Add new controller: a positional controller for SecondOrderIntegration-BangBang using PPO_Discrete.
+
+Tips:
+    
+=================奥利给兄弟们干他就完了=================
