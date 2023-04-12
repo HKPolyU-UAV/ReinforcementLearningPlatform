@@ -12,7 +12,7 @@ class UGV_Bidirectional(rl_base):
 				 omega0: float = 0.,
 				 map_size: np.ndarray = np.array([10.0, 10.0]),
 				 target: np.ndarray = np.array([5.0, 5.0]),
-				 is_controller_Bang3: bool = False):
+				 is_controller_BangBang: bool = False):
 		"""
 		@param pos0:					initial position
 		@param vel0:					initial velocity
@@ -69,6 +69,7 @@ class UGV_Bidirectional(rl_base):
 		self.name = 'UGVBidirectional'
 
 		'''rl_base'''
+		self.is_controller_BangBang = is_controller_BangBang
 		self.use_normalization = True
 		self.static_gain = 2
 		self.state_dim = 5  # ex, ey, v, phi, dphi 位置误差，线速度，角度，角速度
@@ -91,11 +92,11 @@ class UGV_Bidirectional(rl_base):
 		self.next_state = self.initial_state.copy()
 
 		self.action_dim = 2
-		if is_controller_Bang3:
+		if self.is_controller_BangBang:
 			self.action_step = [None, None]		# 正常来说应该有数，但是这里不写也行，因为不会被调用
 			self.action_range = [[self.fMin, self.fMax], [self.tMin, self.tMax]]
-			self.action_num = [3, 3]
-			self.action_space = [[self.fMin, 0, self.fMax], [self.tMin, 0, self.tMax]]
+			self.action_num = [2, 2]
+			self.action_space = [[self.fMin, self.fMax], [self.tMin, self.tMax]]
 			self.isActionContinuous = [False, False]
 			self.initial_action = np.array([self.f, self.torque])
 			self.current_action = self.initial_action.copy()
@@ -286,54 +287,71 @@ class UGV_Bidirectional(rl_base):
 		cur_error = np.linalg.norm(cur_s[0: 2])
 		nex_error = np.linalg.norm(nex_s[0: 2])
 
-		cur_norm_error = cur_error / np.linalg.norm(self.map_size)
-		nex_norm_error = nex_error / np.linalg.norm(self.map_size)
+		cur_norm_error = cur_error / np.linalg.norm(self.map_size)		# 当前位置误差
+		nex_norm_error = nex_error / np.linalg.norm(self.map_size)		# 下一时刻位置误差
 
-		cur_phi = cur_s[-2]
-		cur_v_head = np.array([np.cos(cur_phi), np.sin(cur_phi)])
-		cur_error_theta = np.arccos(np.clip(np.dot(cur_s[0: 2], cur_v_head) / np.linalg.norm(cur_s[0: 2]), -1, 1))
-		cur_error_theta = min(cur_error_theta, np.pi - cur_error_theta)
-		cur_norm_error_theta = cur_error_theta / np.pi
+		if self.is_controller_BangBang:
+			r1 = -nex_norm_error - np.tanh(2.5 * nex_norm_error) + 1
+			if self.time >= self.timeMax:		# 相当于时间最优之外， 加了一个终端约束，用于表征末状态的质量
+				r2 = -nex_norm_error * 50
+			else:
+				r2 = 0
+			if self.terminal_flag == 3:  # 成功
+				r4 = 500
+			elif self.terminal_flag == 2:  # 超时
+				r4 = 0
+			elif self.terminal_flag == 1:  # 出界
+				r4 = -0
+			else:
+				r4 = 0
 
-		nex_phi = nex_s[-2]
-		nex_v_head = np.array([np.cos(nex_phi), np.sin(nex_phi)])
-		nex_error_theta = np.arccos(np.clip(np.dot(nex_s[0: 2], nex_v_head) / np.linalg.norm(nex_s[0: 2]), -1, 1))
-		nex_error_theta = min(nex_error_theta, np.pi - nex_error_theta)
-		nex_norm_error_theta = nex_error_theta / np.pi
-
-		if self.sum_d_theta > 4 * np.pi:  # 如果转的超过两圈
-			self.terminal_flag = 4
-		# self.is_terminal = True
-
-		'''4. 其他'''
-		if self.terminal_flag == 4:  # 瞎几把转
-			r4 = -0
-		elif self.terminal_flag == 3:  # 成功
-			r4 = 1000
-		elif self.terminal_flag == 2:  # 超时
-			r4 = -0
-		elif self.terminal_flag == 1:  # 出界
-			r4 = -0
+			self.reward = r1 + r2 + r4
 		else:
-			r4 = 0
-		'''4. 其他'''
-		# ex, ey, wl, wr, phi, dphi
-		'''r1 是位置'''
-		# if nex_norm_error >= 0.25:
-		# 	kk = -180 * nex_norm_error + 45  # yyf_x0 = 0.25 时，kk = 0，误差大于0.25，开始罚，误差小于 0.25 开始奖励
-		# 	r1 = nex_norm_error * kk  # nex_error
-		# else:
-		# 	kk = -180 * nex_norm_error + 45
-		# 	r1 = (0.25 - nex_norm_error) * kk
-		r1 = -(nex_norm_error * 2) ** 2
+			cur_phi = cur_s[-2]
+			cur_v_head = np.array([np.cos(cur_phi), np.sin(cur_phi)])
+			cur_error_theta = np.arccos(np.clip(np.dot(cur_s[0: 2], cur_v_head) / np.linalg.norm(cur_s[0: 2]), -1, 1))
+			cur_error_theta = min(cur_error_theta, np.pi - cur_error_theta)
+			cur_norm_error_theta = cur_error_theta / np.pi
 
-		'''r2 是角度'''
-		if nex_error < 4 * self.miss:  # 如果误差比较小，就不考虑角度了
+			nex_phi = nex_s[-2]
+			nex_v_head = np.array([np.cos(nex_phi), np.sin(nex_phi)])
+			nex_error_theta = np.arccos(np.clip(np.dot(nex_s[0: 2], nex_v_head) / np.linalg.norm(nex_s[0: 2]), -1, 1))
+			nex_error_theta = min(nex_error_theta, np.pi - nex_error_theta)
+			nex_norm_error_theta = nex_error_theta / np.pi
+
+			if self.sum_d_theta > 4 * np.pi:  # 如果转的超过两圈
+				self.terminal_flag = 4
+			# self.is_terminal = True
+
+			'''4. 其他'''
+			if self.terminal_flag == 4:  # 瞎几把转
+				r4 = -0
+			elif self.terminal_flag == 3:  # 成功
+				r4 = 1000
+			elif self.terminal_flag == 2:  # 超时
+				r4 = -0
+			elif self.terminal_flag == 1:  # 出界
+				r4 = -0
+			else:
+				r4 = 0
+			'''4. 其他'''
+			# ex, ey, wl, wr, phi, dphi
+			'''r1 是位置'''
+			# if nex_norm_error >= 0.25:
+			# 	kk = -180 * nex_norm_error + 45  # yyf_x0 = 0.25 时，kk = 0，误差大于0.25，开始罚，误差小于 0.25 开始奖励
+			# 	r1 = nex_norm_error * kk  # nex_error
+			# else:
+			# 	kk = -180 * nex_norm_error + 45
+			# 	r1 = (0.25 - nex_norm_error) * kk
+			r1 = -(nex_norm_error * 2) ** 2
+
+			'''r2 是角度'''
+			if nex_error < 4 * self.miss:  # 如果误差比较小，就不考虑角度了
+				r2 = 0
+			else:
+				r2 = -(nex_norm_error_theta * 1) ** 2
 			r2 = 0
-		else:
-			r2 = -(nex_norm_error_theta * 1) ** 2
-		r2 = 0
-		self.reward = r1 + r2 + r4
+			self.reward = r1 + r2 + r4
 
 	def ode(self, xx: np.ndarray):
 		"""
