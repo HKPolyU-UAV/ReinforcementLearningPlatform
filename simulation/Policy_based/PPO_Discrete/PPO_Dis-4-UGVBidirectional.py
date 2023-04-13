@@ -173,7 +173,7 @@ if __name__ == '__main__':
     os.mkdir(simulationPath)
     c = cv.waitKey(1)
 
-    env = env(pos0=np.array([2.5, 2.5]),
+    env = env(pos0=np.array([0.5, 0.5]),
               vel0=0.,
 			  phi0=0.,
 			  omega0=0.,
@@ -186,13 +186,13 @@ if __name__ == '__main__':
     '''重新加载Policy网络结构，这是必须的操作'''
     # 3e-4 for actor  first time
     # 3e-4 for critic first time
-    actor = SoftmaxActor(3e-4, env.state_dim, env.action_dim, env.action_num, 'DiscreteActor', simulationPath)
-    critic = Critic(3e-4, env.state_dim, env.action_dim, 'Critic', simulationPath)
+    actor = SoftmaxActor(1e-4, env.state_dim, env.action_dim, env.action_num, 'DiscreteActor', simulationPath)
+    critic = Critic(3e-3, env.state_dim, env.action_dim, 'Critic', simulationPath)
     agent = PPO_Dis(env=env,
                     gamma=0.99,
-                    K_epochs=40,
+                    K_epochs=10,
                     eps_clip=0.2,
-                    buffer_size=int(env.timeMax / env.dt * 2),  # 假设可以包含两条完整的最长时间的轨迹
+                    buffer_size=int(env.timeMax / env.dt * 4),  # 假设可以包含两条完整的最长时间的轨迹
                     actor=actor,
                     critic=critic,
                     path=simulationPath)
@@ -205,8 +205,8 @@ if __name__ == '__main__':
 
     if TRAIN:
         if RETRAIN:
-            agent.actor.load_state_dict(torch.load('Actor_PPO'))
-            agent.critic.load_state_dict(torch.load('Critic_PPO'))
+            agent.actor.load_state_dict(torch.load('Actor_PPO5750'))
+            agent.critic.load_state_dict(torch.load('Critic_PPO5750'))
 
         max_training_timestep = int(env.timeMax / env.dt) * 20000  # 10000回合
 
@@ -222,6 +222,7 @@ if __name__ == '__main__':
                 if index == agent.buffer.batch_size:
                     break
                 env.reset_random()
+                # env.reset()
                 sumr = 0
                 while not env.is_terminal:
                     if index == agent.buffer.batch_size:
@@ -259,6 +260,7 @@ if __name__ == '__main__':
             train_num += 1
             index = 0
             if train_num % 50 == 0 and train_num > 0:    # '1' should be 50
+                # agent.agent_evaluate_once()
                 rr, ee = agent.agent_evaluate(False)
                 print('----- position errors -----')
                 print('Training num:  ', train_num)
@@ -284,7 +286,7 @@ if __name__ == '__main__':
             '''学习'''
     if TEST:
         # agent.actor.load_state_dict(torch.load(optPath + ALGORITHM + '-' + ENV + '/' + 'Actor_PPO'))
-        agent.actor.load_state_dict(torch.load('Actor_PPO2300'))
-        rr, ee = agent.agent_evaluate(True, random=True, test_num=50)
+        agent.actor.load_state_dict(torch.load('Actor_PPO5750'))
+        rr, ee = agent.agent_evaluate(True, _random=True, test_num=50)
         print(rr)
         print(ee)

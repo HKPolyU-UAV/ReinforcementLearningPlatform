@@ -290,35 +290,32 @@ class UGV_Bidirectional(rl_base):
 		cur_norm_error = cur_error / np.linalg.norm(self.map_size)		# 当前位置误差
 		nex_norm_error = nex_error / np.linalg.norm(self.map_size)		# 下一时刻位置误差
 
+		cur_phi = cur_s[-2]
+		cur_v_head = np.array([np.cos(cur_phi), np.sin(cur_phi)])
+		cur_error_theta = np.arccos(np.clip(np.dot(cur_s[0: 2], cur_v_head) / np.linalg.norm(cur_s[0: 2]), -1, 1))
+		cur_error_theta = min(cur_error_theta, np.pi - cur_error_theta)
+		cur_norm_error_theta = cur_error_theta / np.pi
+
+		nex_phi = nex_s[-2]
+		nex_v_head = np.array([np.cos(nex_phi), np.sin(nex_phi)])
+		nex_error_theta = np.arccos(np.clip(np.dot(nex_s[0: 2], nex_v_head) / np.linalg.norm(nex_s[0: 2]), -1, 1))
+		nex_error_theta = min(nex_error_theta, np.pi - nex_error_theta)
+		nex_norm_error_theta = nex_error_theta / (np.pi / 2)
+
 		if self.is_controller_BangBang:
-			r1 = -nex_norm_error - np.tanh(2.5 * nex_norm_error) + 1
-			if self.time >= self.timeMax:		# 相当于时间最优之外， 加了一个终端约束，用于表征末状态的质量
-				r2 = -nex_norm_error * 50
-			else:
-				r2 = 0
+			r1 = -nex_norm_error - np.tanh(2.5 * nex_norm_error)
+			r2 = -nex_norm_error_theta - np.tanh(2.5 * nex_norm_error_theta)
 			if self.terminal_flag == 3:  # 成功
 				r4 = 500
 			elif self.terminal_flag == 2:  # 超时
-				r4 = 0
+				r4 = -nex_norm_error * 50
 			elif self.terminal_flag == 1:  # 出界
 				r4 = -0
 			else:
 				r4 = 0
 
-			self.reward = r1 + r2 + r4
+			self.reward = r1 + r2 + r4 + 2
 		else:
-			cur_phi = cur_s[-2]
-			cur_v_head = np.array([np.cos(cur_phi), np.sin(cur_phi)])
-			cur_error_theta = np.arccos(np.clip(np.dot(cur_s[0: 2], cur_v_head) / np.linalg.norm(cur_s[0: 2]), -1, 1))
-			cur_error_theta = min(cur_error_theta, np.pi - cur_error_theta)
-			cur_norm_error_theta = cur_error_theta / np.pi
-
-			nex_phi = nex_s[-2]
-			nex_v_head = np.array([np.cos(nex_phi), np.sin(nex_phi)])
-			nex_error_theta = np.arccos(np.clip(np.dot(nex_s[0: 2], nex_v_head) / np.linalg.norm(nex_s[0: 2]), -1, 1))
-			nex_error_theta = min(nex_error_theta, np.pi - nex_error_theta)
-			nex_norm_error_theta = nex_error_theta / np.pi
-
 			if self.sum_d_theta > 4 * np.pi:  # 如果转的超过两圈
 				self.terminal_flag = 4
 			# self.is_terminal = True
