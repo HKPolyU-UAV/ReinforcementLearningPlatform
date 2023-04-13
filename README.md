@@ -20,12 +20,12 @@ Currently, this repository consists of algorithm, common, datasave, environment,
     The following table lists RL algorithms in the corresponding directories.
 
 
-| **Directory** |          **Algorithm**           |           Description           |
-|:-------------:|:--------------------------------:|:-------------------------------:|
-| actor_critic  |   A2C<br/>DDPG<br/>SAC<br/>TD3   |              ----               |
-|  policy_base  |      PPO<br/>DPPO<br/>DPPO2      | ----<br/>----<br/>does not work |
-|  value_base   | DQN<br/>DoubleDQN<br/>DuelingDQN |          not debugged           |
-|    rl_base    |               ----               |Basic class that inherited <br/>by other algorithm classes|
+| **Directory** |          **Algorithm**           |                      **Description**                       |
+|:-------------:|:--------------------------------:|:----------------------------------------------------------:|
+| actor_critic  |   A2C<br/>DDPG<br/>SAC<br/>TD3   |                            ----                            |
+|  policy_base  |      PPO<br/>DPPO<br/>DPPO2      |              ----<br/>----<br/>does not work               |
+|  value_base   | DQN<br/>DoubleDQN<br/>DuelingDQN |                        not debugged                        |
+|    rl_base    |               ----               | Basic class that inherited <br/>by other algorithm classes |
 
 
 
@@ -33,7 +33,7 @@ Currently, this repository consists of algorithm, common, datasave, environment,
 
     Common includes common_func.py and common_cls.py containing some basic functions.
     The following table lists the contents of the two py files.
-|      **File**      |                        Description                        |
+|      **File**      |                      **Description**                      |
 |:------------------:|:---------------------------------------------------------:|
 | **common_cls.py**  | ReplayBuffer, RolloutBuffer, OUNoise, NeuralNetworks, etc |
 | **common_func.py** |  basic mathematical functions, geometry operations, etc   |

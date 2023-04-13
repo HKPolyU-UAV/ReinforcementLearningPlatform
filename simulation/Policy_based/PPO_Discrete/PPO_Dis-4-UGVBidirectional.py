@@ -46,7 +46,7 @@ class SoftmaxActor(nn.Module):
         self.fc1 = nn.Linear(state_dim, 64)
         self.fc2 = nn.Linear(64, 64)
         self.out = nn.Linear(64, sum(env.action_num))
-        self.optimizer = torch.optim.Adam(self.parameters(), lr=alpha)
+        self.optimizer = torch.optim.Adam(self.parameters(), lr=alpha, eps=1e-5)
 
         self.initialization()
 
@@ -125,7 +125,7 @@ class Critic(nn.Module):
         self.fc3 = nn.Linear(64, 1)
         self.initialization()
 
-        self.optimizer = torch.optim.Adam(self.parameters(), lr=beta)
+        self.optimizer = torch.optim.Adam(self.parameters(), lr=beta, eps=1e-5)
         # self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
         self.device = 'cpu'
         self.to(self.device)
@@ -215,8 +215,9 @@ if __name__ == '__main__':
         evaluate_r = np.array([])
         evaluate_e = np.array([])
         complete_traj_count = 0
+        total_train_num = 10000
         # while timestep <= max_training_timestep:
-        while train_num < 10000:
+        while train_num < total_train_num:
             '''存数'''
             while index < agent.buffer.batch_size:
                 if index == agent.buffer.batch_size:
@@ -256,7 +257,7 @@ if __name__ == '__main__':
             print('========== LEARN ==========')
             print('Episode: {}'.format(agent.episode))
             print('Num of learning: {}'.format(train_num))
-            agent.learn(adv_norm=False)     # default: False
+            agent.learn(adv_norm=False, lr_decay=True, decay_rate=train_num / total_train_num)
             train_num += 1
             index = 0
             if train_num % 50 == 0 and train_num > 0:    # '1' should be 50

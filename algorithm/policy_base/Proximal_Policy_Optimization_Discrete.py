@@ -5,6 +5,8 @@ import cv2 as cv
 class Proximal_Policy_Optimization_Discrete:
     def __init__(self,
                  env,
+                 actor_lr: float=3e-4,
+                 critic_lr: float = 1e-3,
                  gamma: float = 0.99,
                  K_epochs: int = 10,
                  eps_clip: float = 0.2,
@@ -26,6 +28,8 @@ class Proximal_Policy_Optimization_Discrete:
         self.gamma = gamma
 
         '''PPO'''
+        self.actor_lr = actor_lr
+        self.critic_lr = critic_lr
         self.gamma = gamma  # discount factor
         self.K_epochs = K_epochs  # 每隔 timestep_num 学习一次
         self.eps_clip = eps_clip
@@ -150,9 +154,11 @@ class Proximal_Policy_Optimization_Discrete:
             linear_action.append(_action_space[_a])
         return np.array(linear_action)
 
-    def learn(self, adv_norm=False):
+    def learn(self, adv_norm=False, lr_decay=False, decay_rate=None):
         """
-        @param adv_norm:	advantage normlization
+        @param adv_norm:        advantage normalization
+        @param lr_decay:
+        @param decay_rate:
         @return:
         """
         '''1. 计算轨迹中每一个状态的累计回报'''
@@ -203,12 +209,17 @@ class Proximal_Policy_Optimization_Discrete:
             self.actor.optimizer.zero_grad()
             actor_loss.mean().backward()
             self.actor.optimizer.step()
-            # loss = -torch.min(surr1, surr2) + 0.5 * self.loss(state_values, rewards) - 0.01 * dist_entropy
 
             critic_loss = 0.5 * func.mse_loss(state_values, rewards)
             self.critic.optimizer.zero_grad()
             critic_loss.backward()
             self.critic.optimizer.step()
+
+        if lr_decay:
+            for p in self.actor.optimizer.param_groups:
+                p['lr'] = self.actor_lr * (1 - decay_rate)
+            for p in self.critic.optimizer.param_groups:
+                p['lr'] = self.critic_lr * (1 - decay_rate)
 
     def save_models(self):
         self.actor.save_checkpoint()

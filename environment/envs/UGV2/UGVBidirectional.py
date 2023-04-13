@@ -130,13 +130,6 @@ class UGV_Bidirectional(rl_base):
 
 		self.sum_d_theta = 0.
 
-	def state_norm(self):
-		state = np.append(self.error, [self.vel, self.phi, self.omega])
-		norm_min = self.state_range[:, 0]
-		norm_max = self.state_range[:, 1]
-		norm_s = (2 * state - (norm_min + norm_max)) / (norm_max - norm_min) * self.static_gain
-		return norm_s
-
 	def dis2pixel(self, coord) -> tuple:
 		"""
 		:brief:         the transformation of coordinate between physical world and image
@@ -234,6 +227,13 @@ class UGV_Bidirectional(rl_base):
 						self.dis2pixel([0 + (i + 1) * step[0], self.map_size[1]]),
 						Color().Black, 1)
 
+	def state_norm(self):
+		state = np.append(self.error, [self.vel, self.phi, self.omega])
+		norm_min = self.state_range[:, 0]
+		norm_max = self.state_range[:, 1]
+		norm_s = (2 * state - (norm_min + norm_max)) / (norm_max - norm_min) * self.static_gain
+		return norm_s
+
 	def inverse_state_norm(self, s: np.ndarray):
 		norm_min = self.state_range[:, 0]
 		norm_max = self.state_range[:, 1]
@@ -303,18 +303,18 @@ class UGV_Bidirectional(rl_base):
 		nex_norm_error_theta = nex_error_theta / (np.pi / 2)
 
 		if self.is_controller_BangBang:
-			r1 = -nex_norm_error - np.tanh(2.5 * nex_norm_error)
-			r2 = -nex_norm_error_theta - np.tanh(2.5 * nex_norm_error_theta)
+			r1 = -nex_norm_error - np.tanh(2.5 * nex_norm_error) + 1
+			r2 = -nex_norm_error_theta - np.tanh(2.5 * nex_norm_error_theta) + 1
 			if self.terminal_flag == 3:  # 成功
 				r4 = 500
 			elif self.terminal_flag == 2:  # 超时
-				r4 = -nex_norm_error * 50
+				r4 = -nex_norm_error * 50 * 0
 			elif self.terminal_flag == 1:  # 出界
 				r4 = -0
 			else:
 				r4 = 0
 
-			self.reward = r1 + r2 + r4 + 2
+			self.reward = r1 + 5 * r2 + r4
 		else:
 			if self.sum_d_theta > 4 * np.pi:  # 如果转的超过两圈
 				self.terminal_flag = 4
