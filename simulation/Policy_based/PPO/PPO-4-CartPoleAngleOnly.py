@@ -193,7 +193,6 @@ if __name__ == '__main__':
 					print('Num of learning: {}'.format(train_num))
 					agent.learn()
 					'''clear buffer'''
-					# agent.buffer.clear()
 					average_train_r = round(sumr / (agent.episode + 1 - start_eps), 3)
 					print('Average reward:', average_train_r)
 					# agent.writer.add_scalar('train_r', average_train_r, train_num)		# to tensorboard

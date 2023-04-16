@@ -146,10 +146,11 @@ if __name__ == '__main__':
 		start_eps = 0
 		train_num = 0
 		count = [0, 0, 0, 0]
+		index = 0
 		while timestep <= max_training_timestep:
 			env.reset_random()
 			while not env.is_terminal:
-				timestep += 1
+
 				env.current_state = env.next_state.copy()
 				action_from_actor, s, a_log_prob, s_value = agent.choose_action(env.current_state)
 				action = agent.action_linear_trans(action_from_actor.detach().cpu().numpy().flatten())  # 将动作转换到实际范围上
@@ -157,31 +158,34 @@ if __name__ == '__main__':
 				# env.show_dynamic_image(isWait=False)  # 画图
 				sumr += env.reward
 				'''存数'''
-				agent.buffer.states.append(s)
-				agent.buffer.actions.append(action_from_actor)
-				agent.buffer.logprobs.append(a_log_prob)
-				agent.buffer.state_values.append(s_value)
-				agent.buffer.rewards.append(env.reward)
-				agent.buffer.is_terminals.append(1 if env.is_terminal else 0)
+				agent.buffer.append(s=env.current_state,
+									a=action_from_actor,  # .cpu().numpy()
+									log_prob=a_log_prob.numpy(),
+									r=env.reward,
+									sv=s_value.numpy(),
+									done=1.0 if env.is_terminal else 0.0,
+									index=index)
+				index += 1
+				timestep += 1
 				'''存数'''
 				'''学习'''
 				if timestep % learn_every_n_timestep == 0:
 					print('========== LEARN START ==========')
-					print('Episode: {}'.format(agent.episode))
-					print('Timestep percentage: {}'.format(timestep / max_training_timestep))
-					print('Num of learning: {}'.format(train_num))
-					print('Number of episode: {}'.format(agent.episode - start_eps))
-					print('     Angle out:    {}'.format(count[0]))
-					print('     Position out: {}'.format(count[1]))
-					print('     Time out:     {}'.format(count[2]))
-					print('     Success:      {}'.format(count[3]))
+					# print('Episode: {}'.format(agent.episode))
+					# print('Timestep percentage: {}'.format(timestep / max_training_timestep))
+					# print('Num of learning: {}'.format(train_num))
+					# print('Number of episode: {}'.format(agent.episode - start_eps))
+					# print('     Angle out:    {}'.format(count[0]))
+					# print('     Position out: {}'.format(count[1]))
+					# print('     Time out:     {}'.format(count[2]))
+					# print('     Success:      {}'.format(count[3]))
 					agent.learn()
 					'''clear buffer'''
-					agent.buffer.clear()
 					train_num += 1
 					print('Average reward:', round(sumr / (agent.episode + 1 - start_eps), 3))
 					start_eps = agent.episode
 					sumr = 0
+					index = 0
 					count = [0, 0, 0, 0]
 					if train_num % 50 == 0 and train_num > 0:
 						agent.agent_evaluate(5)
