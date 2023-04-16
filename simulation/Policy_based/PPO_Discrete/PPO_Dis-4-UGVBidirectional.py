@@ -189,6 +189,8 @@ if __name__ == '__main__':
     actor = SoftmaxActor(1e-4, env.state_dim, env.action_dim, env.action_num, 'DiscreteActor', simulationPath)
     critic = Critic(3e-3, env.state_dim, env.action_dim, 'Critic', simulationPath)
     agent = PPO_Dis(env=env,
+                    actor_lr=3e-4,
+                    critic_lr=3e-4,
                     gamma=0.99,
                     K_epochs=10,
                     eps_clip=0.2,

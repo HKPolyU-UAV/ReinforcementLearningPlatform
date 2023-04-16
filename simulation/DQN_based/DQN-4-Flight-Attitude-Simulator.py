@@ -25,9 +25,11 @@ class DQNNet(nn.Module):
         :param _output:     输出维度
         """
         super(DQNNet, self).__init__()
+        if _output is None:
+            _output = [1]
         self.hidden1 = nn.Linear(_input, 64)  # input -> hidden1
         self.hidden2 = nn.Linear(64, 64)  # hidden1 -> hidden2
-        self.out1 = nn.Linear(64, _output[0])  # hidden2 -> output
+        self.out = nn.Linear(64, _output[0])  # hidden2 -> output
         self.init()
 
     def init(self):
@@ -36,7 +38,7 @@ class DQNNet(nn.Module):
         torch.nn.init.orthogonal_(self.hidden2.weight, gain=1)
         torch.nn.init.uniform_(self.hidden2.bias, 0, 1)
         torch.nn.init.orthogonal_(self.out.weight, gain=1)
-        torch.nn.init.uniform_(self.out1.bias, 0, 1)
+        torch.nn.init.uniform_(self.out.bias, 0, 1)
 
     def forward(self, _x):
         """
@@ -118,7 +120,8 @@ def fullFillReplayMemory_Random(randomEnv: bool, fullFillRatio: float):
                 print('replay_count = ', agent.memory.mem_counter)
             env.current_state = env.next_state.copy()  # 状态更新
             _numAction = agent.get_action_random()
-            env.current_state, env.current_action, env.reward, env.next_state, env.is_terminal = env.step_update(agent.actionNUm2PhysicalAction(_numAction))
+            action = agent.actionNUm2PhysicalAction(_numAction)
+            env.current_state, env.current_action, env.reward, env.next_state, env.is_terminal = env.step_update(action)
             env.show_dynamic_image(isWait=False)
             agent.memory.store_transition(env.current_state, env.current_action, env.reward, env.next_state, 1 if env.is_terminal else 0)
 

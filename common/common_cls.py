@@ -23,7 +23,7 @@ class ReplayBuffer:
         self._s_mem = np.zeros((self.mem_size, state_dim))
         self.a_mem = np.zeros((self.mem_size, action_dim))
         self.r_mem = np.zeros(self.mem_size)
-        self.end_mem = np.zeros(self.mem_size, dtype=np.float)
+        self.end_mem = np.zeros(self.mem_size, dtype=np.float32)
         self.log_prob_mem = np.zeros(self.mem_size)
         self.sorted_index = []
         self.resort_count = 0
@@ -81,7 +81,7 @@ class RolloutBuffer:
         self.log_probs = np.zeros(batch_size)
         self.rewards = np.zeros(batch_size)
         self.state_values = np.zeros(batch_size)
-        self.is_terminals = np.zeros(batch_size, dtype=np.float)
+        self.is_terminals = np.zeros(batch_size, dtype=np.float32)
         self.index = 0
 
     def append(self, s: np.ndarray, a: np.ndarray, log_prob: float, r: float, sv: float, done: float, index: int):
@@ -207,6 +207,8 @@ class DQNNet(nn.Module):
         :param _output:     输出维度
         """
         super(DQNNet, self).__init__()
+        if _output is None:
+            _output = [1]
         self.hidden1 = nn.Linear(_input, 64)  # input -> hidden1
         self.hidden2 = nn.Linear(64, 64)  # hidden1 -> hidden2
         self.out = nn.Linear(64, _output[0])  # hidden2 -> output

@@ -125,11 +125,10 @@ class DQN:
                                 8       ->    ['a', 'e', 'k']
                                 20      ->    ['b', 'd', 'h']
         """
-        actionSpaceReverse = self.env.action_space.copy()
-        actionSpaceReverse.reverse()           # 动作空间反序
+        actionSpace = self.env.action_space.copy()
         physicalAction = []
         count = 0
-        for _item in actionSpaceReverse:       # 反序查找
+        for _item in reversed(actionSpace):       # 反序查找
             length = len(_item)
             index = action % length
             physicalAction.append(_item[index])
@@ -242,7 +241,7 @@ class DQN:
 
     def DQN_info(self):
         print('DQN agent name:', self.env.name)
-        print('DQN input dimension:', self.env.state_dim_)
+        print('DQN input dimension:', self.env.state_dim)
         print('DQN output dimension:', self.env.action_num)
         print('Agent physical action dimension:', self.env.action_dim)
         print('Agent action space:', self.env.action_space)

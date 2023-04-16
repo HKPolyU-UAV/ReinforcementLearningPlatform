@@ -15,6 +15,7 @@ class CartPoleDiscreteAngleOnly(rl_base):
 		:param save_cfg:        save the model config file or not
 		"""
 		super(CartPoleDiscreteAngleOnly, self).__init__()
+		self.name = 'CartPoleDiscreteAngleOnly'
 		'''physical parameters'''
 		self.initTheta = initTheta
 		self.theta = self.initTheta

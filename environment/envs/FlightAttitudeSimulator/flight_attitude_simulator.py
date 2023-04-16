@@ -10,6 +10,8 @@ class Flight_Attitude_Simulator(rl_base):
         :param setTheta:        set Theta
         """
         super(Flight_Attitude_Simulator, self).__init__()
+        self.name = 'Flight_Attitude_Simulator'
+
         '''physical parameters'''
         self.initTheta = deg2rad(initTheta)
         self.setTheta = deg2rad(setTheta)
