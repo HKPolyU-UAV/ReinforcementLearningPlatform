@@ -56,8 +56,8 @@ class UGV_Bidirectional(rl_base):
 		self.vMin = -2  # 最小线速度 (最大反向速度)
 		self.fMax = 6  # 最大推力
 		self.fMin = -6  # 最小推力 (最大拉力)
-		self.tMax = np.pi / 48  # 最大转矩
-		self.tMin = -np.pi / 48  # 最小转矩 (最大反向转矩)
+		self.tMax = np.pi / 16  # 最大转矩
+		self.tMin = -np.pi / 16  # 最小转矩 (最大反向转矩)
 
 		self.phiMax = np.pi  # 车体最大角度
 		self.phiMin = -np.pi  # 车体最小角度
