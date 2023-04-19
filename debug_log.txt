@@ -215,12 +215,13 @@ Tips:
 =================奥利给兄弟们干他就完了=================
 
 
+====================嗨嗨嗨我又来了啊====================
 Log_num: 11
 Date: 2023.04.12
 Time: 22:29
 Contents:
     1). Add discrete version of PPO: PPO_Discrete
-    1). Add new controller: a positional controller for SecondOrderIntegration-BangBang using PPO_Discrete.
+    2). Add new controller: a positional controller for SecondOrderIntegration-BangBang using PPO_Discrete.
 
 Tips:
     这里需要说明一下，为什么加上 “BangBang”。因为 BangBang 是一类系统的时间最优控制的解的形式，即不论系统动态模型是什么，最后的答案一定是 BangBang 的。
@@ -229,4 +230,19 @@ Tips:
     奖励函数的设计形式和状态-动作空间的设计要远远比网络结构和网络参数重要，因此合理的简化问题，可以大大提高训练速度和效果。二阶积分系统的控制，之前只用 DPPO
     才训练出来一个差不多的，经过简化，直接用 PPO_Discrete 就完全可以解决。或许在算力足够的情况下不需要考虑这个问题，但是合理将问题简化，并用少的算力得到相同的效果
     是十分有意义的。
+=================奥利给兄弟们干他就完了=================
+
+
+====================嗨嗨嗨我又来了啊====================
+Log_num: 12
+Date: 2023.04.19
+Time: 16:41
+Contents:
+    1). Adjust networks and some functions for DQN/Double DQN/Dueling DQN to support multi-dimensional actions.
+    2). Debugged the networks and corresponding demos mentioned above.
+
+Tips:
+    原本的DQN系列网络输出为一维动作的所有价值，不支持高维的动作，本次更新将DQN系列网络输出修改为动作的每个维度的每个价值拉直成的向量，并在用网络选取动作时将其维度进行
+    还原，通过取动作每个维度的最大价值作为动作在该维度的选择，使得DQN系列网络和demo支持多维的动作。同时修复了DQN系列算法在Flight-Attitude-Simulator上demo的历史
+    遗留bug和调整后的新bug，这些demo现在均可以正常进行训练和测试，但是训练效果尚未考察。
 =================奥利给兄弟们干他就完了=================
