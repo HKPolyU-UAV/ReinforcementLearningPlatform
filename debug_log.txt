@@ -259,3 +259,18 @@ Contents:
 
 Tips: None
 =================奥利给兄弟们干他就完了=================
+
+
+====================嗨嗨嗨我又来了啊====================
+Log_num: 14
+Date: 2023.04.20
+Time: 0:53
+Contents:
+    1). Added a new controller (stored in ./datasave/network/DoubleDQN-FlightAttitudeSimulator)
+    using multi-dimensional-supported DoubleDQN (named DoubleDQN) for flight attitude simulator.
+    2). Added a new controller (stored in ./datasave/network/DuelingDQN-FlightAttitudeSimulator)
+    using multi-dimensional-supported DuelingDQN (named DuelingDQN) for flight attitude simulator.
+    3). Fixed some bugs.
+
+Tips: None
+=================奥利给兄弟们干他就完了=================

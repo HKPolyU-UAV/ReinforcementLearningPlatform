@@ -11,8 +11,8 @@ from algorithm.value_base.Double_DQN import Double_DQN
 from common.common_func import *
 from common.common_cls import *
 
-optPath = '../../datasave/network/'
-show_per = 1  # 每个回合显示一次
+optPath = '../../datasave/network/DoubleDQN-FlightAttitudeSimuator/'
+show_per = 50  # 每个回合显示一次
 ALGORITHM = 'DoubleDQN'
 ENV = 'FlightAttitudeSimulator'
 
@@ -96,7 +96,7 @@ def fullFillReplayMemory_with_Optimal_Exploration(torch_pkl_file: str,
         while not env.is_terminal:
             env.current_state = env.next_state.copy()  # 状态更新
             _numAction = agent.get_action_with_fixed_epsilon(env.current_state, epsilon)
-            env.current_state, env.current_action, env.reward, env.next_state, env.is_terminal = env.step_update(agent.actionNUm2PhysicalAction(_numAction))
+            env.step_update(agent.actionNUm2PhysicalAction(_numAction))
             env.show_dynamic_image(isWait=False)
             if is_only_success:
                 _new_state.append(env.current_state)
@@ -105,7 +105,8 @@ def fullFillReplayMemory_with_Optimal_Exploration(torch_pkl_file: str,
                 _new_state_.append(env.next_state)
                 _new_done.append(1 if env.is_terminal else 0)
             else:
-                agent.memory.store_transition(env.current_state, env.current_action, env.reward, env.next_state, 1 if env.is_terminal else 0)
+                agent.memory.store_transition(env.current_state, env.current_action, env.reward, env.next_state,
+                                              1 if env.is_terminal else 0)
                 if agent.memory.mem_counter % 100 == 0:
                     print('replay_count = ', agent.memory.mem_counter)
         if is_only_success and env.terminal_flag == 3:
@@ -130,33 +131,36 @@ def fullFillReplayMemory_Random(randomEnv: bool, fullFillRatio: float):
                 print('replay_count = ', agent.memory.mem_counter)
             env.current_state = env.next_state.copy()  # 状态更新
             _numAction = agent.get_action_random()
-            env.current_state, env.current_action, env.reward, env.next_state, env.is_terminal = env.step_update(agent.actionNUm2PhysicalAction(_numAction))
+            env.step_update(agent.actionNUm2PhysicalAction(_numAction))
             env.show_dynamic_image(isWait=False)
-            agent.memory.store_transition(env.current_state, env.current_action, env.reward, env.next_state, 1 if env.is_terminal else 0)
+            agent.memory.store_transition(env.current_state, env.current_action, env.reward, env.next_state,
+                                          1 if env.is_terminal else 0)
 
 
 if __name__ == '__main__':
-    log_dir = '../../../datasave/log/'
+    log_dir = '../../datasave/log/'
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
-    simulationPath = log_dir + datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d-%H-%M-%S') + '-' + ALGORITHM + '-' + ENV + '/'
+    simulationPath = log_dir + datetime.datetime.strftime(datetime.datetime.now(),
+                                                          '%Y-%m-%d-%H-%M-%S') + '-' + ALGORITHM + '-' + ENV + '/'
     os.mkdir(simulationPath)
 
     c = cv.waitKey(1)
-    TRAIN = True  # 直接训练
+    TRAIN = False  # 直接训练
     RETRAIN = False  # 基于之前的训练结果重新训练
     TEST = not TRAIN
 
-    env = flight_sim(initTheta=-60.0, setTheta=0.0, save_cfg=False)
+    env = flight_sim(initTheta=-60.0, setTheta=0.0)
     eval_net = DQNNet(state_dim=env.state_dim, action_dim=env.action_dim, action_num=env.action_num, name='eval_net')
-    target_net = DQNNet(state_dim=env.state_dim, action_dim=env.action_dim, action_num=env.action_num, name='target_net')
+    target_net = DQNNet(state_dim=env.state_dim, action_dim=env.action_dim, action_num=env.action_num,
+                        name='target_net')
     agent = Double_DQN(env=env,
                        gamma=0.9,
                        epsilon=0.95,
                        learning_rate=5e-4,
                        memory_capacity=20000,  # 10000
-                       batch_size=256,
-                       target_replace_iter=200,
+                       batch_size=512,
+                       target_replace_iter=100,
                        eval_net=eval_net,
                        target_net=target_net)
 
@@ -166,7 +170,7 @@ if __name__ == '__main__':
         agent.save_episode.append(agent.episode)
         agent.save_reward.append(0.0)
         agent.save_epsilon.append(agent.epsilon)
-        MAX_EPISODE = 600
+        MAX_EPISODE = 1500
         agent.episode = 0  # 设置起始回合
         if RETRAIN:
             print('Retraining')
@@ -202,11 +206,11 @@ if __name__ == '__main__':
             while not env.is_terminal:
                 c = cv.waitKey(1)
                 env.current_state = env.next_state.copy()
-                # dqn.epsilon = dqn.get_epsilon()
-                agent.epsilon = 0.4
-                numAction = agent.get_action_with_fixed_epsilon(env.current_state, agent.epsilon)
-                env.current_state, env.current_action, env.reward, env.next_state, env.is_terminal = \
-                    env.step_update(agent.actionNUm2PhysicalAction(numAction))  # 环境更新的action需要是物理的action
+                agent.epsilon = agent.get_epsilon()
+                # agent.epsilon = 0.4
+                action_from_actor = agent.get_action_with_fixed_epsilon(env.current_state, agent.epsilon)
+                action = agent.actionNUm2PhysicalAction(action_from_actor)
+                env.step_update(action)  # 环境更新的action需要是物理的action
                 if agent.episode % show_per == 0:
                     env.show_dynamic_image(isWait=False)
                 sumr = sumr + env.reward
@@ -217,7 +221,8 @@ if __name__ == '__main__':
                     new_state_.append(env.next_state)
                     new_done.append(1 if env.is_terminal else 0)
                 else:
-                    agent.memory.store_transition(env.current_state, env.current_action, env.reward, env.next_state, 1 if env.is_terminal else 0)
+                    agent.memory.store_transition(env.current_state, env.current_action, env.reward, env.next_state,
+                                                  1 if env.is_terminal else 0)
                 agent.nn_training(saveNNPath=simulationPath)
             '''跳出循环代表回合结束'''
             if is_storage_only_success and env.terminal_flag == 3:
@@ -243,12 +248,12 @@ if __name__ == '__main__':
 
     if TEST:
         print('TESTing...')
-        agent.get_optimalfrompkl(optPath + 'agent-4-flight-attitude-simulator.pkl')
-        cap = cv.VideoWriter(simulationPath + '/' + 'Optimal.mp4',
-                             cv.VideoWriter_fourcc('X', 'V', 'I', 'D'),
-                             120.0,
-                             (env.width, env.height))
-        simulation_num = 5
+        agent.get_optimalfrompkl(optPath + 'doubledqn-4-flight-attitude-simulator.pkl')
+        # cap = cv.VideoWriter(simulationPath + '/' + 'Optimal.mp4',
+        #                      cv.VideoWriter_fourcc('X', 'V', 'I', 'D'),
+        #                      120.0,
+        #                      (env.width, env.height))
+        simulation_num = 50
         for i in range(simulation_num):
             print('==========START==========')
             print('episode = ', i)
@@ -257,12 +262,9 @@ if __name__ == '__main__':
                 if cv.waitKey(1) == 27:
                     break
                 env.current_state = env.next_state.copy()
-                env.current_state, env.current_action, env.reward, env.next_state, env.is_terminal = \
-                    env.step_update(agent.actionNUm2PhysicalAction(agent.get_action_with_fixed_epsilon(env.current_state, 0.0)))
+                env.step_update(agent.actionNUm2PhysicalAction(agent.get_action_with_fixed_epsilon(env.current_state, 0.0)))
                 env.show_dynamic_image(isWait=False)
-                cap.write(env.save)
-                env.saveData(is2file=False)
-            print('Stable Theta:', rad2deg(env.theta), '\t', 'Stable error:', rad2deg(env.setTheta - env.theta))
+                # cap.write(env.save)
+            print('Error:', rad2deg(env.setTheta - env.theta))
             print('===========END===========')
         cv.waitKey(0)
-        env.saveData(is2file=True, filepath=simulationPath)
