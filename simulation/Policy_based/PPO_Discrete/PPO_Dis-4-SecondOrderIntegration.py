@@ -283,6 +283,6 @@ if __name__ == '__main__':
     if TEST:
         agent.actor.load_state_dict(torch.load(optPath + ALGORITHM + '-' + ENV + '/' + 'Actor_PPO'))
         # agent.actor.load_state_dict(torch.load('Actor_PPO2300'))
-        rr, ee = agent.agent_evaluate(True, random=True, test_num=50)
+        rr, ee = agent.agent_evaluate(True, _random=True, test_num=50)
         print(rr)
         print(ee)

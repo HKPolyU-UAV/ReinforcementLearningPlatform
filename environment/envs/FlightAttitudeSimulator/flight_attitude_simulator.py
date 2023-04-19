@@ -1,9 +1,11 @@
+import numpy as np
+
 from common.common_func import *
 from environment.envs import *
 
 
 class Flight_Attitude_Simulator(rl_base):
-    def __init__(self, initTheta: float, setTheta: float, save_cfg: bool):
+    def __init__(self, initTheta: float, setTheta: float):
         """
         :brief:                 initialization
         :param initTheta:       initial theta
@@ -23,9 +25,10 @@ class Flight_Attitude_Simulator(rl_base):
         self.theta = max(self.initTheta, self.minTheta)
         self.theta = min(self.initTheta, self.maxTheta)
         self.dTheta = 0.0
-        self.freq = 100  # control frequency
+        self.freq = 50  # control frequency
         self.T = 1 / self.freq  # control period
         self.time = 0.0
+        self.timeMax = 5.0
         self.thetaError = self.setTheta - self.theta
         self.sum_thetaError = 0.0
         '''physical parameters'''
@@ -91,18 +94,8 @@ class Flight_Attitude_Simulator(rl_base):
         self.draw_base()
         self.draw_pendulum()
         self.draw_copper()
-        self.show_initial_image(isWait=True)
+        self.show_initial_image(isWait=False)
         '''visualization_opencv'''
-
-        '''data_save'''
-        self.save_Time = [self.time]
-        self.save_Theta = [self.theta]
-        self.save_dTheta = [self.dTheta]
-        self.save_error = [self.thetaError]
-        self.save_F = [self.initial_action[0]]
-        '''data_save'''
-        if save_cfg:
-            self.saveModel2XML()
 
     def draw_base(self):
         """
@@ -179,6 +172,11 @@ class Flight_Attitude_Simulator(rl_base):
         self.save = self.show.copy()
         self.show = self.image.copy()
 
+    def is_success(self):
+        b1 = np.fabs(self.theta - self.setTheta) < deg2rad(1)
+        b2 = np.fabs(self.dTheta) < deg2rad(1)
+        return b1 and b2
+
     def is_Terminal(self, param=None):
         """
         :brief:     判断回合是否结束
@@ -192,20 +190,24 @@ class Flight_Attitude_Simulator(rl_base):
         #     self.terminal_flag = 2
         #     print('超出最小角度')
         #     return True
-        if self.time > 2:
+        if self.time > self.timeMax:
             self.terminal_flag = 3
             print('超时')
+            return True
+        if self.is_success():
+            self.terminal_flag = 4
+            print('成功')
             return True
         self.terminal_flag = 0
         return False
 
-    def step_update(self, action):
-        _action = action[0]
+    def step_update(self, action:np.ndarray):
+        self.current_action = action.copy()
 
         def f(angle, dangle):
             a2 = -self.k / (self.J + self.m * self.dis ** 2)
             a1 = -self.m * self.g * self.dis / (self.dis + self.m * self.dis ** 2)
-            a0 = self.L * _action / (self.J + self.m * self.dis ** 2)
+            a0 = self.L * self.current_action[0] / (self.J + self.m * self.dis ** 2)
             return a2 * dangle + a1 * np.cos(angle) + a0
 
         h = self.T / 10
@@ -242,30 +244,23 @@ class Flight_Attitude_Simulator(rl_base):
 
         '''reward function'''
         '''1. 角度误差'''
-        gain = 20.0
-        r1 = -gain * self.thetaError ** 2
+        gain = 1.0
+        r1 = -gain * self.thetaError **2
         '''1. 角度误差'''
 
-        '''2. 角速度误差'''
-        r2 = 0
-        '''2. 角速度误差'''
-
-        '''3. 累计角度误差'''
-        r3 = 0
-        '''3. 累计角度误差'''
-
         '''4. 其他误差'''
-        r4 = 0
+        if self.terminal_flag == 3: # time out
+            r4 = 100
+        elif self.terminal_flag == 4: # success
+            r4 = 500
+        else:
+            r4 = 0
         # if (self.terminal_flag == 1) or (self.terminal_flag == 2):
         #     r4 = -500 * (self.maxTheta - self.minTheta) ** 2
         '''4. 其他误差'''
 
-        self.reward = r1 + r2 + r3 + r4
+        self.reward = r1 + r4
         '''reward function'''
-
-        self.saveData()
-
-        return self.current_state, action, self.reward, self.next_state, self.is_terminal
 
     def reset(self):
         """
@@ -287,14 +282,6 @@ class Flight_Attitude_Simulator(rl_base):
         self.reward = 0.0
         self.is_terminal = False
         '''RL_BASE'''
-
-        '''data_save'''
-        self.save_Time = [self.time]
-        self.save_Theta = [self.theta]
-        self.save_dTheta = [self.dTheta]
-        self.save_error = [self.thetaError]
-        self.save_F = [self.initial_action[0]]
-        '''data_save'''
 
     def reset_random(self):
         """
@@ -325,101 +312,3 @@ class Flight_Attitude_Simulator(rl_base):
         self.reward = 0.0
         self.is_terminal = False
         '''RL_BASE'''
-
-        '''data_save'''
-        self.save_Time = [self.time]
-        self.save_Theta = [self.theta]
-        self.save_dTheta = [self.dTheta]
-        self.save_error = [self.thetaError]
-        self.save_F = [self.initial_action[0]]
-        '''data_save'''
-
-    def saveModel2XML(self, filename='Flight_Attitude_Simulator.xml', filepath='../config/'):
-        rootMsg = {
-            'name': 'Flight_Attitude_Simulator',
-            'author': 'Yefeng YANG',
-            'date': '2021.12.27',
-            'E-mail': 'yefeng.yang@connect.polyu.hk; 18B904013@stu.hit.edu.cn'
-        }
-        rl_baseMsg = {
-            'state_dim': self.state_dim,
-            'state_num': self.state_num,
-            'state_step': self.state_step,
-            'state_space': self.state_space,
-            'state_range': self.state_range,
-            'isStateContinuous': self.isStateContinuous,
-            'initial_state': self.initial_state,
-            'current_state': self.current_state,
-            'next_state': self.next_state,
-            'action_dim': self.action_dim,
-            'action_step': self.action_step,
-            'action_range': self.action_range,
-            'action_num': self.action_num,
-            'action_space': self.action_space,
-            'isActionContinuous': self.isActionContinuous,
-            'initial_action': self.initial_action,
-            'current_action': self.current_action,
-            'is_terminal': self.is_terminal
-        }
-        physicalMsg = {
-            'initTheta': self.initTheta,
-            'setTheta': self.setTheta,
-            'f_max': self.f_max,
-            'f_min': self.f_min,
-            'f_step': self.f_step,
-            'minTheta': self.minTheta,
-            'maxTheta': self.maxTheta,
-            'theta': self.theta,
-            'dTheta': self.dTheta,
-            'freq': self.freq,
-            'T': self.T,
-            'Lw': self.Lw,
-            'L': self.L,
-            'J': self.J,
-            'k': self.k,
-            'm': self.m,
-            'dis': self.dis,
-            'copperl': self.copperl,
-            'copperw': self.copperw,
-            'g': self.g
-        }
-        imageMsg = {
-            'width': self.width,
-            'height': self.height,
-            'name4image': self.name4image,
-            'scale': self.scale,
-            'ybias': self.ybias,
-            'base_hor_w': self.base_hor_w,
-            'base_hor_h': self.base_hor_h,
-            'base_ver_w': self.base_ver_w,
-            'base_ver_h': self.base_ver_h
-        }
-        xml_cfg().XML_Create(filename=filepath + filename,
-                             rootname='Plant',
-                             rootmsg=rootMsg)
-        xml_cfg().XML_InsertNode(filename=filepath + filename,
-                                 nodename='RL_Base',
-                                 nodemsg=rl_baseMsg)
-        xml_cfg().XML_InsertNode(filename=filepath + filename,
-                                 nodename='Physical',
-                                 nodemsg=physicalMsg)
-        xml_cfg().XML_InsertNode(filename=filepath + filename,
-                                 nodename='Image',
-                                 nodemsg=imageMsg)
-        xml_cfg().XML_Pretty_All(filepath + filename)
-
-    def saveData(self, is2file=False, filename='Flight_Attitude_Simulator.csv', filepath=''):
-        self.save_Time.append(self.time)
-        self.save_Theta.append(self.theta)
-        self.save_dTheta.append(self.dTheta)
-        self.save_error.append(self.thetaError)
-        self.save_F.append(self.current_action[0])
-        if is2file:
-            data = pd.DataFrame({
-                'time:': self.save_Time,
-                'theta': self.save_Theta,
-                'dTheta': self.save_dTheta,
-                'thetaError': self.save_error,
-                'F': self.save_F
-            })
-            data.to_csv(filepath + filename, index=False, sep=',')

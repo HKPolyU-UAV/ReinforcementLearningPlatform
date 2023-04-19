@@ -121,29 +121,7 @@ class DQN:
         :brief:             Convert action number to physical action
         :param action:      the number of the action
         :return:            physical action
-        :rules:             Action in higher-dimension has higher priority. For example, if the action space is
-                            [['a', 'b', 'c'], ['d', 'e', 'f', 'g'], ['h', 'i', 'j', 'k', 'l']], then the dimension is 3,
-                            and the length of each dimension is 3, 4, and 5. We will use some examples to illustrate
-                            the relationship between actionNum and physicalAction:
-                            actionNum   ->    physicalAction
-                                0       ->    ['a', 'd', 'h']
-                                1       ->    ['a', 'd', 'i']
-                                5       ->    ['a', 'e', 'h']
-                                8       ->    ['a', 'e', 'k']
-                                20      ->    ['b', 'd', 'h']
         """
-        # actionSpace = self.env.action_space.copy()
-        # physicalAction = []
-        # count = 0
-        # for _item in reversed(actionSpace):       # 反序查找
-        #     length = len(_item)
-        #     index = math.floor(action % length)
-        #     # print("_item:", _item, "index:", index)
-        #     physicalAction.append(_item[index])
-        #     count += 1
-        #     action = int(action / length)
-        # physicalAction.reverse()
-        # return physicalAction
         linear_action = []
         for _a, _action_space in zip(action, self.env.action_space):
             linear_action.append(_action_space[_a])
@@ -168,18 +146,18 @@ class DQN:
             self.epsilon = 0.1
         """Episode-Epsilon for Flight Attitude Simulator"""
 
-        """Episode-Epsilon for Nav Empty World"""
-        if 0 <= self.episode <= 500:
-            self.epsilon = -0.0006 * self.episode + 0.9
-        elif 500 < self.episode <= 1000:
-            self.epsilon = -0.0006 * self.episode + 1.05
-        elif 1000 < self.episode <= 1500:
-            self.epsilon = -0.0006 * self.episode + 1.2
-        elif 1500 < self.episode <= 2000:
-            self.epsilon = -0.0006 * self.episode + 1.35
-        else:
-            self.epsilon = 0.1
-        """Episode-Epsilon for Nav Empty World"""
+        # """Episode-Epsilon for Nav Empty World"""
+        # if 0 <= self.episode <= 500:
+        #     self.epsilon = -0.0006 * self.episode + 0.9
+        # elif 500 < self.episode <= 1000:
+        #     self.epsilon = -0.0006 * self.episode + 1.05
+        # elif 1000 < self.episode <= 1500:
+        #     self.epsilon = -0.0006 * self.episode + 1.2
+        # elif 1500 < self.episode <= 2000:
+        #     self.epsilon = -0.0006 * self.episode + 1.35
+        # else:
+        #     self.epsilon = 0.1
+        # """Episode-Epsilon for Nav Empty World"""
         return self.epsilon
 
     def torch_action2num(self, batch_action_number: np.ndarray):
@@ -191,10 +169,7 @@ class DQN:
             for i in range(col):
                 index.append(np.squeeze(np.argwhere(batch_action_number[j, i] == self.env.action_space[i])).tolist())
             index_a.append(index.copy())
-            # print(index)
-        # print(index_a)
         numpy_a = np.array(index_a)
-        # print(numpy_a)
         res = []
         for i in range(row):
             temp = numpy_a[i]
@@ -208,7 +183,7 @@ class DQN:
             res.append(_sum)
         return torch.unsqueeze(torch.tensor(res).long(), dim=1)
 
-    def nn_training(self, saveNNPath=None, is_reward_ascent=False):
+    def learn(self, saveNNPath=None, is_reward_ascent=False):
         """
         :param is_reward_ascent:
         :brief:             train the neural network
