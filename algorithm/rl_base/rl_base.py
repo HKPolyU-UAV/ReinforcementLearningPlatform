@@ -12,7 +12,7 @@ class rl_base:
         self.state_num = []
         """
         The number of each state.
-        It is a two dimensional list which includes the number of the state of each dimension.
+        It is a one dimensional list which includes the number of the state of each dimension.
         For example, for the inverted pendulum model we mentioned before:
         the 'state_num' should be [math.inf, math.inf, math.inf, math.inf, math.inf, math.inf]
         Another example, if we set the maximum of x as 10, minimum of x as -10, and the step of x as 2 and keep the other states unchanged,
@@ -21,7 +21,7 @@ class rl_base:
 
         self.state_step = []
         """
-        It is a two dimensional list which includes the step of each state.
+        It is a one dimensional list which includes the step of each state.
         Set the corresponding dimension as None if the state of which is a continuous one.
         If we set the maximum of x as 10, minimum of x as -10, and the step of x as 2 in the inverted pendulum example, 
         the state_step should be [2]; other wise, it should be [None]
@@ -59,7 +59,7 @@ class rl_base:
         self.action_num = []
         """
         The number of each action.
-        It is a two dimensional list which includes the number of the action of each dimension.
+        It is a one dimensional list which includes the number of the action of each dimension.
         For example, for the inverted pendulum model we mentioned before:
         the 'action_num' should be [np.inf] if the acceleration is continuous.
         Another example, if we set the maximum of acceleration as 2, minimum of acceleration as -2, and the step as 0.5,
@@ -68,7 +68,7 @@ class rl_base:
 
         self.action_step = []
         """
-        It is a two dimensional list which includes the step of each action.
+        It is a one dimensional list which includes the step of each action.
         Set the corresponding dimension as None if the action of which is a continuous one.
         If we set the step of the acceleration of the base in the inverted pendulum as 1, 
         then the action_step should be [1]; other wise, it should be [None]

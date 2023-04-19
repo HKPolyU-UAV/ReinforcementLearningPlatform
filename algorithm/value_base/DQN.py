@@ -1,10 +1,12 @@
+import math
+
 from common.common_cls import *
 import pandas as pd
 
 """use CPU or GPU"""
 use_cuda = torch.cuda.is_available()
-# device = torch.device("cuda" if use_cuda else "cpu")
-device = torch.device("cpu")
+device = torch.device("cuda:0" if use_cuda else "cpu")
+# device = torch.device("cpu")
 """use CPU or GPU"""
 
 
@@ -78,7 +80,7 @@ class DQN:
         """
         # random.seed()
         _a = []
-        for _num in self.env.action_space:
+        for _num in self.env.action_num:
             _a.append(np.random.choice(_num))
         return np.array(_a)
 
@@ -90,9 +92,14 @@ class DQN:
         """
         t_state = torch.tensor(state).float().to(device)
         t_action_value = self.target_net(t_state).cpu().detach().numpy()
+        # 分离动作价值的各个维度，分别取最大
+        index = self.target_net.index
+        num = []
+        for i in range(self.env.action_dim):
+            num.append(np.argmax(t_action_value[index[i]: index[i + 1]]))
         # print(t_action_value.shape)
+        # print(index)
         # num = np.random.choice(np.where(t_action_value == np.max(t_action_value))[0])
-        num = np.argmax(t_action_value)
         return num
 
     def get_action_with_fixed_epsilon(self, state, epsilon):
@@ -112,7 +119,7 @@ class DQN:
     def actionNUm2PhysicalAction(self, action):
         """
         :brief:             Convert action number to physical action
-        :param action:      the number if the action
+        :param action:      the number of the action
         :return:            physical action
         :rules:             Action in higher-dimension has higher priority. For example, if the action space is
                             [['a', 'b', 'c'], ['d', 'e', 'f', 'g'], ['h', 'i', 'j', 'k', 'l']], then the dimension is 3,
@@ -125,17 +132,22 @@ class DQN:
                                 8       ->    ['a', 'e', 'k']
                                 20      ->    ['b', 'd', 'h']
         """
-        actionSpace = self.env.action_space.copy()
-        physicalAction = []
-        count = 0
-        for _item in reversed(actionSpace):       # 反序查找
-            length = len(_item)
-            index = action % length
-            physicalAction.append(_item[index])
-            count += 1
-            action = int(action / length)
-        physicalAction.reverse()
-        return physicalAction
+        # actionSpace = self.env.action_space.copy()
+        # physicalAction = []
+        # count = 0
+        # for _item in reversed(actionSpace):       # 反序查找
+        #     length = len(_item)
+        #     index = math.floor(action % length)
+        #     # print("_item:", _item, "index:", index)
+        #     physicalAction.append(_item[index])
+        #     count += 1
+        #     action = int(action / length)
+        # physicalAction.reverse()
+        # return physicalAction
+        linear_action = []
+        for _a, _action_space in zip(action, self.env.action_space):
+            linear_action.append(_action_space[_a])
+        return np.array(linear_action)
 
     def get_epsilon(self):
         """

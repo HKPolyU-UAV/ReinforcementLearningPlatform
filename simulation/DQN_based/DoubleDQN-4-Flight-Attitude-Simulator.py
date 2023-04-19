@@ -20,23 +20,30 @@ is_storage_only_success = False
 
 
 class DQNNet(nn.Module):
-    def __init__(self, _input: int, _output: list):
-        """
-        :brief:             神经网络初始化
-        :param _input:      输入维度
-        :param _output:     输出维度
-        """
+    def __init__(self, state_dim=1, action_dim=1, action_num=None, name='DQNNet', chkpt_dir=''):
         super(DQNNet, self).__init__()
-        self.hidden1 = nn.Linear(_input, 64)  # input -> hidden1
-        self.hidden2 = nn.Linear(64, 64)  # hidden1 -> hidden2
-        self.out = nn.Linear(64, _output[0])  # hidden2 -> output
+        self.state_dim = state_dim
+        self.action_dim = action_dim
+        if action_num is None:
+            self.action_num = env.action_num
+        self.index = [0]
+        for n in range(action_dim):
+            self.index.append(self.index[n] + env.action_num[n])
+
+        self.fc1 = nn.Linear(state_dim, 64)
+        self.fc2 = nn.Linear(64, 64)
+        self.out = nn.Linear(64, sum(env.action_num))
+
         self.init()
 
+        self.device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+        self.to(self.device)
+
     def init(self):
-        torch.nn.init.orthogonal_(self.hidden1.weight, gain=1)
-        torch.nn.init.uniform_(self.hidden1.bias, 0, 1)
-        torch.nn.init.orthogonal_(self.hidden2.weight, gain=1)
-        torch.nn.init.uniform_(self.hidden2.bias, 0, 1)
+        torch.nn.init.orthogonal_(self.fc1.weight, gain=1)
+        torch.nn.init.uniform_(self.fc1.bias, 0, 1)
+        torch.nn.init.orthogonal_(self.fc2.weight, gain=1)
+        torch.nn.init.uniform_(self.fc2.bias, 0, 1)
         torch.nn.init.orthogonal_(self.out.weight, gain=1)
         torch.nn.init.uniform_(self.out.bias, 0, 1)
 
@@ -47,11 +54,10 @@ class DQNNet(nn.Module):
         :return:        网络的输出
         """
         x = _x
-        x = self.hidden1(x)
-        x = func.relu(x)
-        x = self.hidden2(x)
-        x = func.relu(x)
+        x = func.relu(self.fc1(x))
+        x = func.relu(self.fc2(x))
         state_action_value = self.out(x)
+
         return state_action_value
 
 
@@ -137,13 +143,13 @@ if __name__ == '__main__':
     os.mkdir(simulationPath)
 
     c = cv.waitKey(1)
-    TRAIN = False  # 直接训练
+    TRAIN = True  # 直接训练
     RETRAIN = False  # 基于之前的训练结果重新训练
     TEST = not TRAIN
 
     env = flight_sim(initTheta=-60.0, setTheta=0.0, save_cfg=False)
-    eval_net = DQNNet(_input=env.state_dim, _output=env.action_num)
-    target_net = DQNNet(_input=env.state_dim, _output=env.action_num)
+    eval_net = DQNNet(state_dim=env.state_dim, action_dim=env.action_dim, action_num=env.action_num, name='eval_net')
+    target_net = DQNNet(state_dim=env.state_dim, action_dim=env.action_dim, action_num=env.action_num, name='target_net')
     agent = Double_DQN(env=env,
                        gamma=0.9,
                        epsilon=0.95,

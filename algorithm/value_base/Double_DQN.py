@@ -3,8 +3,8 @@ import torch
 
 """use CPU or GPU"""
 use_cuda = torch.cuda.is_available()
-# device = torch.device("cuda" if use_cuda else "cpu")
-device = torch.device("cpu")
+device = torch.device("cuda" if use_cuda else "cpu")
+# device = torch.device("cpu")
 """use CPU or GPU"""
 
 
@@ -36,19 +36,19 @@ class Double_DQN(DQN):
             torch.save(self.eval_net.state_dict(), saveNNPath + '/' + 'eval_dqn_parameters.pkl')
             print('...network update...', int(self.target_replace_count / self.target_replace_iter))
 
-        state, action, reward, new_state, done = self.memory.sample_buffer()
+        state, action, reward, new_state, done = self.memory.sample_buffer(is_reward_ascent=is_reward_ascent)
         t_s = torch.tensor(state, dtype=torch.float).to(device)
         t_a_pos = self.torch_action2num(action).to(device)  # t_a是具体的物理动作，需要转换成动作编号作为索引值，是个tensor
-        t_r = torch.tensor(reward, dtype=torch.float).to(device)
+        t_r = torch.unsqueeze(torch.tensor(reward, dtype=torch.float).to(device), dim=1)
         t_s_ = torch.tensor(new_state, dtype=torch.float).to(device)
-        t_bool = torch.tensor(done, dtype=torch.float).to(device)
+        t_bool = torch.unsqueeze(torch.tensor(done, dtype=torch.float).to(device), dim=1)
         q_next = torch.squeeze(self.target_net(t_s_).detach().float()).to(device)
-
+        # print(q_next.size())
         '''Double DQN'''
         ddqn_action_value2 = self.eval_net(t_s_).detach()
         t_ddqn_num2 = torch.argmax(ddqn_action_value2, dim=1, keepdim=True)
+        # print(torch.gather(q_next, 1, t_ddqn_num2).mul(t_bool).size())
         q_target = t_r + self.gamma * (torch.gather(q_next, 1, t_ddqn_num2).mul(t_bool))
-        # print(t_ddqn_num2.size())
         '''Double DQN'''
 
         for _ in range(1):

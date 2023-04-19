@@ -20,26 +20,37 @@ is_storage_only_success = False
 
 
 class DuelingNeuralNetwork(nn.Module):
-    def __init__(self, _input: int, _output: list):
+    def __init__(self, state_dim=1, action_dim=1, action_num=None, name='DuelingNeuralNetwork', chkpt_dir=''):
         """
         :brief:             神经网络初始化
-        :param _input:      输入维度
-        :param _output:     输出维度
+        :param state_dim:      输入维度
+        :param action_dim:     输出维度
         """
         super(DuelingNeuralNetwork, self).__init__()
-        self.hidden1 = nn.Linear(_input, 64)  # input -> hidden1
-        self.hidden2 = nn.Linear(64, 64)  # hidden1 -> hidden2
+        self.state_dim = state_dim
+        self.action_dim = action_dim
+        if action_num is None:
+            self.action_num = env.action_num
+        self.index = [0]
+        for n in range(action_dim):
+            self.index.append(self.index[n] + env.action_num[n])
+
+        self.fc1 = nn.Linear(state_dim, 64)  # input -> hidden1
+        self.fc2 = nn.Linear(64, 64)  # hidden1 -> hidden2
         # self.out = nn.Linear(64, _output)  # hidden2 -> output
-        self.value = nn.Linear(64, _output[0])
-        self.advantage = nn.Linear(64, _output[0])
+        self.value = nn.Linear(64, 1)
+        self.advantage = nn.Linear(64, sum(env.action_num))
         # self.init()
         self.init_default()
 
+        self.device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+        self.to(self.device)
+
     def init(self):
-        torch.nn.init.orthogonal_(self.hidden1.weight, gain=1)
-        torch.nn.init.uniform_(self.hidden1.bias, 0, 1)
-        torch.nn.init.orthogonal_(self.hidden2.weight, gain=1)
-        torch.nn.init.uniform_(self.hidden2.bias, 0, 1)
+        torch.nn.init.orthogonal_(self.fc1.weight, gain=1)
+        torch.nn.init.uniform_(self.fc1.bias, 0, 1)
+        torch.nn.init.orthogonal_(self.fc2.weight, gain=1)
+        torch.nn.init.uniform_(self.fc2.bias, 0, 1)
         torch.nn.init.orthogonal_(self.out.weight, gain=1)
         torch.nn.init.uniform_(self.out.bias, 0, 1)
         torch.nn.init.orthogonal_(self.value.weight, gain=1)
@@ -48,8 +59,8 @@ class DuelingNeuralNetwork(nn.Module):
         torch.nn.init.uniform_(self.advantage.bias, 0, 1)
 
     def init_default(self):
-        self.hidden1.reset_parameters()
-        self.hidden2.reset_parameters()
+        self.fc1.reset_parameters()
+        self.fc2.reset_parameters()
         self.value.reset_parameters()
         self.advantage.reset_parameters()
 
@@ -60,16 +71,13 @@ class DuelingNeuralNetwork(nn.Module):
         :return:        网络的输出
         """
         x = _x
-        x = self.hidden1(x)
+        x = self.fc1(x)
         x = func.relu(x)
-        x = self.hidden2(x)
+        x = self.fc2(x)
         x = func.relu(x)
 
         x1 = self.value(x)
-        x1 = func.relu(x1)
-
         x2 = self.advantage(x)
-        x2 = func.relu(x2)
 
         state_action_value = x1 + (x2 - x2.mean())
         return state_action_value
@@ -159,8 +167,8 @@ if __name__ == '__main__':
     c = cv.waitKey(1)
 
     env = flight_sim(initTheta=-60.0, setTheta=0.0, save_cfg=False)
-    eval_net = DuelingNeuralNetwork(_input=env.state_dim, _output=env.action_num)
-    target_net = DuelingNeuralNetwork(_input=env.state_dim, _output=env.action_num)
+    eval_net = DuelingNeuralNetwork(state_dim=env.state_dim, action_dim=env.action_dim, action_num=env.action_num)
+    target_net = DuelingNeuralNetwork(state_dim=env.state_dim, action_dim=env.action_dim, action_num=env.action_num)
     agent = Dueling_DQN(env=env,
                         gamma=0.9,
                         epsilon=0.95,

@@ -1,0 +1,1 @@
+========== DPPO2 info ==========number of process: 1agent name: CartPoleAngleOnlystate_dim: 2action_dim: 1action_range: [[-8, 8]]actor learning rate: 0.0003critic learning rate: 0.001DPPO2 training device: cputotal training count: 50000k_epoch: 50========== DPPO2 info ==========
