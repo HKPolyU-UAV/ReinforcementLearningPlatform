@@ -3,6 +3,7 @@ import datetime
 import os
 import cv2 as cv
 import matplotlib.pyplot as plt
+import torch.nn.init
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../")
 from environment.envs.SecondOrderIntegration.SecondOrderIntegration import SecondOrderIntegration as env
@@ -36,15 +37,16 @@ class DQNNet(nn.Module):
         self.init()
 
         self.device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+        # self.device = 'cpu'
         self.to(self.device)
 
     def init(self):
         torch.nn.init.orthogonal_(self.fc1.weight, gain=1)
-        torch.nn.init.uniform_(self.fc1.bias, 0, 1)
+        torch.nn.init.constant_(self.fc1.bias, 0)
         torch.nn.init.orthogonal_(self.fc2.weight, gain=1)
-        torch.nn.init.uniform_(self.fc2.bias, 0, 1)
+        torch.nn.init.constant_(self.fc2.bias, 0)
         torch.nn.init.orthogonal_(self.out.weight, gain=1)
-        torch.nn.init.uniform_(self.out.bias, 0, 1)
+        torch.nn.init.constant_(self.out.bias, 0)
 
     def forward(self, _x):
         """
@@ -159,7 +161,7 @@ if __name__ == '__main__':
                                                           '%Y-%m-%d-%H-%M-%S') + '-' + ALGORITHM + '-' + ENV + '/'
     os.mkdir(simulationPath)
 
-    TRAIN = False  # 直接训练
+    TRAIN = True  # 直接训练
     RETRAIN = True  # 基于之前的训练结果重新训练
     TEST = not TRAIN
 
@@ -191,7 +193,7 @@ if __name__ == '__main__':
         agent.save_episode.append(agent.episode)
         agent.save_reward.append(0.0)
         agent.save_epsilon.append(agent.epsilon)
-        MAX_EPISODE = 600
+        MAX_EPISODE = 1500
         agent.episode = 0  # 设置起始回合
         if RETRAIN:
             print('Retraining')
@@ -202,8 +204,8 @@ if __name__ == '__main__':
                                                           is_only_success=False)
             # 如果注释掉，就是在上次的基础之上继续学习，如果不是就是重新学习，但是如果两次的奖励函数有变化，那么就必须执行这两句话
             '''生成初始数据之后要再次初始化网络'''
-            # agent.eval_net.init()
-            # agent.target_net.init()
+            agent.eval_net.init()
+            agent.target_net.init()
             '''生成初始数据之后要再次初始化网络'''
         else:
             fullFillReplayMemory_Random(randomEnv=True, fullFillRatio=0.5)
@@ -226,7 +228,7 @@ if __name__ == '__main__':
                 c = cv.waitKey(1)
                 env.current_state = env.next_state.copy()
                 agent.epsilon = agent.get_epsilon()
-                # agent.epsilon = 0.4
+                # agent.epsilon = 0
                 action_from_actor = agent.get_action_with_fixed_epsilon(env.current_state, agent.epsilon)
                 action = agent.actionNUm2PhysicalAction(action_from_actor)
                 env.step_update(action)  # 环境更新的action需要是物理的action

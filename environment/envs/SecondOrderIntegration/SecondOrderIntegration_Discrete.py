@@ -2,13 +2,13 @@ from common.common_func import *
 from environment.envs import *
 
 
-class SecondOrderIntegration(rl_base):
+class SecondOrderIntegration_Discrete(rl_base):
     def __init__(self,
                  pos0: np.ndarray = np.array([5.0, 5.0]),
                  vel0: np.ndarray = np.array([0.0, 0.0]),
                  map_size: np.ndarray = np.array([10.0, 10.0]),
                  target: np.ndarray = np.array([5.0, 5.0])):
-        super(SecondOrderIntegration, self).__init__()
+        super(SecondOrderIntegration_Discrete, self).__init__()
         self.name = 'SecondOrderIntegrationDiscrete'
         self.init_pos = pos0
         self.init_vel = vel0
@@ -86,7 +86,7 @@ class SecondOrderIntegration(rl_base):
         '''visualization'''
 
     def state_norm(self):
-        state = np.hstack((self.error, self.pos, self.vel))
+        state = np.hstack((self.error, self.vel))
         norm_min = self.state_range[:, 0]
         norm_max = self.state_range[:, 1]
         norm_s = (2 * state - (norm_min + norm_max)) / (norm_max - norm_min) * self.static_gain
@@ -230,7 +230,7 @@ class SecondOrderIntegration(rl_base):
         return False
 
     def is_success(self):
-        if np.linalg.norm(self.error) <= 0.05 and np.linalg.norm(self.vel) < 0.01:
+        if np.linalg.norm(self.error) <= 0.05 and np.linalg.norm(self.vel) < 0.05:
             return True
         return False
 
@@ -262,7 +262,7 @@ class SecondOrderIntegration(rl_base):
         cur_error = np.linalg.norm(cur_s[0: 2])
         nex_error = np.linalg.norm(nex_s[0: 2])
 
-        nex_vel = np.linalg.norm(nex_s[4: 6])
+        nex_vel = np.linalg.norm(nex_s[2: 4])
 
         R_e = 0.1
         # r1 = 0
@@ -274,7 +274,7 @@ class SecondOrderIntegration(rl_base):
 
         '''4. 其他'''
         if self.terminal_flag == 3:  # 成功
-            r4 = 100
+            r4 = 1000
         elif self.terminal_flag == 2:  # 超时
             r4 = 0
         elif self.terminal_flag == 1:  # 出界
@@ -291,7 +291,7 @@ class SecondOrderIntegration(rl_base):
             kk = 5
         r1 = (-yyf_x0 + 0.5) * kk
         theta = np.arccos(
-            np.dot(nex_s[4: 6], nex_s[0: 2]) / (np.linalg.norm(nex_s[0: 2]) * np.linalg.norm(nex_s[4: 6])))
+            np.dot(nex_s[2: 4], nex_s[0: 2]) / (np.linalg.norm(nex_s[0: 2]) * np.linalg.norm(nex_s[2: 4])))
         if theta < rad2deg(45):  # 小于 45 度，不罚
             r2 = 0
         else:
@@ -338,7 +338,7 @@ class SecondOrderIntegration(rl_base):
         if self.use_normalization:
             self.current_state = self.state_norm()
         else:
-            self.current_state = np.hstack((self.error, self.pos, self.vel))
+            self.current_state = np.hstack((self.error, self.vel))
 
         '''rk44'''
         self.rk44(action=action)  # 在微分方程里的，不在里面的，都更新了，角度也有判断
@@ -348,7 +348,7 @@ class SecondOrderIntegration(rl_base):
         if self.use_normalization:
             self.next_state = self.state_norm()
         else:
-            self.next_state = np.hstack((self.error, self.pos, self.vel))
+            self.next_state = np.hstack((self.error, self.vel))
         self.get_reward()
 
         '''其他'''
@@ -367,7 +367,7 @@ class SecondOrderIntegration(rl_base):
         if self.use_normalization:
             self.initial_state = self.state_norm()
         else:
-            self.initial_state = np.hstack((self.error, self.pos, self.vel))
+            self.initial_state = np.hstack((self.error, self.vel))
         self.current_state = self.initial_state.copy()
         self.next_state = self.initial_state.copy()
         self.initial_action = self.force.copy()
@@ -398,7 +398,7 @@ class SecondOrderIntegration(rl_base):
         if self.use_normalization:
             self.initial_state = self.state_norm()
         else:
-            self.initial_state = np.hstack((self.error, self.pos, self.vel))
+            self.initial_state = np.hstack((self.error, self.vel))
         self.current_state = self.initial_state.copy()
         self.next_state = self.initial_state.copy()
         self.initial_action = self.force.copy()

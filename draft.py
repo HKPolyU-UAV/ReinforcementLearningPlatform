@@ -24,9 +24,12 @@ from torch.distributions import Uniform
 
 
 if __name__ == '__main__':
-	action_space = [2, 2, 5, 10]
-	dist = Categorical(probs=nn.utils.rnn.pad_sequence([torch.ones(action_space[i], dtype=torch.float32) / action_space[i] for i in range(4)]).T)
-	a = dist.sample()
-	print(a)
-	print(torch.mean(dist.log_prob(a)))
-	pass
+	action_space = [[-3.0, -2.5, -2.0], [-1.5, -1.0]]
+	batch_action_number = np.array([[-3.0, -1.0], [-2.0, -1.0], [-2.5, -1.5]], dtype=float)
+	row = batch_action_number.shape[0]
+	col = batch_action_number.shape[1]
+	res = [[-1] * col for _ in range(row)]
+	for i in range(batch_action_number.shape[0]):
+		for j, a in enumerate(batch_action_number[i]):
+			res[i][j] = action_space[j].index(a)
+	print(torch.tensor(res).float())

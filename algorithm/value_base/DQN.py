@@ -1,5 +1,7 @@
 import math
 
+import torch
+
 from common.common_cls import *
 import pandas as pd
 
@@ -40,7 +42,8 @@ class DQN:
         self.batch_size = batch_size
         self.target_replace_iter = target_replace_iter
         self.episode = 0
-        self.device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+        # self.device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+        self.device = device
         '''DQN'''
         self.env = env
         '''From rl_base'''
@@ -163,25 +166,11 @@ class DQN:
     def torch_action2num(self, batch_action_number: np.ndarray):
         row = batch_action_number.shape[0]
         col = batch_action_number.shape[1]
-        index_a = []
-        for j in range(row):
-            index = []
-            for i in range(col):
-                index.append(np.squeeze(np.argwhere(batch_action_number[j, i] == self.env.action_space[i])).tolist())
-            index_a.append(index.copy())
-        numpy_a = np.array(index_a)
-        res = []
-        for i in range(row):
-            temp = numpy_a[i]
-            j = col - 1
-            k = 1
-            _sum = 0
-            while j >= 0:
-                _sum += k * temp[j]
-                k *= self.env.action_num[j]
-                j -= 1
-            res.append(_sum)
-        return torch.unsqueeze(torch.tensor(res).long(), dim=1)
+        res = [[-1] * col for _ in range(row)]
+        for i in range(batch_action_number.shape[0]):
+            for j, a in enumerate(batch_action_number[i]):
+                res[i][j] = self.env.action_space[j].index(a)
+        return torch.tensor(res)
 
     def learn(self, saveNNPath=None, is_reward_ascent=False):
         """
@@ -209,7 +198,8 @@ class DQN:
         res = torch.max(input=q_next, dim=1, keepdim=True)
         q_target = t_r + self.gamma * (res[0].mul(t_bool))
         for _ in range(1):
-            q_eval = self.eval_net(t_s).gather(1, t_a_pos)
+            # temp = self.eval_net(t_s).gather(1, t_a_pos)
+            q_eval = torch.sum(self.eval_net(t_s).gather(1, t_a_pos), dim=1).unsqueeze(1)
             loss = self.loss_func(q_eval, q_target)
             self.optimizer.zero_grad()
             loss.backward()
