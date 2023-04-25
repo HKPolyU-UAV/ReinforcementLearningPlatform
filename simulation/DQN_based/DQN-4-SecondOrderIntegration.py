@@ -278,7 +278,7 @@ if __name__ == '__main__':
         cap = cv.VideoWriter(simulationPath + '/' + 'Optimal.mp4',
                              cv.VideoWriter_fourcc('X', 'V', 'I', 'D'),
                              120.0,
-                             (env.x_offset, env.y_offset)).release()
+                             (env.image_size[0], env.image_size[1]))
         simulation_num = 10
         error = []
         terminal_list = []
@@ -293,11 +293,11 @@ if __name__ == '__main__':
                 env.step_update(
                     agent.actionNUm2PhysicalAction(agent.get_action_with_fixed_epsilon(env.current_state, 0.0)))
                 env.show_dynamic_image(isWait=False)
-                # cap.write(env.save)
+                cap.write(env.image)
             error.append(np.linalg.norm(env.error))
             terminal_list.append(env.init_target)
             print('===========END===========')
-
+        cap.release()
         '''统计一下，没有什么特殊的'''
         error = np.array(error)
         terminal_list = np.array(terminal_list)
