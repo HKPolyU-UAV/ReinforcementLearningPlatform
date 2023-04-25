@@ -1,5 +1,6 @@
 import math
 
+import numpy as np
 import torch
 
 from common.common_cls import *
@@ -82,10 +83,10 @@ class DQN:
         :return:        the number of the action
         """
         # random.seed()
-        _a = []
-        for _num in self.env.action_num:
-            _a.append(np.random.choice(_num))
-        return np.array(_a)
+        # _a = []
+        # for _num in self.env.action_num:
+        #     _a.append(np.random.choice(_num))
+        return np.random.randint(np.prod(self.env.action_num))
 
     def get_action_optimal_in_DQN(self, state):
         """
@@ -96,14 +97,14 @@ class DQN:
         t_state = torch.tensor(state).float().to(device)
         t_action_value = self.target_net(t_state).cpu().detach().numpy()
         # 分离动作价值的各个维度，分别取最大
-        index = self.target_net.index
-        num = []
-        for i in range(self.env.action_dim):
-            num.append(np.argmax(t_action_value[index[i]: index[i + 1]]))
+        # index = self.target_net.index
+        # num = []
+        # for i in range(self.env.action_dim):
+        #     num.append(np.argmax(t_action_value[index[i]: index[i + 1]]))
         # print(t_action_value.shape)
         # print(index)
         # num = np.random.choice(np.where(t_action_value == np.max(t_action_value))[0])
-        return num
+        return np.argmax(t_action_value)
 
     def get_action_with_fixed_epsilon(self, state, epsilon):
         """
@@ -125,10 +126,22 @@ class DQN:
         :param action:      the number of the action
         :return:            physical action
         """
-        linear_action = []
-        for _a, _action_space in zip(action, self.env.action_space):
-            linear_action.append(_action_space[_a])
-        return np.array(linear_action)
+        # linear_action = []
+        # for _a, _action_space in zip(action, self.env.action_space):
+        #     linear_action.append(_action_space[_a])
+        # return np.array(linear_action)
+        actionSpace = self.env.action_space.copy()
+        physicalAction = []
+        count = 0
+        for _item in reversed(actionSpace):  # 反序查找
+            length = len(_item)
+            index = math.floor(action % length)
+            # print("_item:", _item, "index:", index)
+            physicalAction.append(_item[index])
+            count += 1
+            action = int(action / length)
+        physicalAction.reverse()
+        return np.array(physicalAction)
 
     def get_epsilon(self):
         """
@@ -165,11 +178,22 @@ class DQN:
 
     def torch_action2num(self, batch_action_number: np.ndarray):
         row = batch_action_number.shape[0]
-        col = batch_action_number.shape[1]
-        res = [[-1] * col for _ in range(row)]
-        for i in range(batch_action_number.shape[0]):
-            for j, a in enumerate(batch_action_number[i]):
-                res[i][j] = self.env.action_space[j].index(a)
+        # col = batch_action_number.shape[1]
+        # res = [[-1] * col for _ in range(row)]
+        # for i in range(batch_action_number.shape[0]):
+        #     for j, a in enumerate(batch_action_number[i]):
+        #         res[i][j] = self.env.action_space[j].index(a)
+        # return torch.tensor(res)
+        res = []
+        for i in range(row):
+            lastLen = 1
+            actionIdx = 0
+            idx = len(batch_action_number[i]) - 1
+            for actions in reversed(self.env.action_space):
+                actionIdx += actions.index(batch_action_number[i][idx]) * lastLen
+                lastLen *= len(actions)
+                idx -= 1
+            res.append(actionIdx)
         return torch.tensor(res)
 
     def learn(self, saveNNPath=None, is_reward_ascent=False):
@@ -198,8 +222,7 @@ class DQN:
         res = torch.max(input=q_next, dim=1, keepdim=True)
         q_target = t_r + self.gamma * (res[0].mul(t_bool))
         for _ in range(1):
-            # temp = self.eval_net(t_s).gather(1, t_a_pos)
-            q_eval = torch.sum(self.eval_net(t_s).gather(1, t_a_pos), dim=1).unsqueeze(1)
+            q_eval = self.eval_net(t_s).gather(1, t_a_pos.unsqueeze(1))
             loss = self.loss_func(q_eval, q_target)
             self.optimizer.zero_grad()
             loss.backward()

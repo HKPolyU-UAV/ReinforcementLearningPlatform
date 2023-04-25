@@ -271,6 +271,13 @@ class SecondOrderIntegration_Discrete(rl_base):
         else:
             r1 = 0
         # r1 = -nex_error ** 2 * R_e  # 位置二次型惩罚，走得越远罚得越多
+        # 出界反弹扣分
+        if (self.pos[0] > self.map_size[0] and self.vel[0] > 0 and self.current_action[0] > 0) or (
+                self.pos[0] < 0 and self.vel[0] < 0 and self.current_action[0] < 0):
+            r1 -= 20
+        if (self.pos[1] > self.map_size[1] and self.vel[1] > 0 and self.current_action[1] > 0) or (
+                self.pos[1] < 0 and self.vel[1] < 0 and self.current_action[1] < 0):
+            r1 -= 20
 
         '''4. 其他'''
         if self.terminal_flag == 3:  # 成功
@@ -343,6 +350,14 @@ class SecondOrderIntegration_Discrete(rl_base):
         '''rk44'''
         self.rk44(action=action)  # 在微分方程里的，不在里面的，都更新了，角度也有判断
         '''rk44'''
+
+        ''' 触界且动作仍然外界外推时使其反弹，法向速度为原来的80%防止出界 '''
+        if (self.pos[0] > self.map_size[0] and self.vel[0] > 0 and action[0] > 0) or (
+                self.pos[0] < 0 and self.vel[0] < 0 and action[0] < 0):
+            self.vel[0] *= -0.8
+        if (self.pos[1] > self.map_size[1] and self.vel[1] > 0 and action[1] > 0) or (
+                self.pos[1] < 0 and self.vel[1] < 0 and action[1] < 0):
+            self.vel[1] *= -0.8
 
         self.is_terminal = self.is_Terminal()
         if self.use_normalization:

@@ -195,7 +195,7 @@ if __name__ == '__main__':
         agent.episode = 0  # 设置起始回合
         if RETRAIN:
             print('Retraining')
-            fullFillReplayMemory_with_Optimal_Exploration(torch_pkl_file='eval_parameters.pkl',
+            fullFillReplayMemory_with_Optimal_Exploration(torch_pkl_file='dqn-4-second-order-integration_discrete.pkl',
                                                           randomEnv=True,
                                                           fullFillRatio=0.5,
                                                           epsilon=0.5,
@@ -229,7 +229,6 @@ if __name__ == '__main__':
                 # agent.epsilon = 0.
                 action_from_actor = agent.get_action_with_fixed_epsilon(env.current_state, agent.epsilon)
                 action = agent.actionNUm2PhysicalAction(action_from_actor)
-                print(action)
                 env.step_update(action)  # 环境更新的action需要是物理的action
                 if agent.episode % show_per == 0:
                     env.show_dynamic_image(isWait=False)
@@ -268,7 +267,7 @@ if __name__ == '__main__':
 
     else:
         print('TESTing...')
-        agent.get_optimalfrompkl(optPath + 'dqn-4-second-order-integration.pkl')
+        agent.get_optimalfrompkl(optPath + 'dqn-4-second-order-integration_discrete.pkl')
         # cap = cv.VideoWriter(simulationPath + '/' + 'Optimal.mp4',
         #                      cv.VideoWriter_fourcc('X', 'V', 'I', 'D'),
         #                      120.0,
