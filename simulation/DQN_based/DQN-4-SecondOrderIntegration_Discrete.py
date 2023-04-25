@@ -31,7 +31,10 @@ class DQNNet(nn.Module):
 
         self.fc1 = nn.Linear(state_dim, 64)
         self.fc2 = nn.Linear(64, 64)
-        self.out = nn.Linear(64, sum(env.action_num))
+        # 多维动作映射到一维，如果维度过大抛出异常，建议改用其他RL算法
+        outDim = int(np.prod(env.action_num))
+        assert outDim <= 100, '动作空间过大，建议采用其他RL算法'
+        self.out = nn.Linear(64, outDim)
 
         self.init()
 
@@ -191,7 +194,7 @@ if __name__ == '__main__':
         agent.save_episode.append(agent.episode)
         agent.save_reward.append(0.0)
         agent.save_epsilon.append(agent.epsilon)
-        MAX_EPISODE = 600
+        MAX_EPISODE = 1500
         agent.episode = 0  # 设置起始回合
         if RETRAIN:
             print('Retraining')

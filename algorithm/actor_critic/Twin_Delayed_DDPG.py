@@ -241,18 +241,26 @@ class Twin_Delayed_DDPG:
 
         self.update_network_parameters()
 
-    def update_network_parameters(self):
+    def update_network_parameters(self, is_target_critics_delay: bool = False):
         """
         :return:        None
         """
-        for target_param, param in zip(self.target_critic1.parameters(), self.critic1.parameters()):
-            target_param.data.copy_(target_param.data * (1.0 - self.critic1_tau) + param.data * self.critic1_tau)  # soft update
-        for target_param, param in zip(self.target_critic2.parameters(), self.critic2.parameters()):
-            target_param.data.copy_(target_param.data * (1.0 - self.critic2_tau) + param.data * self.critic2_tau)  # soft update
+        if not is_target_critics_delay:
+            for target_param, param in zip(self.target_critic1.parameters(), self.critic1.parameters()):
+                target_param.data.copy_(target_param.data * (1.0 - self.critic1_tau) + param.data * self.critic1_tau)  # soft update
+            for target_param, param in zip(self.target_critic2.parameters(), self.critic2.parameters()):
+                target_param.data.copy_(target_param.data * (1.0 - self.critic2_tau) + param.data * self.critic2_tau)  # soft update
 
         if self.policy_delay_iter % self.policy_delay == 0:
             for target_param, param in zip(self.target_actor.parameters(), self.actor.parameters()):
                 target_param.data.copy_(target_param.data * (1.0 - self.actor_tau) + param.data * self.actor_tau)  # soft update
+            if is_target_critics_delay:
+                for target_param, param in zip(self.target_critic1.parameters(), self.critic1.parameters()):
+                    target_param.data.copy_(
+                        target_param.data * (1.0 - self.critic1_tau) + param.data * self.critic1_tau)  # soft update
+                for target_param, param in zip(self.target_critic2.parameters(), self.critic2.parameters()):
+                    target_param.data.copy_(
+                        target_param.data * (1.0 - self.critic2_tau) + param.data * self.critic2_tau)
 
     def save_models(self):
         self.actor.save_checkpoint()

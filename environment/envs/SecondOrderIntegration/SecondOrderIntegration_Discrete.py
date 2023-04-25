@@ -57,7 +57,7 @@ class SecondOrderIntegration_Discrete(rl_base):
         self.next_state = self.initial_state.copy()
 
         self.action_dim = 2
-        self.action_step = [0.5, 0.5]
+        self.action_step = [1, 1]
         self.action_range = [[self.fMin, self.fMax], [self.fMin, self.fMax]]
         self.action_num = [int((self.action_range[i][1] - self.action_range[i][0]) / self.action_step[i] + 1) for i in range(self.action_dim)]
         self.action_space = [[self.action_range[i][0] + j * self.action_step[i] for j in range(self.action_num[i])] for i in range(self.action_dim)]
@@ -352,12 +352,12 @@ class SecondOrderIntegration_Discrete(rl_base):
         '''rk44'''
 
         ''' 触界且动作仍然外界外推时使其反弹，法向速度为原来的80%防止出界 '''
-        if (self.pos[0] > self.map_size[0] and self.vel[0] > 0 and action[0] > 0) or (
-                self.pos[0] < 0 and self.vel[0] < 0 and action[0] < 0):
-            self.vel[0] *= -0.8
-        if (self.pos[1] > self.map_size[1] and self.vel[1] > 0 and action[1] > 0) or (
-                self.pos[1] < 0 and self.vel[1] < 0 and action[1] < 0):
-            self.vel[1] *= -0.8
+        # if (self.pos[0] > self.map_size[0] and self.vel[0] > 0 and action[0] > 0) or (
+        #         self.pos[0] < 0 and self.vel[0] < 0 and action[0] < 0):
+        #     self.vel[0] *= -0.8
+        # if (self.pos[1] > self.map_size[1] and self.vel[1] > 0 and action[1] > 0) or (
+        #         self.pos[1] < 0 and self.vel[1] < 0 and action[1] < 0):
+        #     self.vel[1] *= -0.8
 
         self.is_terminal = self.is_Terminal()
         if self.use_normalization:

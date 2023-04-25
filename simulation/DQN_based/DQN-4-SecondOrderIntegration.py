@@ -166,7 +166,7 @@ if __name__ == '__main__':
                                                           '%Y-%m-%d-%H-%M-%S') + '-' + ALGORITHM + '-' + ENV + '/'
     os.mkdir(simulationPath)
 
-    TRAIN = True  # 直接训练
+    TRAIN = False  # 直接训练
     RETRAIN = False  # 基于之前的训练结果重新训练
     TEST = not TRAIN
 
@@ -198,7 +198,7 @@ if __name__ == '__main__':
         agent.save_episode.append(agent.episode)
         agent.save_reward.append(0.0)
         agent.save_epsilon.append(agent.epsilon)
-        MAX_EPISODE = 600
+        MAX_EPISODE = 1500
         agent.episode = 0  # 设置起始回合
         if RETRAIN:
             print('Retraining')
@@ -233,7 +233,7 @@ if __name__ == '__main__':
                 c = cv.waitKey(1)
                 env.current_state = env.next_state.copy()
                 agent.epsilon = agent.get_epsilon()
-                # agent.epsilon = 0.3
+                # agent.epsilon = 0.5
                 action_from_actor = agent.get_action_with_fixed_epsilon(env.current_state, agent.epsilon)
                 action = agent.actionNUm2PhysicalAction(action_from_actor)
                 env.step_update(action)  # 环境更新的action需要是物理的action
@@ -275,10 +275,10 @@ if __name__ == '__main__':
     else:
         print('TESTing...')
         agent.get_optimalfrompkl(optPath + 'dqn-4-second-order-integration.pkl')
-        # cap = cv.VideoWriter(simulationPath + '/' + 'Optimal.mp4',
-        #                      cv.VideoWriter_fourcc('X', 'V', 'I', 'D'),
-        #                      120.0,
-        #                      (env.width, env.height))
+        cap = cv.VideoWriter(simulationPath + '/' + 'Optimal.mp4',
+                             cv.VideoWriter_fourcc('X', 'V', 'I', 'D'),
+                             120.0,
+                             (env.x_offset, env.y_offset)).release()
         simulation_num = 10
         error = []
         terminal_list = []
