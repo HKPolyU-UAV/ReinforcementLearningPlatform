@@ -166,8 +166,8 @@ if __name__ == '__main__':
                                                           '%Y-%m-%d-%H-%M-%S') + '-' + ALGORITHM + '-' + ENV + '/'
     os.mkdir(simulationPath)
 
-    TRAIN = False  # 直接训练
-    RETRAIN = True  # 基于之前的训练结果重新训练
+    TRAIN = True  # 直接训练
+    RETRAIN = False  # 基于之前的训练结果重新训练
     TEST = not TRAIN
 
     c = cv.waitKey(1)
@@ -198,7 +198,7 @@ if __name__ == '__main__':
         agent.save_episode.append(agent.episode)
         agent.save_reward.append(0.0)
         agent.save_epsilon.append(agent.epsilon)
-        MAX_EPISODE = 1200
+        MAX_EPISODE = 600
         agent.episode = 0  # 设置起始回合
         if RETRAIN:
             print('Retraining')
@@ -209,8 +209,8 @@ if __name__ == '__main__':
                                                           is_only_success=False)
             # 如果注释掉，就是在上次的基础之上继续学习，如果不是就是重新学习，但是如果两次的奖励函数有变化，那么就必须执行这两句话
             '''生成初始数据之后要再次初始化网络'''
-            agent.eval_net.init()
-            agent.target_net.init()
+            # agent.eval_net.init()
+            # agent.target_net.init()
             '''生成初始数据之后要再次初始化网络'''
         else:
             fullFillReplayMemory_Random(randomEnv=True, fullFillRatio=0.5)
