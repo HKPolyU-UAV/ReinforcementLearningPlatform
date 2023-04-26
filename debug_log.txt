@@ -281,19 +281,19 @@ Log_num: 15
 Date: 2023.04.26
 Time: 12.20
 Contents:
-    1). Add a discrete second order integration environment and two demos: a DQN for SecondOrderIntegration
-    with a not-so-good controller (stored in ./datasave/network/DQN-SecondOrderIntegration) and a untrained
-    DQN for SecondOrderIntegration_Discrete.
+    1). Add a discrete SecondOrderIntegration environment
+    2). Add DQN for SecondOrderIntegration_Discrete (untrained)
+    3). Add an acceptable-only controller (in ./datasave/network/DQN-SecondOrderIntegration) for SecondOrderIntegration (BangBang)
     2). Fixed some bugs for multi-dimensional-supported DQN, DoubleDQN and DuelingDQN.
-    3). Add an option in order to support delay-updating critics for function update_network_parameters() in
+    3). Add an option for supporting delay-updating critics for function update_network_parameters() in
     TD3 (Twin-Delayed-DDPG)
 
 Tips:
-    The controller DQN for SecondOrderIntegration is not so good because I set the boundaries of the environment
-    to have rebound characteristics during training, so the controller had learnt that it could use the boundaries
-    rebounding to reach the target, and when the rebounding disappears, it wont be useful any more when it reaches
-    the boundaries. It may be the reason that it once success by using the rebounding characteristics, so RL controller
-    thought it was right and learnt from that many times. It taught me a lesson that we had better not change the
-    environment while training. I put the controller test gif in ./datasave/video/gif and named it "bound-bound
-    control" for fun~ .
+    The performance of the SecondOrderIntegration controller trained by DQN is acceptable at most.
+    I guess this is because I set the boundaries of the environment to prevent the mass point from
+    going too far away during the training process. However, DQN had learnt that the boundaries could be used
+    to reach the target. Once it reaches the target successfully by using the rebound mechanism, DQN would take that as
+    a positive feedback and reinforce such policy. I learnt from this training process that we'd better not change the
+    environment while training. I put the corresponding gif in ./datasave/video/gif and named it "bound-bound
+    control" for fun~.
 =================奥利给兄弟们干他就完了=================
