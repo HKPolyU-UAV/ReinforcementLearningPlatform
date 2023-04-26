@@ -59,8 +59,10 @@ class SecondOrderIntegration_Discrete(rl_base):
         self.action_dim = 2
         self.action_step = [1, 1]
         self.action_range = [[self.fMin, self.fMax], [self.fMin, self.fMax]]
-        self.action_num = [int((self.action_range[i][1] - self.action_range[i][0]) / self.action_step[i] + 1) for i in range(self.action_dim)]
-        self.action_space = [[self.action_range[i][0] + j * self.action_step[i] for j in range(self.action_num[i])] for i in range(self.action_dim)]
+        self.action_num = [int((self.action_range[i][1] - self.action_range[i][0]) / self.action_step[i] + 1) for i in
+                           range(self.action_dim)]
+        self.action_space = [[self.action_range[i][0] + j * self.action_step[i] for j in range(self.action_num[i])] for
+                             i in range(self.action_dim)]
         self.isActionContinuous = [False, False]
         self.initial_action = self.force.copy()
         self.current_action = self.initial_action.copy()
@@ -217,10 +219,7 @@ class SecondOrderIntegration_Discrete(rl_base):
                         Color().Black, 1)
 
     def is_out(self):
-        """
-		:return:
-		"""
-        '''简化处理，只判断中心的大圆有没有出界就好'''
+        """简化处理，只判断中心的大圆有没有出界就好"""
         right_out = self.pos[0] > self.map_size[0]
         left_out = self.pos[0] < 0
         up_out = self.pos[1] > self.map_size[1]
@@ -272,12 +271,12 @@ class SecondOrderIntegration_Discrete(rl_base):
             r1 = 0
         # r1 = -nex_error ** 2 * R_e  # 位置二次型惩罚，走得越远罚得越多
         # 出界反弹扣分
-        if (self.pos[0] > self.map_size[0] and self.vel[0] > 0 and self.current_action[0] > 0) or (
-                self.pos[0] < 0 and self.vel[0] < 0 and self.current_action[0] < 0):
-            r1 -= 20
-        if (self.pos[1] > self.map_size[1] and self.vel[1] > 0 and self.current_action[1] > 0) or (
-                self.pos[1] < 0 and self.vel[1] < 0 and self.current_action[1] < 0):
-            r1 -= 20
+        # if (self.pos[0] > self.map_size[0] and self.vel[0] > 0 and self.current_action[0] > 0) or (
+        #         self.pos[0] < 0 and self.vel[0] < 0 and self.current_action[0] < 0):
+        #     r1 -= 20
+        # if (self.pos[1] > self.map_size[1] and self.vel[1] > 0 and self.current_action[1] > 0) or (
+        #         self.pos[1] < 0 and self.vel[1] < 0 and self.current_action[1] < 0):
+        #     r1 -= 20
 
         '''4. 其他'''
         if self.terminal_flag == 3:  # 成功

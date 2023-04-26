@@ -4,15 +4,11 @@ import os
 import cv2 as cv
 import matplotlib.pyplot as plt
 import torch.nn.init
-import numpy as np
-
-sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../")
 from environment.envs.SecondOrderIntegration.SecondOrderIntegration import SecondOrderIntegration as env
 from algorithm.value_base.DQN import DQN
-
-from common.common_func import *
 from common.common_cls import *
 
+sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../")
 optPath = '../../datasave/network/DQN-SecondOrderIntegration/'
 show_per = 50  # 每十个回合显示一次
 is_storage_only_success = False
@@ -129,12 +125,6 @@ def fullFillReplayMemory_Random(randomEnv: bool, fullFillRatio: float):
     # state_episode, action_episode, reward_episode, next_state_episode, dones_episode = [], [], [], [], []
     while agent.memory.mem_counter < fullFillCount:
         env.reset_random() if randomEnv else env.reset()
-        # state_episode.clear()
-        # action_episode.clear()
-        # reward_episode.clear()
-        # next_state_episode.clear()
-        # dones_episode.clear()
-        # isOut = False
         while not env.is_terminal:
             # if agent.memory.mem_counter % 100 == 0:
             #     print('replay_count = ', agent.memory.mem_counter)
@@ -145,17 +135,6 @@ def fullFillReplayMemory_Random(randomEnv: bool, fullFillRatio: float):
             # env.show_dynamic_image(isWait=False)
             if not env.is_out():
                 agent.memory.store_transition(env.current_state, env.current_action, env.reward, env.next_state, 1 if env.is_terminal else 0)
-            # state_episode.append(env.current_state)
-            # action_episode.append(env.current_action)
-            # reward_episode.append(env.reward)
-            # next_state_episode.append(env.next_state)
-            # dones_episode.append(1 if env.is_terminal else 0)
-            # isOut = isOut or env.is_out()
-        # 只存储没有出界的episode
-        # if not isOut:
-        #     agent.memory.store_transition_per_episode(state_episode, action_episode, reward_episode, next_state_episode,
-        #                                               dones_episode)
-        #     print('replay_count = ', agent.memory.mem_counter)
 
 
 if __name__ == '__main__':
@@ -274,11 +253,11 @@ if __name__ == '__main__':
 
     else:
         print('TESTing...')
-        agent.get_optimalfrompkl(optPath + 'dqn-4-second-order-integration.pkl')
-        cap = cv.VideoWriter(simulationPath + '/' + 'Optimal.mp4',
-                             cv.VideoWriter_fourcc('X', 'V', 'I', 'D'),
-                             120.0,
-                             (env.image_size[0], env.image_size[1]))
+        # agent.get_optimalfrompkl(optPath + 'dqn-4-second-order-integration.pkl')
+        # cap = cv.VideoWriter(simulationPath + '/' + 'Optimal.mp4',
+        #                      cv.VideoWriter_fourcc('X', 'V', 'I', 'D'),
+        #                      120.0,
+        #                      (env.image_size[0], env.image_size[1]))
         simulation_num = 10
         error = []
         terminal_list = []
@@ -293,11 +272,11 @@ if __name__ == '__main__':
                 env.step_update(
                     agent.actionNUm2PhysicalAction(agent.get_action_with_fixed_epsilon(env.current_state, 0.0)))
                 env.show_dynamic_image(isWait=False)
-                cap.write(env.image)
+                # cap.write(env.image)
             error.append(np.linalg.norm(env.error))
             terminal_list.append(env.init_target)
             print('===========END===========')
-        cap.release()
+        # cap.release()
         '''统计一下，没有什么特殊的'''
         error = np.array(error)
         terminal_list = np.array(terminal_list)

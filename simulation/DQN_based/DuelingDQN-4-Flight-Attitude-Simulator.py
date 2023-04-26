@@ -39,7 +39,10 @@ class DuelingNeuralNetwork(nn.Module):
         self.fc2 = nn.Linear(64, 64)  # hidden1 -> hidden2
         # self.out = nn.Linear(64, _output)  # hidden2 -> output
         self.value = nn.Linear(64, 1)
-        self.advantage = nn.Linear(64, sum(env.action_num))
+        # 多维动作映射到一维，如果维度过大抛出异常，建议改用其他RL算法
+        outDim = int(np.prod(env.action_num))
+        assert outDim <= 100, '动作空间过大，建议采用其他RL算法'
+        self.advantage = nn.Linear(64, outDim)
         # self.init()
         self.init_default()
 

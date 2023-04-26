@@ -229,10 +229,7 @@ class SecondOrderIntegration(rl_base):
                         Color().Black, 1)
 
     def is_out(self):
-        """
-		:return:
-		"""
-        '''简化处理，只判断中心的大圆有没有出界就好'''
+        """简化处理，只判断中心的大圆有没有出界就好"""
         right_out = self.pos[0] > self.map_size[0]
         left_out = self.pos[0] < 0
         up_out = self.pos[1] > self.map_size[1]
@@ -286,15 +283,15 @@ class SecondOrderIntegration(rl_base):
             # 	r1 = 2
             # else:
             # 	r1 = -2
-            r1 = - nex_e + 2  # for DQN demos
+            # r1 = - nex_e + 2  # for DQN demos
             # 出界反弹扣分
-            if (self.pos[0] > self.map_size[0] and self.vel[0] > 0 and self.current_action[0] > 0) or (
-                    self.pos[0] < 0 and self.vel[0] < 0 and self.current_action[0] < 0):
-                r1 -= 20
-            if (self.pos[1] > self.map_size[1] and self.vel[1] > 0 and self.current_action[1] > 0) or (
-                    self.pos[1] < 0 and self.vel[1] < 0 and self.current_action[1] < 0):
-                r1 -= 20
-            # r1 = -nex_norm_e - np.tanh(2.5 * nex_norm_e) + 1
+            # if (self.pos[0] > self.map_size[0] and self.vel[0] > 0 and self.current_action[0] > 0) or (
+            #         self.pos[0] < 0 and self.vel[0] < 0 and self.current_action[0] < 0):
+            #     r1 -= 20
+            # if (self.pos[1] > self.map_size[1] and self.vel[1] > 0 and self.current_action[1] > 0) or (
+            #         self.pos[1] < 0 and self.vel[1] < 0 and self.current_action[1] < 0):
+            #     r1 -= 20
+            r1 = -nex_norm_e - np.tanh(2.5 * nex_norm_e) + 1
             if self.terminal_flag == 3:  # 成功
                 r4 = 1000
             elif self.terminal_flag == 2:  # 超时
@@ -400,12 +397,12 @@ class SecondOrderIntegration(rl_base):
         '''rk44'''
 
         ''' 触界且动作仍然外界外推时使其反弹，法向速度为原来的80%防止出界 '''
-        if (self.pos[0] > self.map_size[0] and self.vel[0] > 0 and action[0] > 0) or (
-                self.pos[0] < 0 and self.vel[0] < 0 and action[0] < 0):
-            self.vel[0] *= -0.8
-        if (self.pos[1] > self.map_size[1] and self.vel[1] > 0 and action[1] > 0) or (
-                self.pos[1] < 0 and self.vel[1] < 0 and action[1] < 0):
-            self.vel[1] *= -0.8
+        # if (self.pos[0] > self.map_size[0] and self.vel[0] > 0 and action[0] > 0) or (
+        #         self.pos[0] < 0 and self.vel[0] < 0 and action[0] < 0):
+        #     self.vel[0] *= -0.8
+        # if (self.pos[1] > self.map_size[1] and self.vel[1] > 0 and action[1] > 0) or (
+        #         self.pos[1] < 0 and self.vel[1] < 0 and action[1] < 0):
+        #     self.vel[1] *= -0.8
 
         self.is_terminal = self.is_Terminal()
         if self.use_normalization:
