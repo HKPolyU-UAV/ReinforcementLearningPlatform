@@ -1,22 +1,19 @@
 import os
 import sys
 import datetime
-import copy
+import matplotlib.pyplot as plt
 import cv2 as cv
-
-sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../../")
-
-from environment.envs.FlightAttitudeSimulator.flight_attitude_simulator_continuous import Flight_Attitude_Simulator_Continuous as flight_sim_con
+from environment.envs.SecondOrderIntegration.SecondOrderIntegration import SecondOrderIntegration as env
 from algorithm.actor_critic.Twin_Delayed_DDPG import Twin_Delayed_DDPG as TD3
-from common.common_func import *
 from common.common_cls import *
 
-
-optPath = '../../../datasave/network/'
-show_per = 1
-timestep = 0
+sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../../")
+optPath = '../../datasave/network/'
+optPath = 'temp/'
 ALGORITHM = 'TD3'
-ENV = 'FlightAttitudeSimulator2'
+ENV = 'SecondOrderIntegration'
+show_per = 50
+timestep = 0
 
 
 class Critic(nn.Module):
@@ -177,7 +174,7 @@ def fullFillReplayMemory_with_Optimal(randomEnv: bool,
             env.current_state = env.next_state.copy()  # 状态更新
             _action_from_actor = agent.choose_action(env.current_state, is_optimal=False)
             _action = agent.action_linear_trans(_action_from_actor)
-            env.step_update(_action)
+            env.step_update(np.array(_action))
             # env.show_dynamic_image(isWait=False)
             if is_only_success:
                 _new_state.append(env.current_state)
@@ -214,7 +211,7 @@ def fullFillReplayMemory_Random(randomEnv: bool, fullFillRatio: float):
             env.current_state = env.next_state.copy()  # 状态更新
             _action_from_actor = agent.choose_action(env.current_state, False)
             _action = agent.action_linear_trans(_action_from_actor)
-            env.step_update(_action)
+            env.step_update(np.array(_action))
             # env.show_dynamic_image(isWait=False)
             # if env.reward > 0:
             agent.memory.store_transition(np.array(env.current_state),
@@ -231,12 +228,16 @@ if __name__ == '__main__':
     simulationPath = log_dir + datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d-%H-%M-%S') + '-' + ALGORITHM + '-' + ENV + '/'
     os.mkdir(simulationPath)
     c = cv.waitKey(1)
-    TRAIN = True  # 直接训练
+    TRAIN = False  # 直接训练
     RETRAIN = False  # 基于之前的训练结果重新训练
     TEST = not TRAIN
     is_storage_only_success = False
 
-    env = flight_sim_con(initTheta=-60.0, setTheta=0.0, save_cfg=False)
+    env = env(pos0=np.array([1.0, 1.0]),
+              vel0=np.array([0.0, 0.0]),
+              map_size=np.array([5.0, 5.0]),
+              target=np.array([4.0, 4.0]),
+              is_controller_BangBang=False)
 
     if TRAIN:
         actor = Actor(1e-4, env.state_dim, env.action_dim, 'Actor', simulationPath)
@@ -262,7 +263,7 @@ if __name__ == '__main__':
                     path=simulationPath)
         agent.TD3_info()
         # cv.waitKey(0)
-        MAX_EPISODE = 1500
+        MAX_EPISODE = 600
         if RETRAIN:
             print('Retraining')
             fullFillReplayMemory_with_Optimal(randomEnv=True,
@@ -270,12 +271,12 @@ if __name__ == '__main__':
                                               is_only_success=False)
             # 如果注释掉，就是在上次的基础之上继续学习，如果不是就是重新学习，但是如果两次的奖励函数有变化，那么就必须执行这两句话
             '''生成初始数据之后要再次初始化网络'''
-            agent.actor.initialization()
-            agent.target_actor.initialization()
-            agent.critic1.initialization()
-            agent.target_critic1.initialization()
-            agent.critic2.initialization()
-            agent.target_critic2.initialization()
+            # agent.actor.initialization()
+            # agent.target_actor.initialization()
+            # agent.critic1.initialization()
+            # agent.target_critic1.initialization()
+            # agent.critic2.initialization()
+            # agent.target_critic2.initialization()
             '''生成初始数据之后要再次初始化网络'''
         else:
             '''fullFillReplayMemory_Random'''
@@ -302,7 +303,7 @@ if __name__ == '__main__':
                 else:
                     action_from_actor = agent.choose_action(env.current_state, False, sigma=1 / 3)  # 剩下的是神经网络加噪声
                 action = agent.action_linear_trans(action_from_actor)  # 将动作转换到实际范围上
-                env.step_update(action)  # 环境更新的action需要是物理的action
+                env.step_update(np.array(action))  # 环境更新的action需要是物理的action
                 agent.saveData_Step_Reward(step=step, reward=env.reward, is2file=False, filename='StepReward.csv')
                 step += 1
                 if agent.episode % show_per == 0:
@@ -345,14 +346,16 @@ if __name__ == '__main__':
 
     if TEST:
         print('TESTing...')
-        optPath = '../../../datasave/network/TD3-Flight-Attitude-Simulator/parameters/'
+        optPath = '../../../datasave/network/TD3-SecondOrderIntegration/parameters/'
         agent = TD3(env=env, target_actor=Actor(1e-4, env.state_dim, env.action_dim, 'TargetActor', simulationPath))
-        agent.load_target_actor_optimal(path=optPath, file='TargetActor_td3')
-        cap = cv.VideoWriter(simulationPath + '/' + 'Optimal.mp4',
-                             cv.VideoWriter_fourcc('X', 'V', 'I', 'D'),
-                             120.0,
-                             (env.width, env.height))
-        simulation_num = 5
+        agent.load_target_actor_optimal(path=optPath, file='TargetActor_ddpg')
+        # cap = cv.VideoWriter(simulationPath + '/' + 'Optimal.mp4',
+        #                      cv.VideoWriter_fourcc('X', 'V', 'I', 'D'),
+        #                      120.0,
+        #                      (env.image_size[0], env.image_size[1]))
+        simulation_num = 10
+        error = []
+        terminal_list = []
         for i in range(simulation_num):
             print('==========START==========')
             print('episode = ', i)
@@ -363,12 +366,42 @@ if __name__ == '__main__':
                 env.current_state = env.next_state.copy()
                 action_from_actor = agent.evaluate(env.current_state)
                 action = agent.action_linear_trans(action_from_actor)  # 将动作转换到实际范围上
-                env.step_update(action)
+                env.step_update(np.array(action))
                 env.show_dynamic_image(isWait=False)
-                cap.write(env.save)
-                env.saveData(is2file=False)
-            print('Stable Theta:', rad2deg(env.theta), '\t', 'Stable error:', rad2deg(env.setTheta - env.theta))
+                # cap.write(env.image)
+            error.append(np.linalg.norm(env.error))
+            terminal_list.append(env.init_target)
             print('===========END===========')
-        cv.waitKey(0)
-        env.saveData(is2file=True, filepath=simulationPath)
+        # cap.release()
+        '''统计一下，没有什么特殊的'''
+        error = np.array(error)
+        terminal_list = np.array(terminal_list)
+        norm_error = (error - np.min(error)) / (np.max(error) - np.min(error))
+        color = []
+        for _e in norm_error:
+            color.append((_e, 0., 0.))
+        print('Mean error  ', error.mean())
+        print('Std error   ', error.std())
+        print('Max error   ', np.max(error))
+        print('Min error   ', np.min(error))
+        plt.figure(0)
+        plt.plot(range(simulation_num), error)
+        plt.ylim(0, 0.35)
+        plt.yticks(np.arange(0, 0.35, 0.05))
+
+        plt.figure(1)
+        plt.hist(error, rwidth=0.05)
+
+        print('分布图')
+        plt.figure(2)
+        plt.scatter(x=terminal_list[:, 0], y=terminal_list[:, 1], marker='o', c=color,
+                    s=[25 for _ in range(simulation_num)])  #
+        plt.axis('equal')
+        plt.xlim(0, env.map_size[0])
+        plt.ylim(0, env.map_size[1])
+        plt.xticks(np.arange(0, 1, env.map_size[0]))
+        plt.yticks(np.arange(0, 1, env.map_size[1]))
+        plt.show()
+
+        cv.destroyAllWindows()
         agent.save_models_all()

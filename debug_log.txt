@@ -284,8 +284,8 @@ Contents:
     1). Add a discrete SecondOrderIntegration environment
     2). Add DQN for SecondOrderIntegration_Discrete (untrained)
     3). Add an acceptable-only controller (in ./datasave/network/DQN-SecondOrderIntegration) for SecondOrderIntegration (BangBang)
-    2). Fixed some bugs for multi-dimensional-supported DQN, DoubleDQN and DuelingDQN.
-    3). Add an option for supporting delay-updating critics for function update_network_parameters() in
+    4). Fixed some bugs for multi-dimensional-supported DQN, DoubleDQN and DuelingDQN.
+    5). Add an option for supporting delay-updating critics for function update_network_parameters() in
     TD3 (Twin-Delayed-DDPG)
 
 Tips:
@@ -296,4 +296,23 @@ Tips:
     a positive feedback and reinforce such policy. I learnt from this training process that we'd better not change the
     environment while training. I put the corresponding gif in ./datasave/video/gif and named it "bound-bound
     control" for fun~.
+=================奥利给兄弟们干他就完了=================
+
+
+====================嗨嗨嗨我又来了啊====================
+Log_num: 16
+Date: 2023.05.08
+Time: 20.24
+Contents:
+    1). Add a UGVBidirectional_pid environment using PD controller with parameters tuned by RL (in ./environment/env/UGV_PID)
+    2). Add a TD3 controller (in ./datasave/network/TD3-SecondOrderIntegration) for SecondOrderIntegration
+    3). Add a TD3 controller (in ./datasave/network/TD3-UGV-Bidirectional_pid) for UGVBidirectional_pid
+
+Tips:
+    We have tried to train a TD3 controller for UGVBidirectional in UGV2 using the angular acceleration of the wheels as
+    actions in RL because the velocity of the wheels should be continuous. It is not reasonable to use the velocity as
+    the actions learning by RL. But we failed to use RL to learn the acceleration directly, so we decided to use two PD
+    controllers for both the position and angle and then train a RL network to fine tune the PD parameters. When the
+    PD controllers output a velocity command, a simple difference is used to obtain acceleration command. After several
+    attempts we finally did it. The same ideas could be used in other demos in the future.
 =================奥利给兄弟们干他就完了=================

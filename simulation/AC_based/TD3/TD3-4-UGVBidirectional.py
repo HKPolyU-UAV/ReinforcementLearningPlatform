@@ -1,22 +1,19 @@
 import os
 import sys
 import datetime
-import copy
 import cv2 as cv
 
-sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../../")
-
-from environment.envs.FlightAttitudeSimulator.flight_attitude_simulator_continuous import Flight_Attitude_Simulator_Continuous as flight_sim_con
+from environment.envs.UGV_PID.UGVBidirectional_pid import UGV_Bidirectional as env
 from algorithm.actor_critic.Twin_Delayed_DDPG import Twin_Delayed_DDPG as TD3
-from common.common_func import *
 from common.common_cls import *
 
-
-optPath = '../../../datasave/network/'
-show_per = 1
-timestep = 0
+sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../../")
+optPath = '../../datasave/network/'
+optPath = 'temp/'
 ALGORITHM = 'TD3'
-ENV = 'FlightAttitudeSimulator2'
+ENV = 'UGVBidirectional_pid'
+show_per = 50
+timestep = 0
 
 
 class Critic(nn.Module):
@@ -216,7 +213,6 @@ def fullFillReplayMemory_Random(randomEnv: bool, fullFillRatio: float):
             _action = agent.action_linear_trans(_action_from_actor)
             env.step_update(_action)
             # env.show_dynamic_image(isWait=False)
-            # if env.reward > 0:
             agent.memory.store_transition(np.array(env.current_state),
                                           np.array(env.current_action),
                                           np.array(env.reward),
@@ -231,12 +227,17 @@ if __name__ == '__main__':
     simulationPath = log_dir + datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d-%H-%M-%S') + '-' + ALGORITHM + '-' + ENV + '/'
     os.mkdir(simulationPath)
     c = cv.waitKey(1)
-    TRAIN = True  # 直接训练
+    TRAIN = False    # 直接训练
     RETRAIN = False  # 基于之前的训练结果重新训练
     TEST = not TRAIN
     is_storage_only_success = False
 
-    env = flight_sim_con(initTheta=-60.0, setTheta=0.0, save_cfg=False)
+    env = env(pos0=np.array([5.0, 5.0]),
+              vel0=np.array([0., 0.]),
+              phi0=0.,
+              omega0=0.,
+              map_size=np.array([10.0, 10.0]),
+              target=np.array([5.0, 5.0]))
 
     if TRAIN:
         actor = Actor(1e-4, env.state_dim, env.action_dim, 'Actor', simulationPath)
@@ -262,7 +263,7 @@ if __name__ == '__main__':
                     path=simulationPath)
         agent.TD3_info()
         # cv.waitKey(0)
-        MAX_EPISODE = 1500
+        MAX_EPISODE = 1200
         if RETRAIN:
             print('Retraining')
             fullFillReplayMemory_with_Optimal(randomEnv=True,
@@ -270,12 +271,12 @@ if __name__ == '__main__':
                                               is_only_success=False)
             # 如果注释掉，就是在上次的基础之上继续学习，如果不是就是重新学习，但是如果两次的奖励函数有变化，那么就必须执行这两句话
             '''生成初始数据之后要再次初始化网络'''
-            agent.actor.initialization()
-            agent.target_actor.initialization()
-            agent.critic1.initialization()
-            agent.target_critic1.initialization()
-            agent.critic2.initialization()
-            agent.target_critic2.initialization()
+            # agent.actor.initialization()
+            # agent.target_actor.initialization()
+            # agent.critic1.initialization()
+            # agent.target_critic1.initialization()
+            # agent.critic2.initialization()
+            # agent.target_critic2.initialization()
             '''生成初始数据之后要再次初始化网络'''
         else:
             '''fullFillReplayMemory_Random'''
@@ -297,7 +298,6 @@ if __name__ == '__main__':
                 c = cv.waitKey(1)
                 env.current_state = env.next_state.copy()
                 if random.uniform(0, 1) < 0.2:          # 有一定探索概率完全随机探索
-                    # print('...random...')
                     action_from_actor = agent.choose_action_random()  # 有一定探索概率完全随机探索
                 else:
                     action_from_actor = agent.choose_action(env.current_state, False, sigma=1 / 3)  # 剩下的是神经网络加噪声
@@ -315,7 +315,6 @@ if __name__ == '__main__':
                     new_state_.append(env.next_state)
                     new_done.append(1.0 if env.is_terminal else 0.0)
                 else:
-                    # if env.reward > 0:
                     agent.memory.store_transition(np.array(env.current_state),
                                                   np.array(env.current_action),
                                                   np.array(env.reward),
@@ -345,14 +344,17 @@ if __name__ == '__main__':
 
     if TEST:
         print('TESTing...')
-        optPath = '../../../datasave/network/TD3-Flight-Attitude-Simulator/parameters/'
+        optPath = '../../../datasave/network/TD3-UGV-Bidirectional_pid/parameters/'
         agent = TD3(env=env, target_actor=Actor(1e-4, env.state_dim, env.action_dim, 'TargetActor', simulationPath))
-        agent.load_target_actor_optimal(path=optPath, file='TargetActor_td3')
-        cap = cv.VideoWriter(simulationPath + '/' + 'Optimal.mp4',
-                             cv.VideoWriter_fourcc('X', 'V', 'I', 'D'),
-                             120.0,
-                             (env.width, env.height))
-        simulation_num = 5
+        agent.load_target_actor_optimal(path=optPath, file='TargetActor_ddpg')
+        # cap = cv.VideoWriter(simulationPath + '/' + 'Optimal.mp4',
+        #                      cv.VideoWriter_fourcc('X', 'V', 'I', 'D'),
+        #                      120.0,
+        #                      (env.image_size[0], env.image_size[1]))
+        simulation_num = 10
+        error = []
+        successCounter = 0
+        timeOutCounter = 0
         for i in range(simulation_num):
             print('==========START==========')
             print('episode = ', i)
@@ -363,12 +365,16 @@ if __name__ == '__main__':
                 env.current_state = env.next_state.copy()
                 action_from_actor = agent.evaluate(env.current_state)
                 action = agent.action_linear_trans(action_from_actor)  # 将动作转换到实际范围上
-                env.step_update(action)
+                env.step_update(np.array(action))
                 env.show_dynamic_image(isWait=False)
-                cap.write(env.save)
-                env.saveData(is2file=False)
-            print('Stable Theta:', rad2deg(env.theta), '\t', 'Stable error:', rad2deg(env.setTheta - env.theta))
+                # cap.write(env.image)
             print('===========END===========')
-        cv.waitKey(0)
-        env.saveData(is2file=True, filepath=simulationPath)
-        agent.save_models_all()
+            error.append(np.linalg.norm(env.error))
+            if env.terminal_flag == 2:
+                timeOutCounter += 1
+            if env.terminal_flag == 3:
+                successCounter += 1
+        # cap.release()
+        # cv.waitKey(0)
+        print('max error:', max(error), ' min error:', min(error), ' mean error:', np.mean(error))
+        print('successCounter:', successCounter, ' timeOutCounter:', timeOutCounter)

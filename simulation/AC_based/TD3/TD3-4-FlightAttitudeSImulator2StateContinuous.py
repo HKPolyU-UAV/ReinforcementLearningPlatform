@@ -345,7 +345,7 @@ if __name__ == '__main__':
 
     if TEST:
         print('TESTing...')
-        optPath = '../../datasave/network/TD3-Flight-Attitude-Simulator/parameters/'
+        optPath = '../../../datasave/network/TD3-Flight-Attitude-Simulator/parameters/'
         agent = TD3(env=env, target_actor=Actor(1e-4, env.state_dim, env.action_dim, 'TargetActor', simulationPath))
         agent.load_target_actor_optimal(path=optPath, file='TargetActor_td3')
         cap = cv.VideoWriter(simulationPath + '/' + 'Optimal.mp4',

@@ -326,7 +326,7 @@ class SecondOrderIntegration(rl_base):
 
             '''4. 其他'''
             if self.terminal_flag == 3:  # 成功
-                r4 = 100
+                r4 = 1000
             elif self.terminal_flag == 2:  # 超时
                 r4 = 0
             elif self.terminal_flag == 1:  # 出界
@@ -342,12 +342,13 @@ class SecondOrderIntegration(rl_base):
             else:
                 kk = 5
             r1 = (-yyf_x0 + 0.5) * kk
-            theta = np.arccos(
-                np.dot(nex_s[4: 6], nex_s[0: 2]) / (np.linalg.norm(nex_s[0: 2]) * np.linalg.norm(nex_s[4: 6])))
-            if theta < rad2deg(45):  # 小于 45 度，不罚
-                r2 = 0
-            else:
-                r2 = -(theta - rad2deg(45)) * kk
+            # theta = np.arccos(
+            #     np.dot(nex_s[4: 6], nex_s[0: 2]) / (np.linalg.norm(nex_s[0: 2]) * np.linalg.norm(nex_s[4: 6])))
+            # if theta < rad2deg(45):  # 小于 45 度，不罚
+            #     r2 = 0
+            # else:
+            #     r2 = -(theta - rad2deg(45)) * kk
+            r2 = 0
             self.reward = r1 + r2 + r4
 
     def ode(self, xx: np.ndarray):

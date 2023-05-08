@@ -253,7 +253,7 @@ if __name__ == '__main__':
 
     else:
         print('TESTing...')
-        # agent.get_optimalfrompkl(optPath + 'dqn-4-second-order-integration.pkl')
+        agent.get_optimalfrompkl(optPath + 'dqn-4-second-order-integration-bangbang.pkl')
         # cap = cv.VideoWriter(simulationPath + '/' + 'Optimal.mp4',
         #                      cv.VideoWriter_fourcc('X', 'V', 'I', 'D'),
         #                      120.0,
