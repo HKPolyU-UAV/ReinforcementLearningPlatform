@@ -3,7 +3,7 @@ import sys
 import datetime
 import cv2 as cv
 
-from environment.envs.UGV_PID.UGVBidirectional_pid import UGV_Bidirectional as env
+from environment.envs.UGV_PID.UGVForward_pid import UGV_Forward_PID as env
 from algorithm.actor_critic.Twin_Delayed_DDPG import Twin_Delayed_DDPG as TD3
 from common.common_cls import *
 
@@ -11,7 +11,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../../")
 optPath = '../../datasave/network/'
 optPath = 'temp/'
 ALGORITHM = 'TD3'
-ENV = 'UGVBidirectional_pid'
+ENV = 'UGVForward_pid'
 show_per = 50
 timestep = 0
 
@@ -263,7 +263,7 @@ if __name__ == '__main__':
                     path=simulationPath)
         agent.TD3_info()
         # cv.waitKey(0)
-        MAX_EPISODE = 1200
+        MAX_EPISODE = 600
         if RETRAIN:
             print('Retraining')
             fullFillReplayMemory_with_Optimal(randomEnv=True,
@@ -271,12 +271,12 @@ if __name__ == '__main__':
                                               is_only_success=False)
             # 如果注释掉，就是在上次的基础之上继续学习，如果不是就是重新学习，但是如果两次的奖励函数有变化，那么就必须执行这两句话
             '''生成初始数据之后要再次初始化网络'''
-            # agent.actor.initialization()
-            # agent.target_actor.initialization()
-            # agent.critic1.initialization()
-            # agent.target_critic1.initialization()
-            # agent.critic2.initialization()
-            # agent.target_critic2.initialization()
+            agent.actor.initialization()
+            agent.target_actor.initialization()
+            agent.critic1.initialization()
+            agent.target_critic1.initialization()
+            agent.critic2.initialization()
+            agent.target_critic2.initialization()
             '''生成初始数据之后要再次初始化网络'''
         else:
             '''fullFillReplayMemory_Random'''
@@ -344,7 +344,7 @@ if __name__ == '__main__':
 
     if TEST:
         print('TESTing...')
-        optPath = '../../../datasave/network/TD3-UGV-Bidirectional_pid/parameters/'
+        optPath = '../../../datasave/network/TD3-UGV-Forward_pid/parameters/'
         agent = TD3(env=env, target_actor=Actor(1e-4, env.state_dim, env.action_dim, 'TargetActor', simulationPath))
         agent.load_target_actor_optimal(path=optPath, file='TargetActor_ddpg')
         # cap = cv.VideoWriter(simulationPath + '/' + 'Optimal.mp4',

@@ -3,7 +3,7 @@ from environment.envs import *
 from environment.envs.PIDControl.pid import PID
 
 
-class UGV_Bidirectional(rl_base):
+class UGV_Forward_PID(rl_base):
     def __init__(self,
                  pos0: np.ndarray = np.array([5.0, 5.0]),
                  vel0: np.ndarray = np.array([0., 0.]),
@@ -11,7 +11,7 @@ class UGV_Bidirectional(rl_base):
                  omega0: float = 0.,
                  map_size: np.ndarray = np.array([10.0, 10.0]),
                  target: np.ndarray = np.array([5.0, 5.0])):
-        super(UGV_Bidirectional, self).__init__()
+        super(UGV_Forward_PID, self).__init__()
 
         self.init_pos = pos0
         self.init_vel = vel0
@@ -43,7 +43,7 @@ class UGV_Bidirectional(rl_base):
         self.timeMax = 8.0
         '''hyper-parameters'''
 
-        self.posPMax = 500.0  # PD参数范围
+        self.posPMax = 300.0  # PD参数范围
         self.posPMin = 5.0
         self.posDMax = 5.0  # PD参数范围
         self.posDMin = 0.0
@@ -53,7 +53,7 @@ class UGV_Bidirectional(rl_base):
         self.thetaDMin = 0.0
 
         self.wMax = 20  # 车轮最大角速度   rad/s
-        self.wMin = -20
+        self.wMin = 0
         self.aMax = 100  # 车轮最大角加速度 rad/s^2
         self.aMin = -100
         self.phiMax = deg2rad(180)  # 车体最大角度

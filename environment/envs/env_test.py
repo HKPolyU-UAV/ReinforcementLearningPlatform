@@ -105,7 +105,7 @@ def test_UGVBidirectional2():
 
 
 def test_UGVBidirectional_pid():
-    from environment.envs.UGV_PID.UGVBidirectional_pid import UGV_Bidirectional as env
+    from environment.envs.UGV_PID.UGVForward_pid import UGV_Forward_PID as env
     env = env(pos0=np.array([1.0, 1.0]),
               phi0=deg2rad(-135),
               target=np.array([4., 3.]),
@@ -117,7 +117,7 @@ def test_UGVBidirectional_pid():
         while not env.is_terminal:
             # print(env.time)
             env.show_dynamic_image(isWait=True)
-            action = np.array([10, 1, 200, 1])  # np.pi/16
+            action = np.array([10, 1, 100, 1])  # np.pi/16
             # print('error: [%.2f, %.2f]' % (env.pos[0], env.pos[1]))
             # print('phi: %.1f' % (rad2deg(env.phi)))
             # print('         omega: %.1f' % (rad2deg(env.omega)))

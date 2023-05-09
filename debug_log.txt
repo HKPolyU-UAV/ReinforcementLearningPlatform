@@ -301,18 +301,17 @@ Tips:
 
 ====================嗨嗨嗨我又来了啊====================
 Log_num: 16
-Date: 2023.05.08
-Time: 20.24
+Date: 2023.05.09
+Time: 15.28
 Contents:
     1). Add a UGVBidirectional_pid environment using PD controller with parameters tuned by RL (in ./environment/env/UGV_PID)
     2). Add a TD3 controller (in ./datasave/network/TD3-SecondOrderIntegration) for SecondOrderIntegration
-    3). Add a TD3 controller (in ./datasave/network/TD3-UGV-Bidirectional_pid) for UGVBidirectional_pid
+    3). Add a TD3 controller (in ./datasave/network/TD3-UGV-forward_pid) for UGVForward_pid
 
 Tips:
-    We have tried to train a TD3 controller for UGVBidirectional in UGV2 using the angular acceleration of the wheels as
-    actions in RL because the velocity of the wheels should be continuous. It is not reasonable to use the velocity as
-    the actions learning by RL. But we failed to use RL to learn the acceleration directly, so we decided to use two PD
-    controllers for both the position and angle and then train a RL network to fine tune the PD parameters. When the
-    PD controllers output a velocity command, a simple difference is used to obtain acceleration command. After several
-    attempts we finally did it. The same ideas could be used in other demos in the future.
+    Considering the continuity of the wheels' velocity, we originally planned to train the acceleration of the wheels
+    directly using TD3. However, we failed to get an acceptable controller. Therefore, we decided to use two PID
+    controllers for positional and angular control and used TD3 to automatically tune the parameters of the PID
+    controllers. The bridge between velocity command and acceleration command is a simple proportional module. The
+    training result indicates the effectiveness of our second plan, which can be utilized in future demos.
 =================奥利给兄弟们干他就完了=================
