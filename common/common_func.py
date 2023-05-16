@@ -130,8 +130,12 @@ def cal_vector_rad_oriented(v1, v2):
     '''有朝向的，从v1到v2'''
     if np.linalg.norm(v2) < 1e-4 or np.linalg.norm(v1) < 1e-4:
         return 0
-    cosTheta = min(max(np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2)), -1), 1)
-    return np.sign(cross_product(v1, v2)) * math.acos(cosTheta)
+    x1, y1 = v1
+    x2, y2 = v2
+    dot = x1 * x2 + y1 * y2
+    det = x1 * y2 - y1 * x2
+    theta = np.arctan2(det, dot)
+    return theta
 
 
 def cross_product(vec1: list, vec2: list) -> float:

@@ -35,8 +35,8 @@ class UGV_Bidirectional(rl_base):
 
         self.wMax = 20  # 车轮最大角速度   rad/s
         self.wMin = -20
-        self.aMax = 20  # 车轮最大角加速度 rad/s^2
-        self.aMin = -20
+        self.aMax = 1000  # 车轮最大角加速度 rad/s^2
+        self.aMin = -1000
         self.r = 0.1  # 车轮半径
         self.rBody = 0.15  # 车主体半径 0.5
         self.L = 2 * self.rBody  # 车主体直径
@@ -91,11 +91,11 @@ class UGV_Bidirectional(rl_base):
 
         self.action_dim = 2
         self.action_step = [None, None]
-        self.action_range = [[self.aMin, self.aMax], [self.aMin, self.aMax]]
+        self.action_range = [[self.vMin, self.vMax], [self.omegaMin, self.omegaMax]]
         self.action_num = [math.inf, math.inf]
         self.action_space = [None, None]
         self.isActionContinuous = [True, True]
-        self.initial_action = self.a_wheel.copy()
+        self.initial_action = [self.r * sum(self.w_wheel) / 2, self.omega]
         self.current_action = self.initial_action.copy()
 
         self.reward = 0.0
@@ -299,11 +299,11 @@ class UGV_Bidirectional(rl_base):
 
         if self.sum_d_theta > 4 * np.pi:  # 如果转的超过两圈
             self.terminal_flag = 4
-        # self.is_terminal = True
+            self.is_terminal = True
 
         '''4. 其他'''
         if self.terminal_flag == 4:  # 瞎几把转
-            r4 = -0
+            r4 = -200
         elif self.terminal_flag == 3:  # 成功
             r4 = 1000
         elif self.terminal_flag == 2:  # 超时
@@ -316,19 +316,24 @@ class UGV_Bidirectional(rl_base):
         # ex, ey, wl, wr, phi, dphi
         '''r1 是位置'''
         # if nex_norm_error >= 0.25:
-        # 	kk = -180 * nex_norm_error + 45  # yyf_x0 = 0.25 时，kk = 0，误差大于0.25，开始罚，误差小于 0.25 开始奖励
-        # 	r1 = nex_norm_error * kk  # nex_error
+        #     kk = -180 * nex_norm_error + 45  # yyf_x0 = 0.25 时，kk = 0，误差大于0.25，开始罚，误差小于 0.25 开始奖励
+        #     r1 = nex_norm_error * kk  # nex_error
         # else:
-        # 	kk = -180 * nex_norm_error + 45
-        # 	r1 = (0.25 - nex_norm_error) * kk
-        r1 = -(nex_norm_error * 5) ** 2
-
-        '''r2 是角度'''
-        if nex_error < 4 * self.miss:  # 如果误差比较小，就不考虑角度了
-            r2 = 0
+        #     kk = -180 * nex_norm_error + 45
+        #     r1 = (0.25 - nex_norm_error) * kk
+        # r1 = -(nex_norm_error * 5) ** 2
+        if nex_norm_error <= self.miss:
+            r1 = 3
+        elif np.abs(cur_s[0]) > np.abs(nex_s[0]) + 1e-3 and np.abs(cur_s[1]) > np.abs(nex_s[1]) + 1e-3:
+            r1 = 2
         else:
-            r2 = -(nex_norm_error_theta * 5) ** 2
-        # r2 = 0
+            r1 = -1
+        '''r2 是角度'''
+        # if nex_error < 4 * self.miss:  # 如果误差比较小，就不考虑角度了
+        #     r2 = 0
+        # else:
+        #     r2 = -(nex_norm_error_theta * 5) ** 2
+        r2 = 0
         self.reward = r1 + r2 + r4
 
     def ode(self, xx: np.ndarray):
@@ -387,7 +392,9 @@ class UGV_Bidirectional(rl_base):
             self.current_state = np.append(np.hstack((self.error, self.w_wheel)), [self.phi, self.omega])
 
         '''rk44'''
-        self.rk44(action=action)  # 在微分方程里的，不在里面的，都更新了，角度也有判断
+        aRef = (np.array(
+            [action[0] - self.rBody * action[1], action[0] + self.rBody * action[1]]) / self.r - self.w_wheel) / self.dt
+        self.rk44(action=aRef)  # 在微分方程里的，不在里面的，都更新了，角度也有判断
         '''rk44'''
 
         self.is_terminal = self.is_Terminal()
@@ -422,7 +429,7 @@ class UGV_Bidirectional(rl_base):
             self.initial_state = np.append(np.hstack((self.error, self.w_wheel)), [self.phi, self.omega])
         self.current_state = self.initial_state.copy()
         self.next_state = self.initial_state.copy()
-        self.initial_action = self.a_wheel.copy()
+        self.initial_action = [self.r * sum(self.w_wheel) / 2, self.omega]
         self.current_action = self.initial_action.copy()
         self.reward = 0.0
         self.is_terminal = False
@@ -463,7 +470,7 @@ class UGV_Bidirectional(rl_base):
             self.initial_state = np.append(np.hstack((self.error, self.w_wheel)), [self.phi, self.omega])
         self.current_state = self.initial_state.copy()
         self.next_state = self.initial_state.copy()
-        self.initial_action = self.a_wheel.copy()
+        self.initial_action = [self.r * sum(self.w_wheel) / 2, self.omega]
         self.current_action = self.initial_action.copy()
         self.reward = 0.0
         self.is_terminal = False

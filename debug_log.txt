@@ -304,9 +304,9 @@ Log_num: 16
 Date: 2023.05.09
 Time: 15.28
 Contents:
-    1). Add a UGVBidirectional_pid environment using PD controller with parameters tuned by RL (in ./environment/env/UGV_PID)
+    1). Add a UGVForward_pid environment using PD controller with parameters tuned by RL (in ./environment/env/UGV_PID)
     2). Add a TD3 controller (in ./datasave/network/TD3-SecondOrderIntegration) for SecondOrderIntegration
-    3). Add a TD3 controller (in ./datasave/network/TD3-UGV-forward_pid) for UGVForward_pid
+    3). Add a TD3 controller (in ./datasave/network/TD3-UGV-Forward_pid) for UGVForward_pid
 
 Tips:
     Considering the continuity of the wheels' velocity, we originally planned to train the acceleration of the wheels
@@ -314,4 +314,22 @@ Tips:
     controllers for positional and angular control and used TD3 to automatically tune the parameters of the PID
     controllers. The bridge between velocity command and acceleration command is a simple proportional module. The
     training result indicates the effectiveness of our second plan, which can be utilized in future demos.
+=================奥利给兄弟们干他就完了=================
+
+
+====================嗨嗨嗨我又来了啊====================
+Log_num: 17
+Date: 2023.05.16
+Time: 19.23
+Contents:
+    1). Add a UGVBidirectional_pid environment using PD controller with parameters tuned by RL (in ./environment/env/UGV_PID)
+    2). Add a PPO controller (in ./datasave/network/PPO-UGV-Forward_pid) for UGVForward_pid
+    3). Add a PPO controller (in ./datasave/network/PPO-UGV-Bidirectional_pid) for UGVBidirectional_pid
+
+Tips:
+    Indicated by last log, the idea of RL-PID is utilized in the bidirectional new environment. The difference between
+    forward and bidirectional environments lies in the measurement of position error and angular error as PID inputs.
+    To enable the ability of going backward, the position error value can be positive or negative depending on the
+    orientation of UGV. And the angular error should range in [-pi/2, pi/2] while that is [-pi, pi] in the forward one.
+    The trained controller performed better in the bidirectional one due to it's flexibility in direction.
 =================奥利给兄弟们干他就完了=================

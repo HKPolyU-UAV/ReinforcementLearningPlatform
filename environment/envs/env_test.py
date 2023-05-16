@@ -104,7 +104,37 @@ def test_UGVBidirectional2():
         # print(env.reward)
 
 
-def test_UGVBidirectional_pid():
+def test_UGVBidirectional():
+    from environment.envs.UGV2.UGVBidirectional_backup import UGV_Bidirectional as env
+    env = env(pos0=np.array([1.0, 1.0]),
+              phi0=deg2rad(0),
+              target=np.array([4., 3.]),
+              map_size=np.array([5.0, 5.0]))  # 其余参数默认
+
+    for _ in range(5):
+        env.reset()
+        sumr = 0
+        while not env.is_terminal:
+            # print(env.time)
+            env.show_dynamic_image(isWait=True)
+            action = np.array([1, -5])  # np.pi/16
+            # print('error: [%.2f, %.2f]' % (env.pos[0], env.pos[1]))
+            # print('phi: %.1f' % (rad2deg(env.phi)))
+            # print('         omega: %.1f' % (rad2deg(env.omega)))
+            # print(env.current_state)
+            env.step_update(action=action)
+            print(env.w_wheel, " ", env.omega)
+            sumr += env.reward
+            # print(env.wLeft, " ", env.wRight)
+        # print(rad2deg(env.sum_d_theta))
+        print(sumr)
+        # plt.plot(env.plotw[0])
+        # plt.plot(env.plotw[1])
+        # plt.legend(['expect', 'w'])
+        # plt.show()
+
+
+def test_UGVForward_pid():
     from environment.envs.UGV_PID.UGVForward_pid import UGV_Forward_PID as env
     env = env(pos0=np.array([1.0, 1.0]),
               phi0=deg2rad(-135),
@@ -117,7 +147,7 @@ def test_UGVBidirectional_pid():
         while not env.is_terminal:
             # print(env.time)
             env.show_dynamic_image(isWait=True)
-            action = np.array([10, 1, 100, 1])  # np.pi/16
+            action = np.array([1, 1, 100, 1])  # np.pi/16
             # print('error: [%.2f, %.2f]' % (env.pos[0], env.pos[1]))
             # print('phi: %.1f' % (rad2deg(env.phi)))
             # print('         omega: %.1f' % (rad2deg(env.omega)))
@@ -131,6 +161,31 @@ def test_UGVBidirectional_pid():
         # plt.plot(env.plotw[1])
         # plt.legend(['expect', 'w'])
         # plt.show()
+
+
+def test_UGVBidirectional_pid():
+    from environment.envs.UGV_PID.UGVBidirectional_pid import UGV_Bidirectional_PID as env
+    env = env(pos0=np.array([1.0, 1.0]),
+              phi0=deg2rad(90),
+              target=np.array([4., 3.]),
+              map_size=np.array([5.0, 5.0]))  # 其余参数默认
+
+    for _ in range(5):
+        env.reset()
+        sumr = 0
+        while not env.is_terminal:
+            # print(env.time)
+            env.show_dynamic_image(isWait=True)
+            action = np.array([5, 1, 100, 1])  # np.pi/16
+            # print('error: [%.2f, %.2f]' % (env.pos[0], env.pos[1]))
+            # print('phi: %.1f' % (rad2deg(env.phi)))
+            # print('         omega: %.1f' % (rad2deg(env.omega)))
+            # print(env.current_state)
+            env.step_update(action=action)
+            sumr += env.reward
+            # print(env.wLeft, " ", env.wRight)
+        # print(rad2deg(env.sum_d_theta))
+        print(sumr)
 
 
 def test_SecondOrderIntegration():
@@ -179,12 +234,12 @@ def test_ugv_forward_continuous():
 
 def test_UGVForward():
     from UGV2.UGVForward import UGV_Forward as env
-    env = env(pos0=np.array([1.0, 1.0]),
+    env = env(pos0=np.array([4.0, 1.0]),
               vel0=np.array([0.0, 0.0]),
-              phi0=deg2rad(90),
+              phi0=deg2rad(180),
               omega0=0.,
               map_size=np.array([5.0, 5.0]),
-              target=np.array([4.0, 4.0]))
+              target=np.array([3.0, 0.0]))
     test_num = 5
     for _ in range(test_num):
         env.reset()
@@ -194,9 +249,10 @@ def test_UGVForward():
             if cv.waitKey(1) == 27:
                 return
             env.show_dynamic_image(isWait=True)
-            action = np.array([-1., -2.])
+            action = np.array([5., 15.])
             env.step_update(action=action)
             sumr += env.reward
+            print(env.w_wheel)
         print(sumr)
 
 
@@ -365,7 +421,9 @@ if __name__ == '__main__':
     # test_flight_attitude_simulator_continuous()
     # test_flight_attitude_simulator_2state_continuous()
     # test_ugv_bidirectional_continuous()
+    # test_UGVForward_pid()
     test_UGVBidirectional_pid()
+    # test_UGVBidirectional()
     # test_SecondOrderIntegration()
     # test_ugv_forward_continuous()
     # test_UGVForward()

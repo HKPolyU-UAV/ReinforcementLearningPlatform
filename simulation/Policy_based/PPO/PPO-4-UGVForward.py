@@ -4,9 +4,11 @@ import datetime
 import time
 import cv2 as cv
 
+from common.common_func import deg2rad
+
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../../")
 
-from environment.envs.UGV_PID.UGVBidirectional_pid import UGV_Bidirectional_PID
+from environment.envs.UGV_PID.UGVForward_pid import UGV_Forward_PID
 from algorithm.policy_base.Proximal_Policy_Optimization import Proximal_Policy_Optimization as PPO
 from common.common_cls import *
 
@@ -14,7 +16,7 @@ optPath = '../../../datasave/network/'
 show_per = 1
 timestep = 0
 ALGORITHM = 'PPO'
-ENV = 'UGVBidirectional_pid'
+ENV = 'UGVForward_pid'
 
 
 def setup_seed(seed):
@@ -128,12 +130,12 @@ if __name__ == '__main__':
     RETRAIN = False  # 基于之前的训练结果重新训练
     TEST = not TRAIN
 
-    env = UGV_Bidirectional_PID(pos0=np.array([1.0, 1.0]),
-                                vel0=np.array([0.0, 0.0]),
-                                phi0=0.,
-                                omega0=0.,
-                                map_size=np.array([5.0, 5.0]),
-                                target=np.array([2.5, 2.5]))
+    env = UGV_Forward_PID(pos0=np.array([5.0, 5.0]),
+                          vel0=np.array([0., 0.]),
+                          phi0=0.,
+                          omega0=0.,
+                          map_size=np.array([10.0, 10.0]),
+                          target=np.array([5.0, 5.0]))
 
     if TRAIN:
         action_std_init = 0.8
@@ -141,7 +143,7 @@ if __name__ == '__main__':
         policy = PPOActorCritic(env.state_dim, env.action_dim, action_std_init, 'Policy', simulationPath)
         policy_old = PPOActorCritic(env.state_dim, env.action_dim, action_std_init, 'Policy_old', simulationPath)
         agent = PPO(env=env,
-                    actor_lr=1e-4,
+                    actor_lr=3e-4,
                     critic_lr=1e-3,
                     gamma=0.99,
                     K_epochs=10,
@@ -233,6 +235,7 @@ if __name__ == '__main__':
                     policy=policy,
                     policy_old=policy_old,
                     path=simulationPath)
-        agent.policy.load_state_dict(torch.load('../../../datasave/network/PPO-UGV-Bidirectional_pid/parameters'
-                                                '/Policy_PPO720000'))
+        # agent.policy.load_state_dict(torch.load('Policy_PPO4000000'))
+        agent.policy.load_state_dict(torch.load('../../../datasave/network/PPO-UGV-Forward_pid/parameters'
+                                                '/Policy_PPO4000000'))
         r = agent.agent_evaluate(test_num=10)

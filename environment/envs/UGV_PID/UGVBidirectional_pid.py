@@ -1,9 +1,11 @@
+import numpy as np
+
 from common.common_func import *
 from environment.envs import *
 from environment.envs.PIDControl.pid import PID
 
 
-class UGV_Forward_PID(rl_base):
+class UGV_Bidirectional_PID(rl_base):
     def __init__(self,
                  pos0: np.ndarray = np.array([5.0, 5.0]),
                  vel0: np.ndarray = np.array([0., 0.]),
@@ -11,7 +13,7 @@ class UGV_Forward_PID(rl_base):
                  omega0: float = 0.,
                  map_size: np.ndarray = np.array([10.0, 10.0]),
                  target: np.ndarray = np.array([5.0, 5.0])):
-        super(UGV_Forward_PID, self).__init__()
+        super(UGV_Bidirectional_PID, self).__init__()
 
         self.init_pos = pos0
         self.init_vel = vel0
@@ -53,7 +55,7 @@ class UGV_Forward_PID(rl_base):
         self.thetaDMin = 0.0
 
         self.wMax = 20  # 车轮最大角速度   rad/s
-        self.wMin = 0
+        self.wMin = -20
         self.aMax = 100  # 车轮最大角加速度 rad/s^2
         self.aMin = -100
         self.phiMax = deg2rad(180)  # 车体最大角度
@@ -64,7 +66,7 @@ class UGV_Forward_PID(rl_base):
         self.omegaMin = self.r / self.L * (self.wMin - self.wMax)
 
         self.miss = self.rBody  # 容许误差
-        self.name = 'UGVForward_pid'
+        self.name = 'UGVBidirectional_pid'
 
         '''rl_base'''
         self.use_normalization = True
@@ -325,10 +327,10 @@ class UGV_Forward_PID(rl_base):
         '''r1 是位置'''
         r1 = -nex_norm_error - np.tanh(5 * nex_norm_error) + 1
         '''r2 是角度'''
-        # if nex_error < 4 * self.miss:  # 如果误差比较小，就不考虑角度了
-        #     r2 = 0
-        # else:
-        #     r2 = -nex_norm_error_theta - np.tanh(2.5 * nex_norm_error_theta) + 1
+        if nex_error < 4 * self.miss:  # 如果误差比较小，就不考虑角度了
+            r2 = 0
+        else:
+            r2 = -nex_norm_error_theta - np.tanh(2.5 * nex_norm_error_theta) + 1
         r2 = 0
         self.reward = r1 + r2 + r4
 
@@ -374,16 +376,21 @@ class UGV_Forward_PID(rl_base):
         if self.use_normalization:
             self.current_state = self.state_norm()
         else:
-            self.current_state = np.append(self.error, [self.w_wheel[0], self.w_wheel[1], self.omega])
+            self.current_state = np.append(self.error, [self.r / 2 * sum(self.w_wheel), self.omega])
 
         '''PD'''
         posError = self.target - self.pos
         thetaError = cal_vector_rad_oriented([np.cos(self.phi), np.sin(self.phi)], posError)
-        # 由于位置pd不会为0，位置误差足够小时关闭位置pd防止冲过头..
-        if np.linalg.norm(posError) <= 0.05:
-            posError = 0
+        posError = np.linalg.norm(posError)
+        # 位置误差正负与方向有关，保证能够前进和后退
+        if thetaError > np.pi / 2:
+            thetaError = thetaError - np.pi
+            posError = - posError
+        if thetaError < -np.pi / 2:
+            thetaError = thetaError + np.pi
+            posError = - posError
         self.posPID.set_pid(self.current_action[0], 0, self.current_action[1])
-        self.posPID.set_e(np.linalg.norm(posError))
+        self.posPID.set_e(posError)
         self.thetaPID.set_pid(self.current_action[2], 0, self.current_action[3])
         self.thetaPID.set_e(thetaError)
         '''PD'''
