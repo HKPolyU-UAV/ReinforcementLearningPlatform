@@ -1,6 +1,7 @@
 import os
 import sys
 import cv2 as cv
+import numpy as np
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "./")
@@ -401,7 +402,6 @@ def test_uav_hover():
     from UAV.uav_hover import UAV_Hover
     import matplotlib.pyplot as plt
     env = UAV_Hover(target_pos=[0, 0, 4])
-    env.uav_vis.arm_scale = 10  # 显示放大的尺度，自己设置即可
     num = 0
     plt.ion()
     while num < 2:
@@ -416,13 +416,28 @@ def test_uav_hover():
     plt.ioff()
 
 
+def test_two_link_manipulator():
+    from RobotManipulators.TwoLinkManipulator import TwoLinkManipulator
+    env = TwoLinkManipulator()
+    num = 0
+    while num < 2:
+        env.reset_random()
+        r = 0
+        while not env.is_terminal:
+            env.show_dynamic_image()
+            cv.waitKey(0)
+            env.step_update(action=np.array([-8., 10.]))
+            r += env.reward
+        num += 1
+        print(r)
+
 if __name__ == '__main__':
     # test_flight_attitude_simulator()
     # test_flight_attitude_simulator_continuous()
     # test_flight_attitude_simulator_2state_continuous()
     # test_ugv_bidirectional_continuous()
     # test_UGVForward_pid()
-    test_UGVBidirectional_pid()
+    # test_UGVBidirectional_pid()
     # test_UGVBidirectional()
     # test_SecondOrderIntegration()
     # test_ugv_forward_continuous()
@@ -434,4 +449,5 @@ if __name__ == '__main__':
     # test_cartpoleangleonly()
     # test_uav_hover()
     # test_cartpole_discrete_angleonly()
+    test_two_link_manipulator()
     pass

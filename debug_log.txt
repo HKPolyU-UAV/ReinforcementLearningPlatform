@@ -333,3 +333,22 @@ Tips:
     orientation of UGV. And the angular error should range in [-pi/2, pi/2] while that is [-pi, pi] in the forward one.
     The trained controller performed better in the bidirectional one due to it's flexibility in direction.
 =================奥利给兄弟们干他就完了=================
+
+
+====================嗨嗨嗨我又来了啊====================
+Log_num: 18
+Date: 2023.05.22
+Time: 13.50
+Contents:
+    1). Add a DPPO controller (in ./datasave/network/DPPO-UGV-Bidirectional_pid) for UGVBidirectional_pid
+    1). Add a TwoLinkManipulator environment (in ./environment/env/RobotManipulators)
+    2). Add a PPO controller (in ./datasave/network/PPO-TwoLinkManipulator) for TwoLinkManipulator
+    3). Add a DPPO controller (in ./datasave/network/DPPO-4-TwoLinkManipulator) for TwoLinkManipulator
+
+Tips:
+    The TwoLinkManipulator is full drive by torques on both spin axes. a TD3 controller was tried to learn to control
+    the manipulator but finally failed after several attempts. The reason we assume may be that as a value-based RL
+    algorithm, TD3 is hard to converge when the relations between rewards and actions are complex or not obvious. It may
+    work after the reward function being well designed or some other approaches. PPO and DPPO can do it might due to
+    their policy-based attributes and their stability is guaranteed, but steady-state error still exists in them.
+=================奥利给兄弟们干他就完了=================
