@@ -24,7 +24,7 @@ Currently, this repository consists of algorithm, common, datasave, environment,
 |:-------------:|:--------------------------------:|:----------------------------------------------------------:|
 | actor_critic  |   A2C<br/>DDPG<br/>SAC<br/>TD3   |                            ----                            |
 |  policy_base  |      PPO<br/>DPPO<br/>DPPO2      |              ----<br/>----<br/>does not work               |
-|  value_base   | DQN<br/>DoubleDQN<br/>DuelingDQN |                        not debugged                        |
+|  value_base   | DQN<br/>DoubleDQN<br/>DuelingDQN |                            ----                            |
 |    rl_base    |               ----               | Basic class that inherited <br/>by other algorithm classes |
 
 
@@ -63,6 +63,9 @@ Currently, this repository consists of algorithm, common, datasave, environment,
 |           UGVForwardDiscrete            |           ./UGV/           |       discrete, the vehicle can only move forward        |
 |      UGVForwardObstacleContinuous       |           ./UGV/           |     continuous, the vehicle needs to avoid obstacles     |
 |       UGVForwardObstacleDiscrete        |           ./UGV/           |      discrete, the vehicle needs to avoid obstacles      |
+|             UGVForward_pid              |         ./UGV_PID/         |       UGV forward with PID controller tuned by RL        |
+|          UGVBidirectional_pid           |         ./UGV_PID/         |    UGV bidirectional with PID controller tuned by RL     |
+|           TwoLinkManipulator            |    ./RobotManipulators/    |                  continuous, full drive                  |
 
 **Simulation** 
 
@@ -84,6 +87,11 @@ A DDPG controller for
 
 A DQN controller for
 * FlightAttitudeSimulator
+* SecondOrderIntegration
+* SecondOrderIntegration_Discrete
+
+A Dueling DQN controller for 
+* FlightAttitudeSimulator
 
 ### **TD3**
 
@@ -92,19 +100,29 @@ A TD3 trajectory planner for:
 * CartPole
 * CartPoleAngleOnly
 * FlightAttitudeSimulator
+* SecondOrderIntegration
+* UGVForward_pid
 
 ### **PPO**
 
 A PPO controller for:
 * CartPoleAngleOnly
 * FlightAttitudeSimulator2State 
+* SecondOrderIntegration_Discrete
+* UGVForward_pid
+* UGVBidirectional_pid
+* TwoLinkManipulator
 
 ### **DPPO**
 
 A DPPO controller for:
 
 * CartPoleAngleOnly
+* CartPole
 * FlightAttitudeSimulator2State
+* SecondOrderIntegration
+* UGVBidirectional_pid
+* TwoLinkManipulator
 
 ## Run the scripts
 All runnable scripts are in './simulation/'.
@@ -155,6 +173,20 @@ The result should be similar to the following.
     <img src="https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/datasave/video/gif/DPPO-4-SecondOrderIntegration.gif" width="400px">
 </div>
 
+### A PPO controller for TwoLinkManipulator system
+The result should be similar to the following.
+
+<div align=center>
+    <img src="https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/datasave/video/gif/PPO-4-TwoLinkManipulator.gif" width="400px">
+</div>
+
+### A DPPO controller for CartPole system with both position and angle
+The result should be similar to the following.
+
+<div align=center>
+    <img src="https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/datasave/video/gif/DPPO-4-CartPole.gif" width="400px">
+</div>
+
 # TODO
 ## Algorithms
 - [x] Add A2C
@@ -170,13 +202,13 @@ The result should be similar to the following.
 - [ ] Add some A3C demos
 
 ## Environments
-- [ ] Modify UGV (add acceleration loop)
+- [x] Modify UGV (add acceleration loop)
 - [ ] Add a UAV regulator
 - [ ] Add a UAV tracker
-- [ ] Add a 2nd-order integration system
-- [ ] Add a duel-joint robotic arm
+- [x] Add a 2nd-order integration system
+- [x] Add a duel-joint robotic arm
 - [ ] Add a 2nd-order cartpole (optional)
 
 ## Debug
 - [ ] Debug DPPO2
-- [ ] Debug DQN-based algorithms (multi-action agents)
+- [x] Debug DQN-based algorithms (multi-action agents)

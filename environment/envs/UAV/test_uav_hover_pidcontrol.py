@@ -60,7 +60,7 @@ if __name__ == '__main__':
             '''动力分配'''
             '''control'''
             # f = [random.uniform(env.fmin, env.fmax) for _ in range(4)]
-            env.current_state, env.current_action, env.reward, env.next_state, env.is_terminal = env.step_update(action=f)
+            env.step_update(action=f)
             print('Pos_e: {}'.format(env.error_pos))
         num += 1
     plt.ioff()

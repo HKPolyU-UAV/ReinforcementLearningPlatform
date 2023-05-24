@@ -347,7 +347,7 @@ def test_cartpole():
                 return
             env.image = env.show.copy()
             env.show_dynamic_image(isWait=True)
-            f = 0
+            f = 5
             # f = random.uniform(-env.fm, env.fm)
             # f = -1 * math.sin(2 * math.pi * env.time)
             # print(env.x, env.dx, env.theta, env.dtheta)
@@ -449,5 +449,5 @@ if __name__ == '__main__':
     # test_cartpoleangleonly()
     # test_uav_hover()
     # test_cartpole_discrete_angleonly()
-    test_two_link_manipulator()
+    # test_two_link_manipulator()
     pass

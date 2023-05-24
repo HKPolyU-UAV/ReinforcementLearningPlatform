@@ -4,7 +4,7 @@
 		<state_num>[inf, inf, inf, inf]</state_num>
 		<state_step>[None, None, None, None]</state_step>
 		<state_space>[None, None, None, None]</state_space>
-		<state_range>[[-4.0, 4.0], [-inf, inf], [-4.0, 4.0], [-inf, inf]]</state_range>
+		<state_range>[[-2.0, 2.0], [-inf, inf], [-2.0, 2.0], [-inf, inf]]</state_range>
 		<isStateContinuous>[True, True, True, True]</isStateContinuous>
 		<initial_state>[0. 0. 0. 0.]</initial_state>
 		<current_state>[0. 0. 0. 0.]</current_state>
@@ -27,9 +27,9 @@
 		<dtheta>0.0</dtheta>
 		<dx>0.0</dx>
 		<force>0.0</force>
-		<thetaMax>0.5235987755982988</thetaMax>
+		<thetaMax>0.7853981633974483</thetaMax>
 		<xMax>1.5</xMax>
-		<staticGain>4.0</staticGain>
+		<staticGain>2.0</staticGain>
 		<norm_4_boundless_state>1</norm_4_boundless_state>
 		<M>1.0</M>
 		<m>0.1</m>

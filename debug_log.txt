@@ -352,3 +352,18 @@ Tips:
     PPO and DPPO can solve the problem more easily because they are policy-based algorithm that use rollout buffers than
     simple experience replay buffers. However, steady error still exists.
 =================奥利给兄弟们干他就完了=================
+
+
+====================嗨嗨嗨我又来了啊====================
+Log_num: 19
+Date: 2023.05.24
+Time: 14.40
+Contents:
+    1). Add a DPPO controller (in ./datasave/network/DPPO-4-CartPole) for CartPole
+    2). Update the README.md file
+    3). Fix some bugs
+
+Tips:
+    After modifying cartpole.py file and DPPO-4-CartPole.py file and tuning some parameters, a better controller for
+    CartPole with both position and angle was trained successfully. However, steady error still exists.
+=================奥利给兄弟们干他就完了=================

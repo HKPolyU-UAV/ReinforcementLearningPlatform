@@ -243,4 +243,19 @@ if __name__ == '__main__':
                     path=simulationPath)
         # agent.policy.load_state_dict(torch.load('Policy_PPO49800'))
         agent.policy.load_state_dict(torch.load('../../../datasave/network/PPO-TwoLinkManipulator/Policy_PPO400000'))
-        r = agent.agent_evaluate(test_num=10)
+        # r = agent.agent_evaluate(test_num=10)
+        r = 0
+        # cap = cv.VideoWriter('record.mp4', cv.VideoWriter_fourcc(*'mp4v'), 120,
+        #                      (env.image_size[0] - env.board, env.image_size[1]))
+        for _ in range(5):
+            env.reset_random()
+            while not env.is_terminal:
+                env.current_state = env.next_state.copy()
+                _action_from_actor = agent.evaluate(env.current_state)
+                _action = agent.action_linear_trans(_action_from_actor.cpu().numpy().flatten())  # 将动作转换到实际范围上
+                env.step_update(_action)  # 环境更新的action需要是物理的action
+                r += env.reward
+                env.show_dynamic_image(isWait=False)  # 画图
+                # cap.write(env.image[:, 0:env.image_size[0] - env.board])
+        # cap.release()
+        cv.destroyAllWindows()
