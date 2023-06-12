@@ -1,7 +1,10 @@
 # Final update~
 The bugs in this repository have almost been fixed. Therefore, we copy the whole project back to our previous repository: Reinforcement Learning.
+
 We will try to make sure there are no bug in the current version. However, the contents in this repository will no be updated anymore.
-Please click the link below to visit or download the newer one. ^_^
+
+Please click the link below to visit or download the latest one. ^_^
+
 See [ReinforcementLearning](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning).
 
 # Installation
