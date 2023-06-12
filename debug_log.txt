@@ -327,43 +327,28 @@ Contents:
     3). Add a PPO controller (in ./datasave/network/PPO-UGV-Bidirectional_pid) for UGVBidirectional_pid
 
 Tips:
-    Indicated by last log, the RL-PID training framework is again utilized in UBVBidirectional. To enable the ability of
-    moving backward, the position error value can be positive or negative depending on the orientation of UGV. And the
-    angular error lies in [-pi/2, pi/2]. The controller outperformed the one for UGVForward due to it's flexibility in
-    directions.
+    Indicated by last log, the idea of RL-PID is utilized in the bidirectional new environment. The difference between
+    forward and bidirectional environments lies in the measurement of position error and angular error as PID inputs.
+    To enable the ability of going backward, the position error value can be positive or negative depending on the
+    orientation of UGV. And the angular error should range in [-pi/2, pi/2] while that is [-pi, pi] in the forward one.
+    The trained controller performed better in the bidirectional one due to it's flexibility in direction.
 =================奥利给兄弟们干他就完了=================
 
 
 ====================嗨嗨嗨我又来了啊====================
 Log_num: 18
 Date: 2023.05.22
-Time: 14.30
+Time: 13.50
 Contents:
     1). Add a DPPO controller (in ./datasave/network/DPPO-UGV-Bidirectional_pid) for UGVBidirectional_pid
-    2). Add a TwoLinkManipulator environment (in ./environment/env/RobotManipulators)
-    3). Add a PPO controller (in ./datasave/network/PPO-TwoLinkManipulator) for TwoLinkManipulator
-    4). Add a DPPO controller (in ./datasave/network/DPPO-4-TwoLinkManipulator) for TwoLinkManipulator
+    1). Add a TwoLinkManipulator environment (in ./environment/env/RobotManipulators)
+    2). Add a PPO controller (in ./datasave/network/PPO-TwoLinkManipulator) for TwoLinkManipulator
+    3). Add a DPPO controller (in ./datasave/network/DPPO-4-TwoLinkManipulator) for TwoLinkManipulator
 
 Tips:
-    The TwoLinkManipulator is a full drive plant whose control inputs are torques acted on both spin axes. We failed to
-    train a TD3 controller for TwoLinkManipulator. The reason might be:
-        As a value-based RL algorithm, TD3 is hard to converge if there are not obvious connections between immediate
-        reward 'r' and action 'a'; It could work better if the reward functions were well designed.
-    PPO and DPPO can solve the problem more easily because they are policy-based algorithm that use rollout buffers than
-    simple experience replay buffers. However, steady error still exists.
-=================奥利给兄弟们干他就完了=================
-
-
-====================嗨嗨嗨我又来了啊====================
-Log_num: 19
-Date: 2023.05.24
-Time: 14.40
-Contents:
-    1). Add a DPPO controller (in ./datasave/network/DPPO-4-CartPole) for CartPole
-    2). Update the README.md file
-    3). Fix some bugs
-
-Tips:
-    After modifying cartpole.py file and DPPO-4-CartPole.py file and tuning some parameters, a better controller for
-    CartPole with both position and angle was trained successfully. However, steady error still exists.
+    The TwoLinkManipulator is fully driven by torques on each spin axes. A TD3 controller is utilized to control
+    the manipulator but failed after several attempts. The reason might be that TD3 is hard to converge when the
+    relations between rewards and actions are complex or not obvious. It might work if we well designed the reward
+    functions. However, PPO and DPPO can handle that because policy-based algorithms can dig messages in a deeper level,
+    but steady-state error still exists.
 =================奥利给兄弟们干他就完了=================

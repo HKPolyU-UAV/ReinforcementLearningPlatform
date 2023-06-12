@@ -1,3 +1,9 @@
+# Final update~
+The bugs in this repository have almost been fixed. Therefore, we copy the whole project back to our previous repository: Reinforcement Learning.
+We will try to make sure there are no bug in the current version. However, the contents in this repository will no be updated anymore.
+Please click the link below to visit or download the newer one. ^_^
+See [ReinforcementLearning](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning).
+
 # Installation
 This platform can be implemented on both windows and ubuntu if you have installed python3. Currently, there is no ROS-related packages.
 It only requires pytorch, numpy, and opencv except original python packages.
@@ -20,12 +26,12 @@ Currently, this repository consists of algorithm, common, datasave, environment,
     The following table lists RL algorithms in the corresponding directories.
 
 
-| **Directory** |          **Algorithm**           |                      **Description**                       |
-|:-------------:|:--------------------------------:|:----------------------------------------------------------:|
-| actor_critic  |   A2C<br/>DDPG<br/>SAC<br/>TD3   |                            ----                            |
-|  policy_base  |      PPO<br/>DPPO<br/>DPPO2      |              ----<br/>----<br/>does not work               |
-|  value_base   | DQN<br/>DoubleDQN<br/>DuelingDQN |                            ----                            |
-|    rl_base    |               ----               | Basic class that inherited <br/>by other algorithm classes |
+| **Directory** |          **Algorithm**           |                   **Description**                   |
+|:-------------:|:--------------------------------:|:---------------------------------------------------:|
+| actor_critic  |   A2C<br/>DDPG<br/>SAC<br/>TD3   |                        ----                         |
+|  policy_base  |      PPO<br/>DPPO<br/>DPPO2      |           ----<br/>----<br/>does not work           |
+|  value_base   | DQN<br/>DoubleDQN<br/>DuelingDQN |                        ----                         |
+|    rl_base    |               ----               | Basic class that inherited <br/>by other algorithms |
 
 
 
@@ -190,7 +196,7 @@ The result should be similar to the following.
 # TODO
 ## Algorithms
 - [x] Add A2C
-- [ ] Add A3C
+- [x] Add A3C
 - [x] Add PPO
 - [x] Add DPPO
 - [ ] Add D4PG
