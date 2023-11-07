@@ -1,5 +1,0 @@
-进入仓库的文件夹
-git add *
-git commit -m "this update"
-git status
-git push origin main
