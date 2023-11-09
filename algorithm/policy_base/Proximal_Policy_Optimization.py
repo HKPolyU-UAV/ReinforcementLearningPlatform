@@ -127,7 +127,7 @@ class Proximal_Policy_Optimization:
 		'''1. Monte Carlo estimate of returns'''
 		rewards = []
 		discounted_reward = 0
-		for reward, is_terminal in zip(reversed(self.buffer.rewards), reversed(self.buffer.is_terminals)):
+		for reward, is_terminal in zip(reversed(self.buffer.r), reversed(self.buffer.done)):
 			if is_terminal:
 				discounted_reward = 0
 			discounted_reward = reward + self.gamma * discounted_reward
@@ -139,10 +139,10 @@ class Proximal_Policy_Optimization:
 
 		'''3. convert numpy to tensor'''
 		with torch.no_grad():
-			old_states = torch.FloatTensor(self.buffer.states).detach().to(self.device)
-			old_actions = torch.FloatTensor(self.buffer.actions).detach().to(self.device)
-			old_log_probs = torch.FloatTensor(self.buffer.log_probs).detach().to(self.device)
-			old_state_values = torch.FloatTensor(self.buffer.state_values).detach().to(self.device)
+			old_states = torch.FloatTensor(self.buffer.s).detach().to(self.device)
+			old_actions = torch.FloatTensor(self.buffer.a).detach().to(self.device)
+			old_log_probs = torch.FloatTensor(self.buffer.a_lp).detach().to(self.device)
+			old_state_values = torch.FloatTensor(self.policy.critic(self.buffer.s)).detach().to(self.device)
 
 		'''4. calculate advantages'''
 		advantages = rewards.detach() - old_state_values.detach()
