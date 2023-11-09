@@ -186,7 +186,8 @@ if __name__ == '__main__':
 												   outer_param=None)
 			else:
 				env.current_state = env.next_state.copy()  # 此时相当于时间已经来到了下一拍，所以 current 和 next 都得更新
-				a, a_log_prob = agent.choose_action(env.current_state)
+				s = env.current_state_norm(env.current_state, update=True)
+				a, a_log_prob = agent.choose_action(s)
 				# new_SMC_param = agent.action_linear_trans(a)	# a 肯定在 [-1, 1]
 				new_SMC_param = a.copy()
 				env.get_param_from_actor(new_SMC_param)
@@ -194,7 +195,7 @@ if __name__ == '__main__':
 				env.step_update(action_4_uav)
 				sumr += env.reward
 				success = 1.0 if env.terminal_flag == 1 else 0.0
-				agent.buffer.append(s=env.current_state_norm(env.current_state, update=True),
+				agent.buffer.append(s=s,
 									a=a,  # a
 									log_prob=a_log_prob,  # a_lp
 									# r=env.reward,							# r

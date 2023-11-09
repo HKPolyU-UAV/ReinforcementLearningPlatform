@@ -35,8 +35,9 @@ class PPOActor_Gaussian(nn.Module):
 				 init_std: float = 0.5,
 				 use_orthogonal_init: bool = True):
 		super(PPOActor_Gaussian, self).__init__()
-		self.fc1 = nn.Linear(state_dim, 64)
-		self.fc2 = nn.Linear(64, 64)
+		self.fc1 = nn.Linear(state_dim, 128)
+		self.fc2 = nn.Linear(128, 128)
+		self.fc3 = nn.Linear(128, 64)
 		self.mean_layer = nn.Linear(64, action_dim)
 		self.activate_func = nn.Tanh()
 		self.a_min = torch.tensor(a_min, dtype=torch.float)
@@ -57,11 +58,13 @@ class PPOActor_Gaussian(nn.Module):
 	def orthogonal_init_all(self):
 		self.orthogonal_init(self.fc1)
 		self.orthogonal_init(self.fc2)
+		self.orthogonal_init(self.fc3)
 		self.orthogonal_init(self.mean_layer, gain=0.01)
 
 	def forward(self, s):
 		s = self.activate_func(self.fc1(s))
 		s = self.activate_func(self.fc2(s))
+		s = self.activate_func(self.fc3(s))
 		mean = torch.tanh(self.mean_layer(s)) * self.gain + self.off
 		# mean = torch.relu(self.mean_layer(s))
 		return mean
@@ -82,9 +85,10 @@ class PPOActor_Gaussian(nn.Module):
 class PPOCritic(nn.Module):
 	def __init__(self, state_dim=3, use_orthogonal_init: bool = True):
 		super(PPOCritic, self).__init__()
-		self.fc1 = nn.Linear(state_dim, 64)
-		self.fc2 = nn.Linear(64, 64)
-		self.fc3 = nn.Linear(64, 1)
+		self.fc1 = nn.Linear(state_dim, 128)
+		self.fc2 = nn.Linear(128, 128)
+		self.fc3 = nn.Linear(128, 32)
+		self.fc4 = nn.Linear(32, 1)
 		self.activate_func = nn.Tanh()
 
 		if use_orthogonal_init:
@@ -99,11 +103,13 @@ class PPOCritic(nn.Module):
 		self.orthogonal_init(self.fc1)
 		self.orthogonal_init(self.fc2)
 		self.orthogonal_init(self.fc3)
+		self.orthogonal_init(self.fc4)
 
 	def forward(self, s):
 		s = self.activate_func(self.fc1(s))
 		s = self.activate_func(self.fc2(s))
-		v_s = self.fc3(s)
+		s = self.activate_func(self.fc3(s))
+		v_s = self.fc4(s)
 		return v_s
 
 	def init(self, use_orthogonal_init):
@@ -133,12 +139,12 @@ if __name__ == '__main__':
 	sumr = 0.
 	buffer_index = 0
 	ppo_msg = {'gamma': 0.99,
-			   'K_epochs': 100,
+			   'K_epochs': 200,
 			   'eps_clip': 0.2,
 			   'buffer_size': int(env.time_max / env.dt) * 2,
 			   'state_dim': env.state_dim,
 			   'action_dim': env.action_dim,
-			   'a_lr': 3e-4,
+			   'a_lr': 1e-4,
 			   'c_lr': 1e-3,
 			   'set_adam_eps': True,
 			   'lmd': 0.95,
@@ -156,7 +162,7 @@ if __name__ == '__main__':
 										 action_dim=env.action_dim,
 										 a_min=np.array(env.action_range)[:, 0],
 										 a_max=np.array(env.action_range)[:, 1],
-										 init_std=0.5,
+										 init_std=0.8,
 										 use_orthogonal_init=True),
 				 critic=PPOCritic(state_dim=env.state_dim, use_orthogonal_init=True))
 	agent.PPO2_info()
@@ -193,7 +199,7 @@ if __name__ == '__main__':
 									log_prob=a_log_prob,
 									r=reward_norm(env.reward),
 									s_=env.next_state_norm(env.next_state, update=True),
-									done=0.5 if env.is_terminal else 0.0,
+									done=1.0 if env.is_terminal else 0.0,
 									success=success,
 									index=buffer_index)
 				buffer_index += 1
@@ -208,9 +214,9 @@ if __name__ == '__main__':
 		buffer_index = 0
 		'''2. 学习'''
 
-		'''3. 每学习 50 次，测试一下'''
-		if t_epoch % 50 == 0 and t_epoch > 0:
-			n = 10
+		'''3. 每学习 10 次，测试一下'''
+		if t_epoch % 10 == 0 and t_epoch > 0:
+			n = 5
 			print('   Training pause......')
 			print('   Testing...')
 			for i in range(n):
@@ -238,7 +244,7 @@ if __name__ == '__main__':
 		'''4. 每学习 100 次，减小一次探索概率'''
 
 		'''5. 每学习 50 次，保存一下 policy'''
-		if t_epoch % 50 == 0 and t_epoch > 0:
+		if t_epoch % 10 == 0 and t_epoch > 0:
 			# 	average_test_r = agent.agent_evaluate(5)
 			test_num += 1
 			print('...check point save...')
