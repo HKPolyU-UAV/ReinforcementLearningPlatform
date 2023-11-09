@@ -11,7 +11,8 @@ import matplotlib.pyplot as plt
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../")
 
-from environment.uav_fntsmc_param.uav_pos_ctrl_RL import uav_pos_ctrl_RL, uav_param
+from uav_pos_ctrl_RL import uav_pos_ctrl_RL
+from environment.uav_fntsmc_param.uav import uav_param
 from environment.uav_fntsmc_param.FNTSMC import fntsmc_param
 from environment.color import Color
 from algorithm.policy_base.Proximal_Policy_Optimization2 import Proximal_Policy_Optimization2 as PPO2

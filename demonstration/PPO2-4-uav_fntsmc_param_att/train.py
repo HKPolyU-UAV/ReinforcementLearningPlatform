@@ -10,7 +10,8 @@ import torch
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../")
 
-from environment.uav_fntsmc_param.uav_att_ctrl_RL import uav_att_ctrl_RL, uav_param
+from uav_att_ctrl_RL import uav_att_ctrl_RL
+from environment.uav_fntsmc_param.uav import uav_param
 from environment.uav_fntsmc_param.FNTSMC import fntsmc_param
 from environment.uav_fntsmc_param.ref_cmd import *
 from algorithm.policy_base.Proximal_Policy_Optimization2 import Proximal_Policy_Optimization2 as PPO2
@@ -91,11 +92,11 @@ if __name__ == '__main__':
 
 	env = uav_att_ctrl_RL(uav_param, att_ctrl_param)
 	reset_att_ctrl_param('zero')
-	env.reset_uav_att_ctrl_RL_tracking(random_trajectroy=False, yaw_fixed=False, new_att_ctrl_param=att_ctrl_param)
+	env.reset_uav_att_ctrl_RL_tracking(random_trajectory=False, yaw_fixed=False, new_att_ctrl_param=att_ctrl_param)
 
 	env_test = uav_att_ctrl_RL(uav_param, att_ctrl_param)
 	reset_att_ctrl_param('zero')
-	env_test.reset_uav_att_ctrl_RL_tracking(random_trajectroy=False, yaw_fixed=False, new_att_ctrl_param=att_ctrl_param)
+	env_test.reset_uav_att_ctrl_RL_tracking(random_trajectory=False, yaw_fixed=False, new_att_ctrl_param=att_ctrl_param)
 
 	reward_norm = Normalization(shape=1)
 	env_msg = {'state_dim': env.state_dim, 'action_dim': env.action_dim, 'name': env.name, 'action_range': env.action_range}
@@ -155,7 +156,7 @@ if __name__ == '__main__':
 				print('Sumr:  ', sumr)
 				sumr_list.append(sumr)
 				sumr = 0.
-				env.reset_uav_att_ctrl_RL_tracking(random_trajectroy=False,
+				env.reset_uav_att_ctrl_RL_tracking(random_trajectory=False,
 												   yaw_fixed=False,
 												   new_att_ctrl_param=att_ctrl_param)
 			else:
@@ -199,7 +200,7 @@ if __name__ == '__main__':
 			print('   Testing...')
 			for i in range(n):
 				reset_att_ctrl_param('zero')
-				env_test.reset_uav_att_ctrl_RL_tracking(random_trajectroy=False,
+				env_test.reset_uav_att_ctrl_RL_tracking(random_trajectory=False,
 														yaw_fixed=False,
 														new_att_ctrl_param=att_ctrl_param)
 				test_r = 0.

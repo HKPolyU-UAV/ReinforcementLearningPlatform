@@ -5,7 +5,8 @@ import torch
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../")
 
-from environment.uav_fntsmc_param.uav_att_ctrl_RL import uav_att_ctrl_RL, uav_param
+from uav_att_ctrl_RL import uav_att_ctrl_RL
+from environment.uav_fntsmc_param.uav import uav_param
 from environment.uav_fntsmc_param.FNTSMC import fntsmc_param
 from environment.uav_fntsmc_param.ref_cmd import *
 from utils.functions import *
@@ -73,7 +74,7 @@ def reset_att_ctrl_param(flag: str):
 
 if __name__ == '__main__':
 	env = uav_att_ctrl_RL(uav_param, att_ctrl_param)
-	env.reset_uav_att_ctrl_RL_tracking(random_trajectroy=False, yaw_fixed=False, new_att_ctrl_param=att_ctrl_param)
+	env.reset_uav_att_ctrl_RL_tracking(random_trajectory=False, yaw_fixed=False, new_att_ctrl_param=att_ctrl_param)
 
 	opt_actor = PPOActor_Gaussian(state_dim=env.state_dim,
 								  action_dim=env.action_dim,
@@ -89,10 +90,10 @@ if __name__ == '__main__':
 	for i in range(10):
 		reset_att_ctrl_param('zero')
 		yyf = [deg2rad(80) * np.ones(3), 5 * np.ones(3), np.array([0, -np.pi / 2, np.pi / 2])]
-		env.reset_uav_att_ctrl_RL_tracking(random_trajectroy=True,
-												yaw_fixed=False,
-												new_att_ctrl_param=att_ctrl_param,
-												outer_param=None)
+		env.reset_uav_att_ctrl_RL_tracking(random_trajectory=True,
+										   yaw_fixed=False,
+										   new_att_ctrl_param=att_ctrl_param,
+										   outer_param=None)
 		test_r = 0.
 		while not env.is_terminal:
 			new_SMC_param = opt_actor.evaluate(env.current_state_norm(env.current_state, update=False))
