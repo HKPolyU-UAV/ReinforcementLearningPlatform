@@ -240,10 +240,7 @@ if __name__ == '__main__':
 					_a_4_uav = env_test.generate_action_4_uav()
 					env_test.step_update(_a_4_uav)
 					test_r += env_test.reward
-					env_test.image = env_test.image_copy.copy()
-					env_test.draw_3d_points_projection(np.atleast_2d([env_test.uav_pos(), env_test.pos_ref]), [Color().Red, Color().DarkGreen])
-					env_test.draw_time_error(env_test.uav_pos(), env_test.pos_ref)
-					env_test.show_image(False)
+					env_test.visualization()
 				test_num += 1
 				test_reward.append(test_r)
 				print('   Evaluating %.0f | Reward: %.2f ' % (i, test_r))
