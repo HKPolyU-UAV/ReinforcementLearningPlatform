@@ -420,3 +420,21 @@ class RewardScaling:
 
     def reset(self):  # When an episode is done,we should reset 'self.R'
         self.R = np.zeros(self.shape)
+
+
+class SharedAdam(torch.optim.Adam):
+    def __init__(self, params, lr=1e-3, betas=(0.9, 0.99), eps=1e-8,
+                 weight_decay=0):
+        super(SharedAdam, self).__init__(params, lr=lr, betas=betas, eps=eps, weight_decay=weight_decay)
+        # State initialization
+        for group in self.param_groups:
+            for p in group['params']:
+                state = self.state[p]
+                state['step'] = torch.zeros(1)                   # 原来就是0 照着另一个程序改的
+                state['exp_avg'] = torch.zeros_like(p.data)
+                state['exp_avg_sq'] = torch.zeros_like(p.data)
+
+                # share in memory
+                state['step'].share_memory_()       # 这句话是对照另一个程序加的
+                state['exp_avg'].share_memory_()
+                state['exp_avg_sq'].share_memory_()

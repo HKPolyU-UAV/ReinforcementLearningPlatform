@@ -32,7 +32,7 @@ class SecondOrderIntegration(rl_base):
         self.admissible_error = 5
 
         self.k = 0.15
-        self.dt = 0.01  # 50Hz
+        self.dt = 0.02  # 50Hz
         self.time = 0.  # time
         self.time_max = 5.0  # 每回合最大时间
 
@@ -258,8 +258,8 @@ class SecondOrderIntegration(rl_base):
         u_vel = -e_vel * Q_vel
         u_acc = -np.linalg.norm(self.acc) * Q_acc
         u_extra = 0.
-        if e_pos < 2.5:
-            u_pos += 2.0
+        # if e_pos < 2.5:
+        #     u_pos += 2.0
         if self.terminal_flag == 1:     # position out
             _n = (self.time_max - self.time) / self.dt
             u_extra = _n * (u_pos + u_vel + u_acc)
