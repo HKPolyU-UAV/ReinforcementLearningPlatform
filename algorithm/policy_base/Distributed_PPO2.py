@@ -124,7 +124,7 @@ class Worker(mp.Process):
 			'''1. 收集数据'''
 			while buffer_index < self.buffer.batch_size:
 				if self.env.is_terminal:  # 如果某一个回合结束
-					print('Sumr:  ', sumr)
+					# print('Sumr:  ', sumr)
 					sumr = 0.
 					self.env.reset_random()
 				else:

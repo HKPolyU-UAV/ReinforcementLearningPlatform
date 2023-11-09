@@ -168,6 +168,12 @@ if __name__ == '__main__':
 										   init_std=0.8,
 										   use_orthogonal_init=True)
 	agent.global_critic = PPOCritic(state_dim=env.state_dim, use_orthogonal_init=True)
+	agent.eval_actor = PPOActor_Gaussian(state_dim=env.state_dim,
+										   action_dim=env.action_dim,
+										   a_min=np.array(env.action_range)[:, 0],
+										   a_max=np.array(env.action_range)[:, 1],
+										   init_std=0.8,
+										   use_orthogonal_init=True)
 
 	if RETRAIN:
 		agent.global_actor.load_state_dict(torch.load('Policy_PPO_4_20700'))

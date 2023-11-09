@@ -89,11 +89,11 @@ class SecondOrderIntegration(rl_base):
         self.image_size = (np.array(self.pixel_per_meter * self.map_size) + 2 * np.array(
             [self.x_offset, self.y_offset])).astype(int)
         self.image_size[0] += self.board
-        self.image = np.zeros([self.image_size[1], self.image_size[0], 3], np.uint8)
-        self.image[:, :, 0] = np.ones([self.image_size[1], self.image_size[0]]) * 255
-        self.image[:, :, 1] = np.ones([self.image_size[1], self.image_size[0]]) * 255
-        self.image[:, :, 2] = np.ones([self.image_size[1], self.image_size[0]]) * 255
-        self.image_white = self.image.copy()  # 纯白图
+        self.image = np.ones([self.image_size[1], self.image_size[0], 3], np.uint8)* 255
+        self.draw_boundary()
+        self.draw_target()
+        self.draw_grid()
+        self.image_white = self.image.copy()
         '''visualization'''
 
     def state_norm(self):
@@ -128,12 +128,9 @@ class SecondOrderIntegration(rl_base):
 		"""
         return int(_l * self.pixel_per_meter)
 
-    def show_dynamic_image(self, isWait=False):
+    def visualization(self):
         self.image = self.image_white.copy()
-        self.draw_boundary()
         self.draw_ball()
-        self.draw_target()
-        self.draw_grid()
 
         cv.putText(self.image, 'time:   %.3fs' % (round(self.time, 3)), (self.image_size[0] - self.board - 5, 25),
                    cv.FONT_HERSHEY_COMPLEX, 0.4, Color().Purple, 1)
@@ -152,7 +149,7 @@ class SecondOrderIntegration(rl_base):
             (self.image_size[0] - self.board - 5, 140), cv.FONT_HERSHEY_COMPLEX, 0.4, Color().Purple, 1)
 
         cv.imshow(self.name, self.image)
-        cv.waitKey(0) if isWait else cv.waitKey(1)
+        cv.waitKey(1)
 
     def draw_ball(self):
         p_per_n = 0.6
@@ -437,6 +434,12 @@ class SecondOrderIntegration(rl_base):
         self.is_terminal = False
         self.terminal_flag = 0
 
+        self.image = np.ones([self.image_size[1], self.image_size[0], 3], np.uint8) * 255
+        self.draw_boundary()
+        self.draw_target()
+        self.draw_grid()
+        self.image_white = self.image.copy()
+
     def reset_random(self):
         # self.init_pos = np.array([np.random.uniform(0 + 0.03, self.map_size[0] - 0.03),
         # 						  np.random.uniform(0 + 0.03, self.map_size[1] - 0.03)])
@@ -467,3 +470,9 @@ class SecondOrderIntegration(rl_base):
         self.reward = 0.0
         self.is_terminal = False
         self.terminal_flag = 0
+
+        self.image = np.ones([self.image_size[1], self.image_size[0], 3], np.uint8) * 255
+        self.draw_boundary()
+        self.draw_target()
+        self.draw_grid()
+        self.image_white = self.image.copy()
