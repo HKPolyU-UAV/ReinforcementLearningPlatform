@@ -34,6 +34,7 @@ class uav_tracking_outer_loop(rl_base, uav_pos_ctrl):
         self.ref_bias_phase = ref_bias_phase
         self.trajectory = self.generate_ref_pos_trajectory(self.ref_amplitude, self.ref_period,
                                                            self.ref_bias_a, self.ref_bias_phase)
+        self.init_image()
         '''Define parameters for signal generator'''
 
         self.pos_ref, self.dot_pos_ref, _, _ = ref_uav(self.time, self.ref_amplitude, self.ref_period, self.ref_bias_a,
@@ -222,6 +223,7 @@ class uav_tracking_outer_loop(rl_base, uav_pos_ctrl):
             self.set_random_init_pos(pos0=self.trajectory[0][0:3], r=0.3 * np.ones(3))  # 设置初始位置在轨迹第一个点附近
         self.pos_ref, self.dot_pos_ref, _, _ = ref_uav(self.time, self.ref_amplitude, self.ref_period, self.ref_bias_a,
                                                        self.ref_bias_phase)
+        self.init_image()
         self.error = self.uav_pos() - self.pos_ref
         self.dot_error = self.uav_vel() - self.dot_pos_ref
         self.initial_state = self.state_norm()
@@ -265,9 +267,9 @@ class uav_tracking_outer_loop(rl_base, uav_pos_ctrl):
         self.draw_3d_trajectory_projection(self.trajectory)
         self.draw_init_image()
 
-    def draw_image(self, isWait: bool):
+    def visualization(self):
         self.image = self.image_copy.copy()
         self.draw_3d_points_projection(np.atleast_2d([self.uav_pos()]), [Color().Red])
         self.draw_3d_points_projection(np.atleast_2d([self.pos_ref[0:3]]), [Color().Green])
         self.draw_error(self.uav_pos(), self.pos_ref[0:3])
-        self.show_image(isWait)
+        self.show_image(iswait=False)

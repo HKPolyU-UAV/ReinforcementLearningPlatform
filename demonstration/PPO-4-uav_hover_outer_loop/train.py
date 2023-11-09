@@ -203,7 +203,7 @@ if __name__ == '__main__':
 
     sumr = 0
     start_eps = 0
-    train_num = 0
+    train_num = 1
     test_num = 0
     test_reward = []
     index = 0
@@ -224,7 +224,7 @@ if __name__ == '__main__':
                                 r=reward_norm(env.reward),
                                 s_=s_value.numpy(),
                                 done=1.0 if env.is_terminal else 0.0,
-                                success=1.0 if env.terminal_flag==1 else 0.0,
+                                success=1.0 if env.terminal_flag == 1 else 0.0,
                                 index=index)
             index += 1
             timestep += 1
@@ -239,8 +239,19 @@ if __name__ == '__main__':
                 index = 0
                 if train_num % 20 == 0 and train_num > 0:
                     print('========= Testing =========')
-                    average_test_r = agent.agent_evaluate(1)
-                    test_num += 1
+                    average_test_r = 0
+                    test_num = 3
+                    for _ in range(test_num):
+                        env.reset_random()
+                        while not env.is_terminal:
+                            env.current_state = env.next_state.copy()
+                            action_from_actor, s, a_log_prob, s_value = agent.choose_action(env.current_state)
+                            action = agent.action_linear_trans(action_from_actor.detach().cpu().numpy().flatten())
+                            uncertainty = generate_uncertainty(time=env.time, is_ideal=True)  # 生成干扰信号
+                            env.step_update(action)  # 环境更新的动作必须是实际物理动作
+                            average_test_r += env.reward
+                            env.visualization()
+                    average_test_r /= test_num
                     test_reward.append(average_test_r)
                     print('   Evaluating %.0f | Reward: %.2f ' % (test_num, average_test_r))
                     temp = simulation_path + 'test_num' + '_' + str(test_num - 1) + '_save/'

@@ -28,6 +28,7 @@ class uav_hover(rl_base, uav_pos_ctrl):
         self.name = 'uav_hover'
 
         self.collector = data_collector(round(self.time_max / self.dt))
+        self.init_image()
 
         self.pos_ref = target0
         self.pos_error = self.uav_pos() - self.pos_ref
@@ -202,6 +203,7 @@ class uav_hover(rl_base, uav_pos_ctrl):
 
         self.image = np.ones([self.height, self.width, 3], np.uint8) * 255
         self.image_copy = self.image.copy()
+        self.init_image()
 
         self.pos_error = self.uav_pos() - self.pos_ref
         self.att_ref = np.zeros(3)
@@ -236,9 +238,9 @@ class uav_hover(rl_base, uav_pos_ctrl):
     def init_image(self):
         self.draw_init_image()
 
-    def draw_image(self, isWait: bool):
+    def visualization(self):
         self.image = self.image_copy.copy()
         self.draw_3d_points_projection(np.atleast_2d([self.uav_pos()]), [Color().Red])
         self.draw_3d_points_projection(np.atleast_2d([self.pos_ref[0:3]]), [Color().Green])
         self.draw_error(self.uav_pos(), self.pos_ref[0:3])
-        self.show_image(isWait)
+        self.show_image(iswait=False)

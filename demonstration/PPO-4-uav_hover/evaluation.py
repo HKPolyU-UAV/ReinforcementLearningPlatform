@@ -177,7 +177,6 @@ if __name__ == '__main__':
     test_num = 5
     for _ in range(test_num):
         env.reset_random()
-        env.init_image()
         while not env.is_terminal:
             env.current_state = env.next_state.copy()
             '''3.1 外环网络根据外环状态给出虚拟加速度'''
@@ -194,7 +193,7 @@ if __name__ == '__main__':
             #                    uav_att_ref=env.att_ref,
             #                    d=4 * env.d)  # to make it clearer, we increase the size 4 times
             # rate.sleep()
-            env.draw_image(isWait=False)
+            env.visualization()
         env.collector.plot_pos()
         env.collector.plot_vel()
         env.collector.plot_throttle()

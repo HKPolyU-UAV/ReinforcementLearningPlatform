@@ -104,21 +104,6 @@ class Proximal_Policy_Optimization:
 			action_mean = self.policy.actor(t_state)
 		return action_mean.detach()
 
-	def agent_evaluate(self, test_num):
-		r = 0
-		for _ in range(test_num):
-			self.env.reset_random()
-			while not self.env.is_terminal:
-				self.env.current_state = self.env.next_state.copy()
-				_action_from_actor = self.evaluate(self.env.current_state)
-				_action = self.action_linear_trans(_action_from_actor.cpu().numpy().flatten())  # 将动作转换到实际范围上
-				self.env.step_update(_action)  # 环境更新的action需要是物理的action
-				r += self.env.reward
-				self.env.show_dynamic_image(isWait=False)  # 画图
-		cv.destroyAllWindows()
-		r /= test_num
-		return r
-
 	def learn(self):
 		"""
 		@note: 	 network update
@@ -134,7 +119,7 @@ class Proximal_Policy_Optimization:
 			rewards.insert(0, discounted_reward)
 
 		'''2. Normalizing the rewards'''
-		rewards = torch.tensor(rewards, dtype=torch.float32).to(device)
+		rewards = torch.tensor(np.array(rewards), dtype=torch.float32).to(device)
 		rewards = (rewards - rewards.mean()) / (rewards.std() + 1e-7)
 
 		'''3. convert numpy to tensor'''
@@ -142,10 +127,10 @@ class Proximal_Policy_Optimization:
 			old_states = torch.FloatTensor(self.buffer.s).detach().to(self.device)
 			old_actions = torch.FloatTensor(self.buffer.a).detach().to(self.device)
 			old_log_probs = torch.FloatTensor(self.buffer.a_lp).detach().to(self.device)
-			old_state_values = torch.FloatTensor(self.policy.critic(self.buffer.s)).detach().to(self.device)
+			old_state_values = torch.FloatTensor(self.policy.critic(torch.FloatTensor(self.buffer.s))).detach().to(self.device)
 
 		'''4. calculate advantages'''
-		advantages = rewards.detach() - old_state_values.detach()
+		advantages = torch.squeeze(rewards).detach() - torch.squeeze(old_state_values).detach()
 
 		'''5. Optimize policy for K epochs'''
 		for _ in range(self.K_epochs):
@@ -154,9 +139,10 @@ class Proximal_Policy_Optimization:
 
 			'''5.2 match state_values tensor dimensions with rewards tensor'''
 			state_values = torch.squeeze(state_values)
+			rewards = torch.squeeze(rewards)
 
 			'''5.3 Finding the ratio (pi_theta / pi_theta__old)'''
-			ratios = torch.exp(log_probs - old_log_probs.detach())
+			ratios = torch.exp(log_probs - old_log_probs.sum(1).detach())
 
 			'''5.4 Finding Surrogate Loss'''
 			surr1 = ratios * advantages

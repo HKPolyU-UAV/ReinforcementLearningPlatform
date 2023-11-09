@@ -195,7 +195,7 @@ if __name__ == '__main__':
 
     sumr = 0
     start_eps = 0
-    train_num = 0
+    train_num = 1
     test_num = 0
     test_reward = []
     index = 0
@@ -237,7 +237,6 @@ if __name__ == '__main__':
                     for i in range(n):
                         # env.reset()
                         env.reset_random()
-                        env.draw_att_init_image()
                         while not env.is_terminal:
                             env.current_state = env.next_state.copy()
                             action_from_actor, s, a_log_prob, s_value = agent.choose_action(env.current_state)
@@ -245,9 +244,7 @@ if __name__ == '__main__':
                             uncertainty = generate_uncertainty(time=env.time, is_ideal=True)  # 生成干扰信号
                             env.step_update(action)  # 环境更新的动作必须是实际物理动作
                             average_test_r += env.reward
-                            env.att_image = env.att_image_copy.copy()
-                            env.draw_att(env.ref)
-                            env.show_att_image(iswait=False)
+                            env.visualization()
                     test_num += 1
                     average_test_r = round(average_test_r / n, 3)
                     test_reward.append(average_test_r)

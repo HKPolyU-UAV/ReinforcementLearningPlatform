@@ -37,6 +37,7 @@ class uav_inner_loop(rl_base, uav_att_ctrl):
                                                  self.ref_bias_phase)
         self.error = self.uav_att() - self.ref
         self.dot_error = self.dot_rho1() - self.dot_ref
+        self.init_image()
 
         '''state action limitation'''
         self.static_gain = 1.0
@@ -176,6 +177,7 @@ class uav_inner_loop(rl_base, uav_att_ctrl):
 
         self.att_image = np.ones([self.att_h, self.att_w, 3], np.uint8) * 255
         self.att_image_copy = self.image.copy()
+        self.init_image()
 
         self.ref, self.dot_ref, _, _ = ref_inner(self.time, self.ref_amplitude, self.ref_period, self.ref_bias_a,
                                                  self.ref_bias_phase)
@@ -222,7 +224,7 @@ class uav_inner_loop(rl_base, uav_att_ctrl):
     def init_image(self):
         self.draw_att_init_image()
 
-    def draw_image(self, isWait: bool):
+    def visualization(self):
         self.att_image = self.att_image_copy.copy()
         self.draw_att(self.ref)
-        self.show_att_image(isWait)
+        self.show_att_image(iswait=False)

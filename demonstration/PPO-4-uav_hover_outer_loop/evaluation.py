@@ -190,11 +190,11 @@ if __name__ == '__main__':
                 policy_old=policy_old,
                 path=simulation_path)
     agent.policy.load_state_dict(torch.load(optPath + 'actor-critic'))
-    test_num = 1
+    test_num = 3
     r = 0
-    for i in range(1):
+    for i in range(test_num):
         r = 0
-        env.init_image()
+        env.reset_random()
         while not env.is_terminal:
             env.current_state = env.next_state.copy()
             _action_from_actor = agent.evaluate(env.current_state)
@@ -203,7 +203,7 @@ if __name__ == '__main__':
             # env.dis = uncertainty
             env.step_update(_action)  # 环境更新的动作必须是实际物理动作
             r += env.reward
-            env.draw_image(isWait=False)
+            env.visualization()
         print(r)
     env.collector.plot_pos()
     env.collector.plot_vel()
