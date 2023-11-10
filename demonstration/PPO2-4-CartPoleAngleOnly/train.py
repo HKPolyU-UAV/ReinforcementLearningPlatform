@@ -12,14 +12,13 @@ from torch.distributions import Normal
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../")
 
-from flight_attitude_simulator import Flight_Attitude_Simulator as fas
-from environment.color import Color
+from cartpole_angleonly import CartPoleAngleOnly
 from algorithm.policy_base.Proximal_Policy_Optimization2 import Proximal_Policy_Optimization2 as PPO2
 from utils.functions import *
 from utils.classes import Normalization
 
 timestep = 0
-ENV = 'SecondOrderIntegration'
+ENV = 'CartPoleAngleOnly'
 ALGORITHM = 'PPO2'
 test_episode = []
 test_reward = []
@@ -123,9 +122,9 @@ if __name__ == '__main__':
 	os.mkdir(simulationPath)
 	c = cv.waitKey(1)
 
-	RETRAIN = True
+	RETRAIN = False
 
-	env = fas(deg2rad(0))
+	env = CartPoleAngleOnly(deg2rad(0))
 	reward_norm = Normalization(shape=1)
 	env_msg = {'state_dim': env.state_dim, 'action_dim': env.action_dim, 'name': env.name, 'action_range': env.action_range}
 	t_epoch = 0  # 当前训练次数
@@ -133,13 +132,13 @@ if __name__ == '__main__':
 	sumr = 0.
 	buffer_index = 0
 	ppo_msg = {'gamma': 0.99,
-			   'K_epochs': 100,
+			   'K_epochs': 50,
 			   'eps_clip': 0.2,
 			   'buffer_size': int(env.timeMax / env.dt) * 2,
 			   'state_dim': env.state_dim,
 			   'action_dim': env.action_dim,
-			   'a_lr': 5e-5,
-			   'c_lr': 5e-4,
+			   'a_lr': 3e-4,
+			   'c_lr': 1e-3,
 			   'set_adam_eps': True,
 			   'lmd': 0.95,
 			   'use_adv_norm': True,
@@ -156,7 +155,7 @@ if __name__ == '__main__':
 										 action_dim=env.action_dim,
 										 a_min=np.array(env.action_range)[:, 0],
 										 a_max=np.array(env.action_range)[:, 1],
-										 init_std=0.15,
+										 init_std=1.5,
 										 use_orthogonal_init=True),
 				 critic=PPOCritic(state_dim=env.state_dim, use_orthogonal_init=True))
 	agent.PPO2_info()
@@ -185,11 +184,12 @@ if __name__ == '__main__':
 				env.step_update(a)
 				# env.visualization()
 				sumr += env.reward
-				success = 1.0 if env.terminal_flag == 3 else 0.0	# 3 成功，不出界，就是 success
+				success = .0 if env.terminal_flag == 1 else 1.0	# 3 成功，不出界，就是 success
 				agent.buffer.append(s=env.current_state,
 									a=a,
 									log_prob=a_log_prob,
 									r=reward_norm(env.reward),
+									# r=env.reward,
 									s_=env.next_state,
 									done=1.0 if env.is_terminal else 0.0,
 									success=success,
@@ -231,8 +231,8 @@ if __name__ == '__main__':
 
 		'''4. 每学习 50 次，减小一次探索概率'''
 		if t_epoch % 50 == 0 and t_epoch > 0:
-			if agent.actor.std > 0.1:
-				agent.actor.std -= 0.05
+			if agent.actor.std > 0.4:
+				agent.actor.std -= 0.1
 		'''4. 每学习 100 次，减小一次探索概率'''
 
 		'''5. 每学习 50 次，保存一下 policy'''

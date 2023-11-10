@@ -260,7 +260,7 @@ class Distributed_PPO2:
 						self.env.step_update(_a)
 						r += self.env.reward
 						self.env.visualization()
-						print('Test: %.2f' % (r))
+					print('Test: %.2f' % (r))
 					# cv.destroyAllWindows()
 		print('...training end...')
 
