@@ -191,7 +191,7 @@ if __name__ == '__main__':
 									log_prob=a_log_prob,
 									r=reward_norm(env.reward),
 									s_=env.next_state,
-									done=0.5 if env.is_terminal else 0.0,
+									done=1.0 if env.is_terminal else 0.0,
 									success=success,
 									index=buffer_index)
 				buffer_index += 1
