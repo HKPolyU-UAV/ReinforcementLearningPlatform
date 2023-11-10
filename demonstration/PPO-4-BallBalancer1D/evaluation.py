@@ -1,17 +1,19 @@
 import datetime
 import os
 import sys
+from matplotlib import pyplot as plt
+from numpy import deg2rad
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../")
 
-from SecondOrderIntegration import SecondOrderIntegration as env
+from BallBalancer1D import BallBalancer1D as env
 from algorithm.policy_base.Proximal_Policy_Optimization import Proximal_Policy_Optimization as PPO
 from utils.classes import *
 
 optPath = './datasave/net/'
 show_per = 1
 timestep = 0
-ENV = 'PPO-second-order-integration'
+ENV = 'PPO-ball-balancer-1D'
 
 
 def setup_seed(seed):
@@ -34,17 +36,17 @@ class PPOActorCritic(nn.Module):
         self.action_var = torch.full((self.action_dim,), self.action_std_init * self.action_std_init)
 
         self.actor = nn.Sequential(
-            nn.Linear(self.state_dim, 128),
+            nn.Linear(self.state_dim, 64),
             nn.Tanh(),
-            nn.Linear(128, 64),
+            nn.Linear(64, 64),
             nn.Tanh(),
             nn.Linear(64, self.action_dim),
             nn.Tanh()
         )
         self.critic = nn.Sequential(
-            nn.Linear(self.state_dim, 128),
+            nn.Linear(self.state_dim, 64),
             nn.Tanh(),
-            nn.Linear(128, 64),
+            nn.Linear(64, 64),
             nn.Tanh(),
             nn.Linear(64, 1)
         )
@@ -144,7 +146,7 @@ if __name__ == '__main__':
                 K_epochs=20,
                 eps_clip=0.2,
                 action_std_init=action_std_init,
-                buffer_size=int(env.time_max / env.dt * 2),
+                buffer_size=int(env.timeMax / env.dt * 2),
                 policy=policy,
                 policy_old=policy_old,
                 path=simulation_path)
@@ -152,7 +154,6 @@ if __name__ == '__main__':
     # agent.policy.load_state_dict(torch.load('Policy_PPO859000'))
     test_num = 5
     r = 0
-    ux, uy, uz = [], [], []
     for _ in range(test_num):
         env.reset(random=True)
         while not env.is_terminal:
