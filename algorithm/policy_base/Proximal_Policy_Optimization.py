@@ -120,7 +120,7 @@ class Proximal_Policy_Optimization:
 
 		'''2. Normalizing the rewards'''
 		rewards = torch.tensor(np.array(rewards), dtype=torch.float32).to(device)
-		rewards = (rewards - rewards.mean()) / (rewards.std() + 1e-7)
+		# rewards = (rewards - rewards.mean()) / (rewards.std() + 1e-7)
 
 		'''3. convert numpy to tensor'''
 		with torch.no_grad():
@@ -142,7 +142,7 @@ class Proximal_Policy_Optimization:
 			rewards = torch.squeeze(rewards)
 
 			'''5.3 Finding the ratio (pi_theta / pi_theta__old)'''
-			ratios = torch.exp(log_probs - old_log_probs.sum(1).detach())
+			ratios = torch.exp(log_probs - old_log_probs.mean(dim=1).detach())
 
 			'''5.4 Finding Surrogate Loss'''
 			surr1 = ratios * advantages

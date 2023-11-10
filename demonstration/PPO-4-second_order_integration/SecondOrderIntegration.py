@@ -30,10 +30,10 @@ class SecondOrderIntegration(rl_base):
 
         self.fMax = 3
         self.fMin = -3
-        self.admissible_error = 5
+        self.admissible_error = 0
 
         self.k = 0.15
-        self.dt = 0.02  # 50Hz
+        self.dt = 0.01  # 50Hz
         self.time = 0.  # time
         self.time_max = 5.0  # 每回合最大时间
 
@@ -204,8 +204,11 @@ class SecondOrderIntegration(rl_base):
         cv.waitKey(1)
 
     def get_state(self):
-        self.error = self.target - self.pos
-        return np.hstack((self.error, -self.vel))
+        # self.error = self.target - self.pos
+        # return np.hstack((self.error, -self.vel))
+        error = (self.error * 2 - self.map_size[0]) / self.map_size[0]
+        vel = self.vel / 3
+        return np.hstack((error, vel))
 
     def is_out(self):
         right_out = self.pos[0] > self.map_size[0] + self.admissible_error
@@ -238,29 +241,19 @@ class SecondOrderIntegration(rl_base):
         #     self.is_terminal = True
 
     def get_reward(self, param=None):
-        # Q_pos = 0.1 * np.ones(2)
-        # Q_vel = 0.01 * np.ones(2)
-        # Q_acc = 0.001 * np.ones(2)
-        #
-        # e_pos = self.target - self.pos
-        # e_vel = -self.vel
-        #
-        # u_pos = -np.dot(e_pos ** 2, Q_pos)
-        # u_vel = -np.dot(e_vel ** 2, Q_vel)
-        # u_acc = -np.dot(self.acc ** 2, Q_acc)
-        Q_pos = 1
-        Q_vel = 0.01
-        Q_acc = 0.00
+        Q_pos = 1 * np.ones(2)
+        Q_vel = 0.1 * np.ones(2)
+        Q_acc = 0.02 * np.ones(2)
 
-        e_pos = np.linalg.norm(self.target - self.pos)
-        e_vel = np.linalg.norm(-self.vel)
+        e_pos = self.target - self.pos
+        e_vel = -self.vel
 
-        u_pos = -e_pos * Q_pos
-        u_vel = -e_vel * Q_vel
-        u_acc = -np.linalg.norm(self.acc) * Q_acc
+        u_pos = -np.dot(e_pos ** 2, Q_pos)
+        u_vel = -np.dot(e_vel ** 2, Q_vel)
+        u_pos -= np.dot(np.tanh(5 * e_pos) ** 2, Q_pos)
+        u_vel -= np.dot(np.tanh(5 * e_vel) ** 2, Q_vel)
+        u_acc = -np.dot(self.acc ** 2, Q_acc)
         u_extra = 0.
-        # if e_pos < 2.5:
-        #     u_pos += 2.0
         if self.terminal_flag == 1:  # position out
             _n = (self.time_max - self.time) / self.dt
             u_extra = _n * (u_pos + u_vel + u_acc)

@@ -228,6 +228,7 @@ class Flight_Attitude_Simulator(rl_base):
         else:
             r3 = 0.
         self.reward = r1 + r2 + r3
+
     def ode(self, xx: np.ndarray):
         _dtheta = xx[1]
         _ddtheta = (self.force * self.L - self.m * self.g * self.dis - self.k * xx[1]) / (self.J + self.m * self.dis ** 2)
