@@ -2,7 +2,10 @@ import math
 import os
 import sys
 
-import numpy as np
+import sys, os
+sys.path.append(os.path.dirname(os.path.abspath(__file__) + '/../'))
+sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../../")
+
 from numpy import deg2rad
 
 from algorithm.rl_base import rl_base
@@ -11,8 +14,6 @@ from environment.uav_robust.collector import data_collector
 from environment.uav_robust.ref_cmd import *
 from environment.uav_robust.uav import UAV, uav_param
 from environment.uav_robust.uav_att_ctrl import uav_att_ctrl
-
-sys.path.append(os.path.dirname(os.path.abspath(__file__) + '/../'))
 
 
 class uav_inner_loop(rl_base, uav_att_ctrl):

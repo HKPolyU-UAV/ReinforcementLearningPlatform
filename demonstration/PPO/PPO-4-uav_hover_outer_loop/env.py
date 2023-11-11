@@ -2,6 +2,9 @@ import math
 import os
 import sys
 from numpy import deg2rad
+
+sys.path.append(os.path.dirname(os.path.abspath(__file__)) + '/../../../')
+
 from algorithm.rl_base import rl_base
 from environment.uav_robust.Color import Color
 from environment.uav_robust.FNTSMC import fntsmc_att, fntsmc_param
@@ -9,8 +12,6 @@ from environment.uav_robust.collector import data_collector
 from environment.uav_robust.ref_cmd import *
 from environment.uav_robust.uav import UAV, uav_param
 from environment.uav_robust.uav_pos_ctrl import uav_pos_ctrl
-
-sys.path.append(os.path.dirname(os.path.abspath(__file__) + '/../'))
 
 
 class uav_hover_outer_loop(rl_base, uav_pos_ctrl):

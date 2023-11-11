@@ -234,9 +234,9 @@ class PPOActorCritic(nn.Module):
 
         _a = dist.sample()
         action_log_prob = dist.log_prob(_a)
-        state_val = self.critic(s)
+        # state_val = self.critic(s)
 
-        return _a.detach(), action_log_prob.detach(), state_val.detach()
+        return _a.detach(), action_log_prob.detach()  #, state_val.detach()
 
     def evaluate(self, s, a):
         action_mean = self.actor(s)

@@ -5,6 +5,7 @@ import time
 import pandas as pd
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../")
+sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../")
 
 from BallBalancer1D import BallBalancer1D as env
 from algorithm.policy_base.Proximal_Policy_Optimization import Proximal_Policy_Optimization as PPO
@@ -77,9 +78,9 @@ class PPOActorCritic(nn.Module):
 
         _a = dist.sample()
         action_logprob = dist.log_prob(_a)
-        state_val = self.critic(s)
+        # state_val = self.critic(s)
 
-        return _a.detach(), action_logprob.detach(), state_val.detach()
+        return _a.detach(), action_logprob.detach()  #, state_val.detach()
 
     def evaluate(self, s, a):
         """评估状态动作价值"""
@@ -172,16 +173,16 @@ if __name__ == '__main__':
         while not env.is_terminal:
             env.current_state = env.next_state.copy()
             # norm_s = env.current_state_norm(env.current_state)
-            action_from_actor, s, a_log_prob, s_value = agent.choose_action(env.current_state)
-            action = agent.action_linear_trans(action_from_actor.detach().cpu().numpy().flatten())
+            action_from_actor, a_log_prob = agent.choose_action(env.current_state)
+            action = agent.action_linear_trans(action_from_actor)
             env.step_update(action)  # 环境更新的动作必须是实际物理动作
             sumr += env.reward
             '''存数'''
-            agent.buffer.append(s=s,
+            agent.buffer.append(s=env.current_state,
                                 a=action_from_actor,
-                                log_prob=a_log_prob.numpy(),
+                                log_prob=a_log_prob,
                                 r=reward_norm(env.reward),
-                                s_=s_value.numpy(),
+                                s_=env.next_state,
                                 done=1.0 if env.is_terminal else 0.0,
                                 success=1.0 if env.terminal_flag == 1 else 0.0,
                                 index=index)
@@ -204,9 +205,8 @@ if __name__ == '__main__':
                         env.reset(random=True)
                         while not env.is_terminal:
                             env.current_state = env.next_state.copy()
-                            action_from_actor, s, a_log_prob, s_value = \
-                                agent.choose_action(env.current_state)
-                            action = agent.action_linear_trans(action_from_actor.detach().cpu().numpy().flatten())
+                            action_from_actor, a_log_prob = agent.choose_action(env.current_state)
+                            action = agent.action_linear_trans(action_from_actor)
                             env.step_update(action)  # 环境更新的动作必须是实际物理动作
                             average_test_r += env.reward
                             env.visualization()

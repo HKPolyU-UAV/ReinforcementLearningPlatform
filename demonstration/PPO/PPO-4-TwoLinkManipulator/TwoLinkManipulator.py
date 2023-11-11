@@ -1,5 +1,8 @@
 import math
 import cv2 as cv
+import sys, os
+sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../../")
+
 from environment.color import Color
 from utils.functions import *
 from algorithm.rl_base import rl_base

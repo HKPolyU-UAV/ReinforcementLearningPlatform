@@ -2,24 +2,23 @@ import datetime
 import os
 import sys
 import time
-
-import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
+from numpy import deg2rad
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../")
 
-from env import uav_hover_outer_loop as env
+from env import uav_inner_loop as env
 from environment.uav_robust.ref_cmd import generate_uncertainty
 from environment.uav_robust.uav import uav_param
 from environment.uav_robust.FNTSMC import fntsmc_param
 from algorithm.policy_base.Proximal_Policy_Optimization import Proximal_Policy_Optimization as PPO
 from utils.classes import *
 
-optPath = './datasave/net'
+optPath = './datasave/net/'
 show_per = 1
 timestep = 0
-ENV = 'PPO-uav-hover-outer-loop'
+ENV = 'PPO-uav-inner-loop'
 
 '''Parameter list of the quadrotor'''
 DT = 0.01
@@ -39,22 +38,10 @@ uav_param.angle0 = np.array([0, 0, 0])
 uav_param.pqr0 = np.array([0, 0, 0])
 uav_param.dt = DT
 uav_param.time_max = 10
-uav_param.pos_zone = np.atleast_2d([[-5, 5], [-5, 5], [0, 5]])
+# 只有姿态时范围可以给大点方便训练
+uav_param.att_zone = np.atleast_2d(
+    [[-deg2rad(90), deg2rad(90)], [-deg2rad(90), deg2rad(90)], [deg2rad(-120), deg2rad(120)]])
 '''Parameter list of the quadrotor'''
-
-'''Parameter list of the attitude controller'''
-att_ctrl_param = fntsmc_param()
-att_ctrl_param.k1 = np.array([25, 25, 40])
-att_ctrl_param.k2 = np.array([0.1, 0.1, 0.2])
-att_ctrl_param.alpha = np.array([2.5, 2.5, 2.5])
-att_ctrl_param.beta = np.array([0.99, 0.99, 0.99])
-att_ctrl_param.gamma = np.array([1.5, 1.5, 1.2])
-att_ctrl_param.lmd = np.array([2.0, 2.0, 2.0])
-att_ctrl_param.dim = 3
-att_ctrl_param.dt = DT
-att_ctrl_param.ctrl0 = np.array([0., 0., 0.])
-att_ctrl_param.saturation = np.array([0.3, 0.3, 0.3])
-'''Parameter list of the attitude controller'''
 
 
 class PPOActorCritic(nn.Module):
@@ -118,9 +105,8 @@ class PPOActorCritic(nn.Module):
 
         _a = dist.sample()
         action_logprob = dist.log_prob(_a)
-        state_val = self.critic(s)
 
-        return _a.detach(), action_logprob.detach(), state_val.detach()
+        return _a.detach(), action_logprob.detach()
 
     def evaluate(self, s, a):
         """评估状态动作价值"""
@@ -167,11 +153,16 @@ if __name__ == '__main__':
     simulation_path = log_dir + datetime.datetime.strftime(datetime.datetime.now(),
                                                            '%Y-%m-%d-%H-%M-%S') + '-' + ENV + '/'
     os.mkdir(simulation_path)
-    RETRAIN = False
 
-    env = env(uav_param, fntsmc_param(), att_ctrl_param, target0=np.array([-1, 3, 2]))
+    env = env(uav_param, fntsmc_param(),
+              ref_amplitude=np.array([np.pi / 3, np.pi / 3, np.pi / 2]),
+              ref_period=np.array([4, 4, 4]),
+              ref_bias_a=np.array([0, 0, 0]),
+              ref_bias_phase=np.array([0., np.pi / 2, np.pi / 3]))
+
     env.msg_print_flag = False  # 别疯狂打印出界了
     reward_norm = Normalization(shape=1)
+    RETRAIN = False
 
     action_std_init = 0.8
     '''重新加载Policy网络结构，这是必须的操作'''
@@ -208,21 +199,22 @@ if __name__ == '__main__':
     test_reward = []
     index = 0
     while timestep <= max_training_timestep:
+        # env.reset()
         env.reset_random()
         sumr = 0.
         while not env.is_terminal:
             env.current_state = env.next_state.copy()
-            action_from_actor, s, a_log_prob, s_value = agent.choose_action(env.current_state)
-            action = agent.action_linear_trans(action_from_actor.detach().cpu().numpy().flatten())
+            action_from_actor, a_log_prob = agent.choose_action(env.current_state)
+            action = agent.action_linear_trans(action_from_actor)
             uncertainty = generate_uncertainty(time=env.time, is_ideal=True)  # 生成干扰信号
             env.step_update(action)  # 环境更新的动作必须是实际物理动作
             sumr += env.reward
             '''存数'''
             agent.buffer.append(s=env.current_state,
                                 a=action_from_actor,
-                                log_prob=a_log_prob.numpy(),
+                                log_prob=a_log_prob,
                                 r=reward_norm(env.reward),
-                                s_=s_value.numpy(),
+                                s_=env.next_state,
                                 done=1.0 if env.is_terminal else 0.0,
                                 success=1.0 if env.terminal_flag == 1 else 0.0,
                                 index=index)
@@ -239,24 +231,26 @@ if __name__ == '__main__':
                 index = 0
                 if train_num % 20 == 0 and train_num > 0:
                     print('========= Testing =========')
+                    n = 1
                     average_test_r = 0
-                    test_num += 1
-                    for _ in range(3):
+                    for i in range(n):
+                        # env.reset()
                         env.reset_random()
                         while not env.is_terminal:
                             env.current_state = env.next_state.copy()
-                            action_from_actor, s, a_log_prob, s_value = agent.choose_action(env.current_state)
-                            action = agent.action_linear_trans(action_from_actor.detach().cpu().numpy().flatten())
+                            action_from_actor, a_log_prob = agent.choose_action(env.current_state)
+                            action = agent.action_linear_trans(action_from_actor)
                             uncertainty = generate_uncertainty(time=env.time, is_ideal=True)  # 生成干扰信号
                             env.step_update(action)  # 环境更新的动作必须是实际物理动作
                             average_test_r += env.reward
                             env.visualization()
-                    average_test_r /= 3
+                    test_num += 1
+                    average_test_r = round(average_test_r / n, 3)
                     test_reward.append(average_test_r)
                     print('   Evaluating %.0f | Reward: %.2f ' % (test_num, average_test_r))
                     temp = simulation_path + 'test_num' + '_' + str(test_num - 1) + '_save/'
                     os.mkdir(temp)
-                    pd.DataFrame({'reward': test_reward}).to_csv(simulation_path + 'retrain_reward.csv')
+                    pd.DataFrame({'reward': test_reward}).to_csv(simulation_path + 'train_reward.csv')
                     time.sleep(0.01)
                     agent.policy_old.save_checkpoint(name='Policy_PPO', path=temp, num=timestep)
             if timestep % action_std_decay_freq == 0:

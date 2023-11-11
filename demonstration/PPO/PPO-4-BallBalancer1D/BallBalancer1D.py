@@ -3,6 +3,9 @@ import random
 import cv2 as cv
 import numpy as np
 import pandas as pd
+import os, sys
+
+sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../../")
 
 from environment.color import Color
 from utils.functions import *

@@ -1,6 +1,10 @@
 import cv2 as cv
 import numpy as np
 import pandas as pd
+import sys, os
+sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../../")
+
+
 from utils.functions import *
 from utils.classes import Normalization
 from algorithm.rl_base import rl_base
