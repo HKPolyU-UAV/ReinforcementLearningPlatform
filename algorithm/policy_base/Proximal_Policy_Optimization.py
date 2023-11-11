@@ -130,11 +130,7 @@ class Proximal_Policy_Optimization:
             old_state_values = torch.FloatTensor(self.policy.critic(torch.FloatTensor(self.buffer.s))).detach().to(self.device)
 
         '''4. calculate advantages'''
-        yyf1 = torch.squeeze(rewards).detach()
-        yyf2 = torch.squeeze(old_state_values).detach()
-        print('奥利给干了兄弟们')
-        print(yyf1.shape, yyf2.shape)
-        advantages = yyf1 - yyf2
+        advantages = torch.squeeze(rewards).detach() - torch.squeeze(old_state_values).detach()
 
         '''5. Optimize policy for K epochs'''
         for _ in range(self.K_epochs):

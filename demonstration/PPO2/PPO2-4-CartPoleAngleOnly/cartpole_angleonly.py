@@ -36,8 +36,8 @@ class CartPoleAngleOnly(rl_base):
 		self.kf = 0.2  # friction coefficient
 		self.fm = 5  # maximum force added on the cart
 
-		self.dt = 0.01  # 10ms
-		self.timeMax = 6  # maximum time of each episode
+		self.dt = 0.02  # 10ms
+		self.timeMax = 5  # maximum time of each episode
 		self.time = 0.
 		self.etheta = 0. - self.theta
 		self.ex = 0. - self.x
@@ -168,12 +168,14 @@ class CartPoleAngleOnly(rl_base):
 		'''玄学，完全是玄学, sun of a bitch'''
 		'''二次型奖励'''
 		Q_theta = 1
-		Q_omega = 0.01
-		R = 0.01
+		Q_omega = 0.0
+		R = 0.00
 		# r1_min = -self.thetaMax ** 2 * self.Q_theta
 		# r2_min = -8 ** 2 * self.Q_omega
 		# r3_min = -self.fm ** 2 * R		# 有正有负，仅此而已
-		r1 = -self.theta ** 2 * Q_theta # - r1_min / 2
+		theta_middle = self.thetaMax / 2
+		# r1 = -self.theta ** 2 * Q_theta
+		r1 = (theta_middle - np.fabs(self.theta)) * 10
 		r2 = -self.dtheta ** 2 * Q_omega # - r2_min / 2
 		r3 = -self.force ** 2 * R # - r3_min / 2
 		# r3 = 0
@@ -181,6 +183,8 @@ class CartPoleAngleOnly(rl_base):
 		if self.terminal_flag == 1:		# 如果角度出界
 			_n = (self.timeMax - self.time) / self.dt
 			r4 = _n * (r1 + r2 + r3)
+			# print('结束',_n, r1, r2, r3, r4)
+			# print(self.theta)
 		r = r1 + r2 + r3 + r4
 		'''二次型奖励'''
 

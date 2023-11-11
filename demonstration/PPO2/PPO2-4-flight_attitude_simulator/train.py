@@ -9,6 +9,7 @@ import torch
 import torch.nn as nn
 from torch.distributions import Normal
 
+sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../")
 
@@ -123,7 +124,7 @@ if __name__ == '__main__':
 	os.mkdir(simulationPath)
 	c = cv.waitKey(1)
 
-	RETRAIN = True
+	RETRAIN = False
 
 	env = fas(deg2rad(0))
 	reward_norm = Normalization(shape=1)

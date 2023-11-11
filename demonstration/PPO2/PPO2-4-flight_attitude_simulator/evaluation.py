@@ -4,12 +4,12 @@ import torch.nn as nn
 import torch
 from torch.distributions import Normal
 
+sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../")
 
 from flight_attitude_simulator import Flight_Attitude_Simulator as fas
 from utils.functions import *
-from utils.classes import PPOActor_Gaussian
 
 
 test_episode = []

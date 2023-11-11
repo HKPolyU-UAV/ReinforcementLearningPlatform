@@ -43,7 +43,7 @@ class PPOActorCritic(nn.Module):
             nn.Tanh(),
             nn.Linear(128, 64),
             nn.Tanh(),
-            nn.Linear(64, self.action_dim),
+            nn.Linear(64, 1),
             nn.Tanh()
         )
         self.actor_reset_orthogonal()
