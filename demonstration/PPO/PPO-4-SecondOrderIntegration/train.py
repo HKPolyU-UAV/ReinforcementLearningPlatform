@@ -13,7 +13,7 @@ from utils.classes import *
 optPath = './datasave/net/'
 show_per = 1
 timestep = 0
-ENV = 'PPO-second-order-integration'
+ENV = 'PPO-SecondOrderIntegration'
 
 
 class PPOActorCritic(nn.Module):

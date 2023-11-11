@@ -1,15 +1,9 @@
-import sys
-import os
+import math
 
-import numpy as np
-
-# sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../../")
-
-from common.common_func import *
-from algorithm.rl_base.rl_base import rl_base
+from utils.functions import *
+from algorithm.rl_base import rl_base
 import cv2 as cv
-from environment.Color import Color
-from environment.config.xml_write import *
+from environment.color import Color
 import pandas as pd
 
 
@@ -124,9 +118,6 @@ class CartPole(rl_base):
         self.saveTime = [self.time]
         '''datasave'''
 
-        if save_cfg:
-            self.saveModel2XML()
-
     def draw_slide(self):
         pt1 = (self.xoffset, int(self.height / 2) - 1)
         pt2 = (self.width - 1 - self.xoffset, int(self.height / 2) + 1)
@@ -164,13 +155,13 @@ class CartPole(rl_base):
                    Color().Black, 1)
         cv.putText(self.image, "  x  : %.3f m" % self.x, (20, 60), cv.FONT_HERSHEY_COMPLEX, 0.4, Color().Black, 1)
 
-    def show_dynamic_image(self, isWait=False):
+    def visualization(self):
         self.image = self.show.copy()
         self.draw_cartpole()
         self.make_text()
         self.draw_center()
         cv.imshow(self.name4image, self.image)
-        cv.waitKey(0) if isWait else cv.waitKey(1)
+        cv.waitKey(1)
 
     def is_success(self):
         if np.linalg.norm([self.ex, self.dx, self.etheta, self.dtheta]) < 1e-2:
@@ -234,41 +225,6 @@ class CartPole(rl_base):
         self.reward = -0.1 * (5 * self.etheta ** 2 + self.ex ** 2 + 0.05 * self.force ** 2) + r6
         '''玄学，完全是玄学, sun of a bitch'''
 
-    # if self.x > 0:			# x+
-    # 	if self.theta < 0:	# x+ theta-
-    # 		if self.dx < 0:	# x+ theta- dx- 对
-    # 			r1 = 3
-    # 		else:			# x+ theta- dx+ 错
-    # 			r1 = -3
-    # 	else:				# x+ theta+
-    # 		if self.dx < 0:	# x+ theta+ dx- 错
-    # 			r1 = -3
-    # 		else:			# x+ theta+ dx+ 对
-    # 			r1 = 3
-    # else:					# x-
-    # 	if self.theta < 0:	# x- theta-
-    # 		if self.dx < 0:	# x- theta- dx- 对
-    # 			r1 = 3
-    # 		else:			# x- theta- dx+ 错
-    # 			r1 = -3
-    # 	else:				# x- theta+
-    # 		if self.dx < 0:	# x- theta+ dx- 错
-    # 			r1 = -3
-    # 		else:			# x- theta+ dx+ 对
-    # 			r1 = 3
-    # r2 = self.force ** 2 * 0.1
-    # if self.terminal_flag == 1:		# angle out
-    # 	r3 = -20
-    # elif self.terminal_flag == 2:	# position out
-    # 	r3 = -10
-    # elif self.terminal_flag == 3:	# time out
-    # 	r3 = 10
-    # elif self.terminal_flag == 4:	# success
-    # 	r3 = 100
-    # else:
-    # 	r3 = 0
-    # self.reward = r1 + r2 + r3
-
     def ode(self, xx: np.ndarray):
         """
         :param xx:  微分方程的状态，不是强化学习的状态。
@@ -330,56 +286,15 @@ class CartPole(rl_base):
         self.get_reward()
         return self.current_state, action, self.reward, self.next_state, self.is_terminal
 
-    def reset(self):
+    def reset(self, random: bool = False):
         """
         :brief:     reset
         :return:    None
         """
         '''physical parameters'''
-        self.theta = self.initTheta
-        self.x = self.initX
-        self.dtheta = 0.  # 从左往右转为正
-        self.dx = 0.  # 水平向左为正
-        self.force = 0.  # 外力，水平向左为正
-        self.time = 0.
-        self.etheta = 0. - self.theta
-        self.ex = 0. - self.x
-        '''physical parameters'''
-
-        '''RL_BASE'''
-        self.initial_state = np.array([self.theta / self.thetaMax * self.staticGain,
-                                       self.dtheta / self.norm_4_boundless_state * self.staticGain,
-                                       self.x / self.xMax * self.staticGain,
-                                       self.dx / self.norm_4_boundless_state * self.staticGain])
-        self.current_state = self.initial_state.copy()
-        self.next_state = self.initial_state.copy()
-
-        self.initial_action = [self.force]
-        self.current_action = self.initial_action.copy()
-
-        self.reward = 0.0
-        self.is_terminal = False
-        self.terminal_flag = 0
-        '''RL_BASE'''
-
-        '''data_save'''
-        self.save_X = [self.x]
-        self.save_Theta = [self.theta]
-        self.save_dX = [self.dx]
-        self.save_dTheta = [self.dtheta]
-        self.save_ex = [self.ex]
-        self.save_eTheta = [self.etheta]
-        self.saveTime = [self.time]
-        '''data_save'''
-
-    def reset_random(self):
-        """
-        :brief:     reset
-        :return:    None
-        """
-        '''physical parameters'''
-        self.initTheta = random.uniform(-self.thetaMax / 2, self.thetaMax / 2)
-        self.initX = random.uniform(-self.xMax / 2, self.xMax / 2)
+        if random:
+            self.initTheta = np.random.uniform(-self.thetaMax / 2, self.thetaMax / 2)
+            self.initX = np.random.uniform(-self.xMax / 2, self.xMax / 2)
         self.theta = self.initTheta
         self.x = self.initX
         self.dtheta = 0.  # 从左往右转为正
@@ -459,81 +374,6 @@ class CartPole(rl_base):
         self.save_eTheta = [self.etheta]
         self.saveTime = [self.time]
         '''data_save'''
-
-    def saveModel2XML(self, filename='CartPole.xml', filepath='../config/'):
-        rootMsg = {
-            'name': 'cartpole',
-            'author': 'Yefeng YANG',
-            'date': '2023.02.18',
-            'E-mail': 'yefeng.yang@connect.polyu.hk; 18B904013@stu.hit.edu.cn'
-        }
-        rl_baseMsg = {
-            'state_dim': self.state_dim,
-            'state_num': self.state_num,
-            'state_step': self.state_step,
-            'state_space': self.state_space,
-            'state_range': self.state_range,
-            'isStateContinuous': self.isStateContinuous,
-            'initial_state': self.initial_state,
-            'current_state': self.current_state,
-            'next_state': self.next_state,
-            'action_dim': self.action_dim,
-            'action_step': self.action_step,
-            'action_range': self.action_range,
-            'action_num': self.action_num,
-            'action_space': self.action_space,
-            'isActionContinuous': self.isActionContinuous,
-            'initial_action': self.initial_action,
-            'current_action': self.current_action,
-            'is_terminal': self.is_terminal
-        }
-        physicalMsg = {
-            'initTheta': self.initTheta,
-            'initX': self.initX,
-            'theta': self.theta,
-            'x': self.x,
-            'dtheta': self.dtheta,
-            'dx': self.dx,
-            'force': self.force,
-            'thetaMax': self.thetaMax,
-            'xMax': self.xMax,
-            'staticGain': self.staticGain,
-            'norm_4_boundless_state': self.norm_4_boundless_state,
-            'M': self.M,
-            'm': self.m,
-            'g': self.g,
-            'ell': self.ell,
-            'kf': self.kf,
-            'fMax': self.fm,
-            'dt': self.dt,
-            'timeMax': self.timeMax,
-            'time': self.time,
-            'etheta': self.etheta,
-            'ex': self.ex
-        }
-        imageMsg = {
-            'width': self.width,
-            'height': self.height,
-            'name4image': self.name4image,
-            'scale': self.scale,
-            'xoffset': self.xoffset,
-            'cart_x_pixel': self.cart_x_pixel,
-            'cart_y_pixel': self.cart_y_pixel,
-            'pole_ell_pixel': self.pole_ell_pixel
-        }
-        xml_cfg().XML_Create(filename=filepath + filename,
-                             rootname='Plant',
-                             rootmsg=rootMsg)
-        xml_cfg().XML_InsertNode(filename=filepath + filename,
-                                 nodename='RL_Base',
-                                 nodemsg=rl_baseMsg)
-        xml_cfg().XML_InsertNode(filename=filepath + filename,
-                                 nodename='Physical',
-                                 nodemsg=physicalMsg)
-        xml_cfg().XML_InsertNode(filename=filepath + filename,
-                                 nodename='Image',
-                                 nodemsg=imageMsg)
-        xml_cfg().XML_Pretty_All(filepath + filename)
 
     def saveData(self, is2file=False, filename='cartpole.csv', filepath=''):
         if is2file:

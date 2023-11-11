@@ -14,7 +14,7 @@ from utils.classes import *
 optPath = './datasave/net/'
 show_per = 1
 timestep = 0
-ENV = 'PPO-ball-balancer-1D'
+ENV = 'PPO-BallBalancer1D'
 
 
 class PPOActorCritic(nn.Module):

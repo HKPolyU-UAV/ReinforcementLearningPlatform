@@ -10,7 +10,7 @@ from matplotlib import pyplot as plt
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__) + '/../../../'))
 
-from env import uav_hover_outer_loop as env
+from UavOuterLoop import uav_hover_outer_loop as env
 from environment.uav_robust.ref_cmd import generate_uncertainty
 from environment.uav_robust.uav import uav_param
 from environment.uav_robust.FNTSMC import fntsmc_param
@@ -20,7 +20,7 @@ from utils.classes import *
 optPath = './datasave/net'
 show_per = 1
 timestep = 0
-ENV = 'PPO-uav-hover-outer-loop'
+ENV = 'PPO-UavOuterLoop'
 
 '''Parameter list of the quadrotor'''
 DT = 0.01

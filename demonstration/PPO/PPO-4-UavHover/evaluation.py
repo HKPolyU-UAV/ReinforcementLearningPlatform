@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../")
 
-from env import uav_hover as env
+from UavHover import uav_hover as env
 from environment.uav_robust.uav import uav_param
 from environment.uav_robust.FNTSMC import fntsmc_param
 from algorithm.policy_base.Proximal_Policy_Optimization import Proximal_Policy_Optimization as PPO
@@ -14,7 +14,7 @@ from utils.classes import *
 optPath = './datasave/net/'
 show_per = 1
 timestep = 0
-ENV = 'PPO-uav-hover'
+ENV = 'PPO-UavHover'
 
 
 def setup_seed(seed):

@@ -11,7 +11,7 @@ from utils.classes import *
 optPath = './datasave/net/'
 show_per = 1
 timestep = 0
-ENV = 'PPO-second-order-integration'
+ENV = 'PPO-SecondOrderIntegration'
 
 
 def setup_seed(seed):
@@ -92,7 +92,7 @@ class PPOActorCritic(nn.Module):
         """评估状态动作价值"""
         action_mean = self.actor(s)
         action_var = self.action_var.expand_as(action_mean)
-        cov_mat = torch.diag_embed(self.action_var).to(self.device)
+        cov_mat = torch.diag_embed(action_var).to(self.device)
         dist = MultivariateNormal(action_mean, cov_mat)
 
         # 一维动作单独处理

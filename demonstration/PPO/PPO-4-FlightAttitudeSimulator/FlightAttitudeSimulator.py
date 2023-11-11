@@ -7,7 +7,7 @@ from environment.color import Color
 
 
 class Flight_Attitude_Simulator(rl_base):
-    def __init__(self, initTheta: float, save_cfg: bool):
+    def __init__(self, initTheta: float):
         """
         @note:                  initialization, 这个环境只有两个状态，角度和角速度，默认设定点为零度，并且取消初始角度，此时角度误差默认为负角度
         @param initTheta:       initial theta
@@ -171,7 +171,8 @@ class Flight_Attitude_Simulator(rl_base):
         @return:
         """
         _Theta = (2 * self.theta - self.maxTheta - self.minTheta) / (self.maxTheta - self.minTheta) * self.staticGain
-        _dTheta = (2 * self.dTheta - self.max_omega - self.min_omega) / (self.max_omega - self.min_omega) * self.staticGain
+        _dTheta = (2 * self.dTheta - self.max_omega - self.min_omega) / (
+                    self.max_omega - self.min_omega) * self.staticGain
         norm_state = np.array([_Theta, _dTheta])
         return norm_state
 
@@ -186,8 +187,8 @@ class Flight_Attitude_Simulator(rl_base):
         return inv_norm_state
 
     def is_success(self):
-        if np.fabs(self.thetaError) < deg2rad(1):       # 角度误差小于1度
-            if np.fabs(self.dTheta) < deg2rad(1):       # 速度也很小
+        if np.fabs(self.thetaError) < deg2rad(1):  # 角度误差小于1度
+            if np.fabs(self.dTheta) < deg2rad(1):  # 速度也很小
                 return True
         return False
 
@@ -223,15 +224,17 @@ class Flight_Attitude_Simulator(rl_base):
         r2 = -self.dTheta ** 2 * R
 
         # r3 = 0.
-        if self.terminal_flag == 1 or self.terminal_flag == 2:      # 出界
+        if self.terminal_flag == 1 or self.terminal_flag == 2:  # 出界
             _n = (self.timeMax - self.time) / self.dt
             r3 = _n * (r1 + r2)
         else:
             r3 = 0.
         self.reward = r1 + r2 + r3
+
     def ode(self, xx: np.ndarray):
         _dtheta = xx[1]
-        _ddtheta = (self.force * self.L - self.m * self.g * self.dis - self.k * xx[1]) / (self.J + self.m * self.dis ** 2)
+        _ddtheta = (self.force * self.L - self.m * self.g * self.dis - self.k * xx[1]) / (
+                    self.J + self.m * self.dis ** 2)
         return np.array([_dtheta, _ddtheta])
 
     def rk44(self, action: float):
@@ -260,12 +263,14 @@ class Flight_Attitude_Simulator(rl_base):
         self.next_state = self.state_norm()
         self.get_reward()
 
-    def reset(self):
+    def reset(self, random: bool = False):
         """
         :brief:     reset
         :return:    None
         """
         '''physical parameters'''
+        if random:
+            self.initTheta = np.random.uniform(self.minTheta, self.maxTheta)
         self.theta = self.initTheta
         self.dTheta = 0.0
         self.time = 0.0
@@ -277,32 +282,6 @@ class Flight_Attitude_Simulator(rl_base):
 
         '''RL_BASE'''
         self.current_state = self.state_norm()
-        self.next_state = self.initial_state.copy()
-        self.current_action = np.array([0.])
-        self.reward = 0.0
-        self.is_terminal = False
-        '''RL_BASE'''
-
-    def reset_random(self):
-        """
-        :brief:
-        :return:
-        """
-        '''physical parameters'''
-        self.initTheta = np.random.uniform(self.minTheta, self.maxTheta)
-        self.theta = self.initTheta
-        self.dTheta = 0.0
-        self.time = 0.0
-        self.thetaError = self.setTheta - self.theta
-        self.sum_thetaError = 0.0
-        self.image = np.ones([self.width, self.height, 3], np.uint8) * 255
-        self.draw_base()
-        '''physical parameters'''
-
-        '''RL_BASE'''
-        # 这个状态与控制系统的状态不一样
-        self.initial_state = self.state_norm()
-        self.current_state = self.initial_state.copy()
         self.next_state = self.initial_state.copy()
         self.current_action = np.array([0.])
         self.reward = 0.0

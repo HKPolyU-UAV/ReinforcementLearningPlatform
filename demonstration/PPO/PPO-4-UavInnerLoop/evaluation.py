@@ -6,7 +6,7 @@ from numpy import deg2rad
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../")
 
-from env import uav_inner_loop as env
+from UavInnerLoop import uav_inner_loop as env
 from environment.uav_robust.ref_cmd import generate_uncertainty
 from environment.uav_robust.uav import uav_param
 from environment.uav_robust.FNTSMC import fntsmc_param
@@ -16,7 +16,7 @@ from utils.classes import *
 optPath = './datasave/net/'
 show_per = 1
 timestep = 0
-ENV = 'PPO-uav-inner-loop'
+ENV = 'PPO-UavInnerLoop'
 
 
 def setup_seed(seed):
@@ -120,7 +120,7 @@ class PPOActorCritic(nn.Module):
         """评估状态动作价值"""
         action_mean = self.actor(s)
         action_var = self.action_var.expand_as(action_mean)
-        cov_mat = torch.diag_embed(self.action_var).to(self.device)
+        cov_mat = torch.diag_embed(action_var).to(self.device)
         dist = MultivariateNormal(action_mean, cov_mat)
 
         # 一维动作单独处理
