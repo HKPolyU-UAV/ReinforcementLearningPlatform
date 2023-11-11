@@ -14,7 +14,6 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../")
 
 from SecondOrderIntegration import SecondOrderIntegration
-from environment.color import Color
 from algorithm.policy_base.Proximal_Policy_Optimization2 import Proximal_Policy_Optimization2 as PPO2
 from utils.functions import *
 from utils.classes import Normalization
@@ -46,13 +45,10 @@ class PPOActor_Gaussian(nn.Module):
 				 init_std: float = 0.5,
 				 use_orthogonal_init: bool = True):
 		super(PPOActor_Gaussian, self).__init__()
-		# self.fc1 = nn.Linear(state_dim, 128)
-		# self.fc2 = nn.Linear(128, 128)
-		# self.fc3 = nn.Linear(128, 64)
-		# self.mean_layer = nn.Linear(64, action_dim)
-		self.fc1 = nn.Linear(state_dim, 8)
-		self.fc2 = nn.Linear(8, 8)
-		self.mean_layer = nn.Linear(8, action_dim)
+		self.fc1 = nn.Linear(state_dim, 128)
+		self.fc2 = nn.Linear(128, 64)
+		self.fc3 = nn.Linear(64, 32)
+		self.mean_layer = nn.Linear(32, action_dim)
 		self.activate_func = nn.Tanh()
 		self.a_min = torch.tensor(a_min, dtype=torch.float)
 		self.a_max = torch.tensor(a_max, dtype=torch.float)
@@ -72,13 +68,13 @@ class PPOActor_Gaussian(nn.Module):
 	def orthogonal_init_all(self):
 		self.orthogonal_init(self.fc1)
 		self.orthogonal_init(self.fc2)
-		# self.orthogonal_init(self.fc3)
+		self.orthogonal_init(self.fc3)
 		self.orthogonal_init(self.mean_layer, gain=0.01)
 
 	def forward(self, s):
 		s = self.activate_func(self.fc1(s))
 		s = self.activate_func(self.fc2(s))
-		# s = self.activate_func(self.fc3(s))
+		s = self.activate_func(self.fc3(s))
 		mean = torch.tanh(self.mean_layer(s)) * self.gain + self.off
 		# mean = torch.relu(self.mean_layer(s))
 		return mean
@@ -99,13 +95,9 @@ class PPOActor_Gaussian(nn.Module):
 class PPOCritic(nn.Module):
 	def __init__(self, state_dim=3, use_orthogonal_init: bool = True):
 		super(PPOCritic, self).__init__()
-		# self.fc1 = nn.Linear(state_dim, 128)
-		# self.fc2 = nn.Linear(128, 128)
-		# self.fc3 = nn.Linear(128, 32)
-		# self.fc4 = nn.Linear(32, 1)
-		self.fc1 = nn.Linear(state_dim, 8)
-		self.fc2 = nn.Linear(8, 8)
-		self.fc3 = nn.Linear(8, 1)
+		self.fc1 = nn.Linear(state_dim, 64)
+		self.fc2 = nn.Linear(64, 64)
+		self.fc3 = nn.Linear(64, 1)
 		self.activate_func = nn.Tanh()
 
 		if use_orthogonal_init:

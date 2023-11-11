@@ -264,14 +264,14 @@ class SecondOrderIntegration(rl_base):
         e_vel = np.linalg.norm(-self.vel)
         acc = np.linalg.norm(self.acc)
 
-        u_pos = -e_pos * Q_pos
-        u_vel = -e_vel * Q_vel
-        u_acc = -acc * Q_acc
+        # u_pos = -e_pos * Q_pos
+        # u_vel = -e_vel * Q_vel
+        # u_acc = -acc * Q_acc
 
-        # e_pos_ave = np.linalg.norm(self.map_size - self.target) / 2
-        # u_pos = e_pos_ave - e_pos
-        # u_vel = 0.
-        # u_acc = 0.
+        e_pos_ave = np.linalg.norm(self.map_size - self.target) / 2
+        u_pos = e_pos_ave - e_pos
+        u_vel = 0.
+        u_acc = 0.
 
         u_extra= 0.
         if self.terminal_flag == 1:  # position out
