@@ -9,6 +9,7 @@ import torch
 import torch.nn as nn
 from torch.distributions import Normal
 
+sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../")
 
@@ -24,6 +25,16 @@ ALGORITHM = 'PPO2'
 test_episode = []
 test_reward = []
 sumr_list = []
+
+
+def setup_seed(seed):
+	torch.manual_seed(seed)
+	torch.cuda.manual_seed_all(seed)
+	np.random.seed(seed)
+	np.random.seed(seed)
+
+
+setup_seed(3407)
 
 
 class PPOActor_Gaussian(nn.Module):
@@ -168,7 +179,7 @@ if __name__ == '__main__':
 										 action_dim=env.action_dim,
 										 a_min=np.array(env.action_range)[:, 0],
 										 a_max=np.array(env.action_range)[:, 1],
-										 init_std=0.8,
+										 init_std=1.0,
 										 use_orthogonal_init=True),
 				 critic=PPOCritic(state_dim=env.state_dim, use_orthogonal_init=True))
 	agent.PPO2_info()
@@ -194,18 +205,20 @@ if __name__ == '__main__':
 				env.reset(random=True)
 			else:
 				env.current_state = env.next_state.copy()
-				s = env.current_state_norm(env.current_state, update=True)
-				a, a_log_prob = agent.choose_action(s)
+				# s = env.current_state_norm(env.current_state, update=True)
+				a, a_log_prob = agent.choose_action(env.current_state)
 				env.step_update(a)
 				# env.visualization()
 				sumr += env.reward
-				success = 0.0 if env.terminal_flag == 1 else 1.0	# 1 对应出界，固定时间内，不出界，就是 success
-				agent.buffer.append(s=s,
+				# success = 0.0 if env.terminal_flag == 1 else 1.0	# 1 对应出界，固定时间内，不出界，就是 success
+				success = 1.0
+				agent.buffer.append(s=env.current_state,
 									a=a,
 									log_prob=a_log_prob,
-									# r=reward_norm(env.reward),
-									r=env.reward,
-									s_=env.next_state_norm(env.next_state, update=True),
+									r=reward_norm(env.reward),
+									# r=env.reward,
+									# s_=env.next_state_norm(env.next_state, update=True),
+									s_=env.next_state,
 									done=1.0 if env.is_terminal else 0.0,
 									success=success,
 									index=buffer_index)

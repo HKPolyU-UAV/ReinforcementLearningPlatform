@@ -32,6 +32,8 @@ class SecondOrderIntegration(rl_base):
         self.fMin = -3
         self.admissible_error = 5
 
+        self.vMax = 3
+
         self.k = 0.15
         self.dt = 0.02  # 50Hz
         self.time = 0.  # time
@@ -47,8 +49,8 @@ class SecondOrderIntegration(rl_base):
         self.state_range = np.array(
             [[-self.map_size[0], self.map_size[0]],
              [-self.map_size[1], self.map_size[1]],
-             [-np.inf, np.inf],
-             [-np.inf, np.inf]])
+             [-self.vMax , self.vMax ],
+             [-self.vMax , self.vMax ]])
 
         self.initial_state = self.get_state()
         self.current_state = self.get_state()
@@ -203,15 +205,21 @@ class SecondOrderIntegration(rl_base):
         cv.imshow(self.name, self.image)
         cv.waitKey(1)
 
-    def get_state(self):
+    def get_state(self, use_norm: bool = False):
         self.error = self.target - self.pos
-        return np.hstack((self.error, -self.vel))
+        if use_norm:
+            _norm_e = self.error / self.map_size
+            _norm_v = -self.vel / self.vMax
+            state = np.hstack((_norm_e, _norm_v))
+        else:
+            state = np.hstack((self.error, -self.vel))
+        return state
 
     def is_out(self):
-        right_out = self.pos[0] > self.map_size[0] + self.admissible_error
-        left_out = self.pos[0] < 0 - self.admissible_error
-        up_out = self.pos[1] > self.map_size[1] + self.admissible_error
-        down_out = self.pos[1] < 0 - self.admissible_error
+        right_out = (self.pos[0] > self.map_size[0] + self.admissible_error)
+        left_out = (self.pos[0] < 0 - self.admissible_error)
+        up_out = (self.pos[1] > self.map_size[1] + self.admissible_error)
+        down_out = (self.pos[1] < 0 - self.admissible_error)
         if right_out or left_out or up_out or down_out:
             return True
         return False
@@ -249,21 +257,27 @@ class SecondOrderIntegration(rl_base):
         # u_vel = -np.dot(e_vel ** 2, Q_vel)
         # u_acc = -np.dot(self.acc ** 2, Q_acc)
         Q_pos = 1
-        Q_vel = 0.01
-        Q_acc = 0.00
+        Q_vel = 0.1
+        Q_acc = 0.1
 
         e_pos = np.linalg.norm(self.target - self.pos)
         e_vel = np.linalg.norm(-self.vel)
+        acc = np.linalg.norm(self.acc)
 
         u_pos = -e_pos * Q_pos
         u_vel = -e_vel * Q_vel
-        u_acc = -np.linalg.norm(self.acc) * Q_acc
-        u_extra = 0.
-        # if e_pos < 2.5:
-        #     u_pos += 2.0
+        u_acc = -acc * Q_acc
+
+        # e_pos_ave = np.linalg.norm(self.map_size - self.target) / 2
+        # u_pos = e_pos_ave - e_pos
+        # u_vel = 0.
+        # u_acc = 0.
+
+        u_extra= 0.
         if self.terminal_flag == 1:  # position out
             _n = (self.time_max - self.time) / self.dt
             u_extra = _n * (u_pos + u_vel + u_acc)
+
         self.reward = u_pos + u_vel + u_acc + u_extra
 
     def ode(self, xx: np.ndarray):
@@ -302,10 +316,10 @@ class SecondOrderIntegration(rl_base):
 		@return:
 		"""
         self.current_action = action.copy()
-        self.current_state = self.get_state()
+        self.current_state = self.get_state(use_norm=True)
         self.rk44(action=action)
         self.is_Terminal()
-        self.next_state = self.get_state()
+        self.next_state = self.get_state(use_norm=True)
         self.get_reward()
 
     def reset(self, random: bool = False):

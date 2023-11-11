@@ -7,12 +7,13 @@ import torch
 import torch.nn as nn
 from torch.distributions import Normal
 
+sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../")
 
 from SecondOrderIntegration import SecondOrderIntegration
-from algorithm.policy_base.Distributed_PPO2 import Distributed_PPO2 as DPPO2
-from algorithm.policy_base.Distributed_PPO2 import Worker
+from Distributed_PPO2 import Distributed_PPO2 as DPPO2
+from Distributed_PPO2 import Worker
 from utils.classes import Normalization, SharedAdam
 import torch.multiprocessing as mp
 
@@ -22,14 +23,14 @@ test_episode = []
 test_reward = []
 sumr_list = []
 
-# def setup_seed(seed):
-# 	torch.manual_seed(seed)
-# 	# torch.cuda.manual_seed_all(seed)
-# 	np.random.seed(seed)
-# 	random.seed(seed)
+def setup_seed(seed):
+	torch.manual_seed(seed)
+	# torch.cuda.manual_seed_all(seed)
+	np.random.seed(seed)
 
 
-# setup_seed(3407)
+setup_seed(3407)
+
 os.environ["OMP_NUM_THREADS"] = "1"
 
 
@@ -152,20 +153,19 @@ if __name__ == '__main__':
 
 	mp.set_start_method('spawn', force=True)
 
-	process_num = 50
-	actor_lr = 1e-4  # / min(process_num, 10)
-	critic_lr = 1e-3  # / min(process_num, 10)  # 一直都是 1e-3
-	action_std = 0.6
+	process_num = 10
+	actor_lr = 1e-4 # / min(process_num, 10)
+	critic_lr = 1e-3 # / min(process_num, 10)  # 一直都是 1e-3
 	# k_epo = int(100 / process_num * 1)  # int(100 / process_num * 1.1)
 	k_epo = 50
 	agent = DPPO2(env=env, actor_lr=actor_lr, critic_lr=critic_lr, num_of_pro=process_num, path=simulationPath)
 
-	'''3. 重新加载全局网络和优化器，这是必须的操作，因为考虑到不同的学习环境要设计不同的网络结构，在训练前，要重写 PPOActorCritic 类'''
+	'''3. 重新加载全局网络和优化器，这是必须的操作'''
 	agent.global_actor = PPOActor_Gaussian(state_dim=env.state_dim,
 										   action_dim=env.action_dim,
 										   a_min=np.array(env.action_range)[:, 0],
 										   a_max=np.array(env.action_range)[:, 1],
-										   init_std=0.8,
+										   init_std=1.5,
 										   use_orthogonal_init=True)
 	agent.global_critic = PPOCritic(state_dim=env.state_dim, use_orthogonal_init=True)
 	agent.eval_actor = PPOActor_Gaussian(state_dim=env.state_dim,
@@ -178,20 +178,21 @@ if __name__ == '__main__':
 	if RETRAIN:
 		agent.global_actor.load_state_dict(torch.load('Policy_PPO_4_20700'))
 		agent.global_critic.load_state_dict(torch.load('Policy_PPO_4_20700'))
+
 	agent.global_actor.share_memory()
 	agent.global_critic.share_memory()
-	agent.actor_optimizer = SharedAdam([{'params': agent.global_actor.parameters(), 'lr': actor_lr}, ])
+	agent.actor_optimizer = SharedAdam([{'params': agent.global_actor.parameters(), 'lr': actor_lr}])
 	agent.critic_optimizer = SharedAdam([{'params': agent.global_critic.parameters(), 'lr': critic_lr}])
 
 	'''4. 添加进程'''
 	ppo_msg = {'gamma': 0.99,
-			   'k_epo': 200,
+			   'k_epo': 50,
 			   'eps_clip': 0.2,
-			   'buffer_size': int(env.timeMax / env.dt) * 2,
+			   'buffer_size': int(env.time_max / env.dt) * 2,
 			   'state_dim': env.state_dim,
 			   'action_dim': env.action_dim,
-			   'a_lr': 1e-4,
-			   'c_lr': 1e-3,
+			   # 'a_lr': 1e-4,
+			   # 'c_lr': 1e-3,
 			   'device': 'cpu',
 			   'set_adam_eps': True,
 			   'lmd': 0.95,

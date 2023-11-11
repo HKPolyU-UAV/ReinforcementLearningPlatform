@@ -1,7 +1,11 @@
 import numpy as np
 import torch
 import torch.nn.functional as F
-import os, time
+import sys, os, time
+
+sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../")
+sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../")
+sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../")
 
 from utils.classes import PPOActor_Gaussian, PPOCritic, SharedAdam, RolloutBuffer, Normalization
 import torch.multiprocessing as mp
@@ -35,7 +39,7 @@ class Worker(mp.Process):
 		self.env = _env
 		self.queue = _queue
 		self.lock = _lock
-		self.buffer = RolloutBuffer(int(self.env.timeMax / self.env.dt * 2), self.env.state_dim, self.env.action_dim)
+		self.buffer = RolloutBuffer(int(self.env.time_max / self.env.dt * 2), self.env.state_dim, self.env.action_dim)
 		self.gamma = _ppo_msg['gamma']
 		self.k_epo = _ppo_msg['k_epo']
 		self.device = _ppo_msg['device']
@@ -107,6 +111,7 @@ class Worker(mp.Process):
 		with torch.no_grad():
 			t_state = torch.unsqueeze(torch.tensor(state, dtype=torch.float), 0).to(self.device)
 			dist = self.l_actor.get_dist(t_state)
+			# print(self.l_actor.std)
 			a = dist.sample()
 			a = torch.maximum(torch.minimum(a, self.l_actor.a_max), self.l_actor.a_min)
 			a_logprob = dist.log_prob(a)
@@ -126,7 +131,7 @@ class Worker(mp.Process):
 				if self.env.is_terminal:  # 如果某一个回合结束
 					# print('Sumr:  ', sumr)
 					sumr = 0.
-					self.env.reset_random()
+					self.env.reset(True)
 				else:
 					self.env.current_state = self.env.next_state.copy()
 					a, a_log_prob = self.choose_action(self.env.current_state)
@@ -253,7 +258,7 @@ class Distributed_PPO2:
 				for i in range(eval_num):
 					if i % 100 == 0:
 						print('测试: ', i)
-					self.env.reset_random()
+					self.env.reset(True)
 					r = 0
 					while not self.env.is_terminal:
 						self.env.current_state = self.env.next_state.copy()
