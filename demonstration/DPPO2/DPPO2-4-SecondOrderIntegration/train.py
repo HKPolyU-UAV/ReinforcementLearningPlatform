@@ -153,11 +153,11 @@ if __name__ == '__main__':
 
 	mp.set_start_method('spawn', force=True)
 
-	process_num = 10
+	process_num = 1
 	actor_lr = 1e-4 # / min(process_num, 10)
 	critic_lr = 1e-3 # / min(process_num, 10)  # 一直都是 1e-3
 	# k_epo = int(100 / process_num * 1)  # int(100 / process_num * 1.1)
-	k_epo = 50
+	k_epo = 30
 	agent = DPPO2(env=env, actor_lr=actor_lr, critic_lr=critic_lr, num_of_pro=process_num, path=simulationPath)
 
 	'''3. 重新加载全局网络和优化器，这是必须的操作'''
@@ -165,14 +165,14 @@ if __name__ == '__main__':
 										   action_dim=env.action_dim,
 										   a_min=np.array(env.action_range)[:, 0],
 										   a_max=np.array(env.action_range)[:, 1],
-										   init_std=1.5,
+										   init_std=1.2,
 										   use_orthogonal_init=True)
 	agent.global_critic = PPOCritic(state_dim=env.state_dim, use_orthogonal_init=True)
 	agent.eval_actor = PPOActor_Gaussian(state_dim=env.state_dim,
 										   action_dim=env.action_dim,
 										   a_min=np.array(env.action_range)[:, 0],
 										   a_max=np.array(env.action_range)[:, 1],
-										   init_std=0.8,
+										   init_std=1.2,
 										   use_orthogonal_init=True)
 
 	if RETRAIN:
@@ -186,7 +186,7 @@ if __name__ == '__main__':
 
 	'''4. 添加进程'''
 	ppo_msg = {'gamma': 0.99,
-			   'k_epo': 50,
+			   'k_epo': k_epo,
 			   'eps_clip': 0.2,
 			   'buffer_size': int(env.time_max / env.dt) * 2,
 			   'state_dim': env.state_dim,
@@ -209,7 +209,7 @@ if __name__ == '__main__':
 											 action_dim=env.action_dim,
 											 a_min=np.array(env.action_range)[:, 0],
 											 a_max=np.array(env.action_range)[:, 1],
-											 init_std=0.8,
+											 init_std=1.2,
 											 use_orthogonal_init=True),
 				   g_critic=agent.global_critic,
 				   l_critic=PPOCritic(state_dim=env.state_dim, use_orthogonal_init=True),

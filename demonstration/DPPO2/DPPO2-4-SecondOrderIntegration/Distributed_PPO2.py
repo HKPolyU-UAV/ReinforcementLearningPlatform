@@ -244,7 +244,7 @@ class Distributed_PPO2:
 			if self.global_training_num.value % 50 == 0:
 				print('Training count:, ', self.global_training_num.value)
 
-			if self.global_training_num.value % 300 == 0:
+			if self.global_training_num.value % 10 == 0:
 				self.eval_actor.load_state_dict(self.global_actor.state_dict())  # 复制 global policy
 
 				training_num_temp = self.global_training_num.value  # 记录一下当前的数字，因为测试和学习同时进行的，号码容易窜
@@ -263,6 +263,7 @@ class Distributed_PPO2:
 					while not self.env.is_terminal:
 						self.env.current_state = self.env.next_state.copy()
 						_a = self.eval_actor.evaluate(self.env.current_state)
+						print(_a)
 						self.env.step_update(_a)
 						r += self.env.reward
 						self.env.visualization()
