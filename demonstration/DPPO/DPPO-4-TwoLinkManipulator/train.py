@@ -6,8 +6,8 @@ import cv2 as cv
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../../")
 
 from TwoLinkManipulator import TwoLinkManipulator as env
-from algorithm.policy_base.Distributed_PPO import Distributed_PPO as DPPO
-from algorithm.policy_base.Distributed_PPO import Worker
+from Distributed_PPO import Distributed_PPO as DPPO
+from Distributed_PPO import Worker
 from utils.classes import *
 import torch.multiprocessing as mp
 

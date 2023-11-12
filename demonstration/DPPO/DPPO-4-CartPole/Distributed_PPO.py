@@ -41,7 +41,7 @@ class Worker(mp.Process):
         self.env = _env
         self.queue = _queue
         self.lock = _lock
-        self.buffer = RolloutBuffer(int(self.env.time_max / self.env.dt * 2), self.env.state_dim, self.env.action_dim)
+        self.buffer = RolloutBuffer(int(self.env.timeMax / self.env.dt * 2), self.env.state_dim, self.env.action_dim)
         self.buffer2 = RolloutBuffer2(self.env.state_dim, self.env.action_dim)
         self.gamma = _ppo_msg['gamma']
         self.k_epo = _ppo_msg['k_epo']
@@ -122,7 +122,7 @@ class Worker(mp.Process):
         self.set_action_std(self.action_std)
 
     def run(self):
-        max_training_timestep = int(self.env.time_max / self.env.dt) * 20000  # 5000 最长回合的数据
+        max_training_timestep = int(self.env.timeMax / self.env.dt) * 20000  # 5000 最长回合的数据
         # max_training_timestep = 5000
         action_std_decay_freq = int(1e6)  # 每隔这么多个 timestep 把探索方差减小点
         action_std_decay_rate = 0.05  # linearly decay action_std (action_std = action_std - action_std_decay_rate)

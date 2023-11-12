@@ -116,7 +116,6 @@ class BallBalancer1D(rl_base):
         self.draw_pendulum()
         self.draw_ball()
         self.draw_arm()
-        self.show_initial_image(isWait=False)
         '''visualization_opencv'''
 
         '''data_save'''
