@@ -1,26 +1,27 @@
 import datetime
 import os
 import sys
-import time
 
 import numpy as np
-import pandas as pd
-from matplotlib import pyplot as plt
+from numpy import deg2rad
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../")
-sys.path.append(os.path.dirname(os.path.abspath(__file__) + '/../../../'))
 
 from UavHoverOuterLoop import uav_hover_outer_loop as env
-from environment.uav_robust.ref_cmd import generate_uncertainty
 from environment.uav_robust.uav import uav_param
 from environment.uav_robust.FNTSMC import fntsmc_param
-from algorithm.policy_base.Proximal_Policy_Optimization import Proximal_Policy_Optimization as PPO
+from algorithm.policy_base.Distributed_PPO import Distributed_PPO as DPPO
+from algorithm.policy_base.Distributed_PPO import Worker
 from utils.classes import *
+import torch.multiprocessing as mp
 
-optPath = './datasave/net'
+optPath = './datasave/net/'
 show_per = 1
 timestep = 0
-ENV = 'PPO-UavHoverOuterLoop'
+ENV = 'DPPO-UavHoverOuterLoop'
+
+# 每个cpu核上只运行一个进程
+os.environ["OMP_NUM_THREADS"] = "1"
 
 '''Parameter list of the quadrotor'''
 DT = 0.01
@@ -40,7 +41,8 @@ uav_param.angle0 = np.array([0, 0, 0])
 uav_param.pqr0 = np.array([0, 0, 0])
 uav_param.dt = DT
 uav_param.time_max = 10
-uav_param.pos_zone = np.atleast_2d([[-5, 5], [-5, 5], [0, 5]])
+uav_param.att_zone = np.atleast_2d(
+        [[-deg2rad(90), deg2rad(90)], [-deg2rad(90), deg2rad(90)], [deg2rad(-120), deg2rad(120)]])
 '''Parameter list of the quadrotor'''
 
 '''Parameter list of the attitude controller'''
@@ -81,7 +83,7 @@ class PPOActorCritic(nn.Module):
             nn.Tanh(),
             nn.Linear(128, 64),
             nn.Tanh(),
-            nn.Linear(64, 1)
+            nn.Linear(64, 1),
         )
         self.actor_reset_orthogonal()
         self.critic_reset_orthogonal()
@@ -119,8 +121,9 @@ class PPOActorCritic(nn.Module):
 
         _a = dist.sample()
         action_logprob = dist.log_prob(_a)
+        state_val = self.critic(s)
 
-        return _a.detach(), action_logprob.detach()
+        return _a.detach(), action_logprob.detach(), state_val.detach()
 
     def evaluate(self, s, a):
         """评估状态动作价值"""
@@ -159,108 +162,61 @@ class PPOActorCritic(nn.Module):
 
 
 if __name__ == '__main__':
-    # rospy.init_node(name='PPO_uav_hover_outer_loop', anonymous=False)
-
     log_dir = './datasave/log/'
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
     simulation_path = log_dir + datetime.datetime.strftime(datetime.datetime.now(),
                                                            '%Y-%m-%d-%H-%M-%S') + '-' + ENV + '/'
     os.mkdir(simulation_path)
+
     RETRAIN = False
 
-    env = env(uav_param, fntsmc_param(), att_ctrl_param, target0=np.array([-1, 3, 2]))
+    env = env(uav_param, fntsmc_param(), att_ctrl_param, target0=np.zeros(3))
     env.msg_print_flag = False  # 别疯狂打印出界了
-    reward_norm = Normalization(shape=1)
 
-    action_std_init = 0.8
-    '''重新加载Policy网络结构，这是必须的操作'''
-    policy = PPOActorCritic(env.state_dim, env.action_dim, action_std_init, 'Policy', simulation_path)
-    policy_old = PPOActorCritic(env.state_dim, env.action_dim, action_std_init, 'Policy_old', simulation_path)
-    agent = PPO(env=env,
-                actor_lr=1e-4,
-                critic_lr=1e-3,
-                gamma=0.99,
-                K_epochs=30,
-                eps_clip=0.2,
-                action_std_init=action_std_init,
-                buffer_size=int(env.time_max / env.dt * 4),
-                policy=policy,
-                policy_old=policy_old,
-                path=simulation_path)
+    '''1. 启动多进程'''
+    mp.set_start_method('spawn', force=True)
+    '''2. 定义DPPO参数'''
+    process_num = 15
+    actor_lr = 1e-5 / min(process_num, 5)
+    critic_lr = 1e-4 / min(process_num, 5)
+    action_std = 0.8
+    k_epo_init = 100
+    agent = DPPO(env=env, actor_lr=actor_lr, critic_lr=critic_lr, num_of_pro=process_num, path=simulation_path)
+    '''3. 重新加载全局网络和优化器，这是必须的操作，考虑到不同学习环境设计不同的网络结构，训练前要重写PPOActorCritic'''
+    agent.global_policy = PPOActorCritic(agent.env.state_dim, agent.env.action_dim, action_std, 'GlobalPolicy',
+                                         simulation_path)
+    agent.eval_policy = PPOActorCritic(agent.env.state_dim, agent.env.action_dim, action_std, 'EvalPolicy',
+                                       simulation_path)
     if RETRAIN:
-        agent.policy.load_state_dict(torch.load('Policy_PPO12160000'))
-        agent.policy_old.load_state_dict(torch.load('Policy_PPO12160000'))
+        agent.global_policy.load_state_dict(torch.load('Policy_PPO47400'))
         '''如果修改了奖励函数，则原来的critic网络已经不起作用了，需要重新初始化'''
-        agent.policy.critic_reset_orthogonal()
-        agent.policy_old.critic_reset_orthogonal()
-    agent.PPO_info()
-
-    max_training_timestep = int(env.time_max / env.dt) * 40000
-    action_std_decay_freq = int(env.time_max / env.dt) * 2000
-    action_std_decay_rate = 0.05
-    min_action_std = 0.1
-
-    sumr = 0
-    start_eps = 0
-    train_num = 1
-    test_num = 0
-    test_reward = []
-    index = 0
-    while timestep <= max_training_timestep:
-        env.reset_random()
-        sumr = 0.
-        while not env.is_terminal:
-            env.current_state = env.next_state.copy()
-            action_from_actor, a_log_prob = agent.choose_action(env.current_state)
-            action = agent.action_linear_trans(action_from_actor)
-            uncertainty = generate_uncertainty(time=env.time, is_ideal=True)  # 生成干扰信号
-            env.step_update(action)  # 环境更新的动作必须是实际物理动作
-            sumr += env.reward
-            '''存数'''
-            agent.buffer.append(s=env.current_state,
-                                a=action_from_actor,
-                                log_prob=a_log_prob,
-                                r=reward_norm(env.reward),
-                                s_=env.next_state,
-                                done=1.0 if env.is_terminal else 0.0,
-                                success=1.0 if env.terminal_flag == 1 else 0.0,
-                                index=index)
-            index += 1
-            timestep += 1
-            '''学习'''
-            if timestep % agent.buffer.batch_size == 0:
-                print('========= Training =========')
-                print('Episode: {}'.format(agent.episode))
-                print('Num of learning: {}'.format(train_num))
-                agent.learn()
-                train_num += 1
-                start_eps = agent.episode
-                index = 0
-                if train_num % 20 == 0 and train_num > 0:
-                    print('========= Testing =========')
-                    average_test_r = 0
-                    test_num += 1
-                    for _ in range(3):
-                        env.reset_random()
-                        while not env.is_terminal:
-                            env.current_state = env.next_state.copy()
-                            action_from_actor, a_log_prob = agent.choose_action(env.current_state)
-                            action = agent.action_linear_trans(action_from_actor)
-                            uncertainty = generate_uncertainty(time=env.time, is_ideal=True)  # 生成干扰信号
-                            env.step_update(action)  # 环境更新的动作必须是实际物理动作
-                            average_test_r += env.reward
-                            env.visualization()
-                    average_test_r /= 3
-                    test_reward.append(average_test_r)
-                    print('   Evaluating %.0f | Reward: %.2f ' % (test_num, average_test_r))
-                    temp = simulation_path + 'test_num' + '_' + str(test_num - 1) + '_save/'
-                    os.mkdir(temp)
-                    pd.DataFrame({'reward': test_reward}).to_csv(simulation_path + 'retrain_reward.csv')
-                    time.sleep(0.01)
-                    agent.policy_old.save_checkpoint(name='Policy_PPO', path=temp, num=timestep)
-            if timestep % action_std_decay_freq == 0:
-                agent.decay_action_std(action_std_decay_rate, min_action_std)
-        if agent.episode % 5 == 0:
-            print('Episode: ', agent.episode, ' Reward: ', sumr)
-        agent.episode += 1
+        agent.global_policy.critic_reset_orthogonal()
+    agent.global_policy.share_memory()
+    agent.optimizer = SharedAdam([
+        {'params': agent.global_policy.actor.parameters(), 'lr': actor_lr},
+        {'params': agent.global_policy.critic.parameters(), 'lr': critic_lr}
+    ])
+    '''4. 添加进程'''
+    ppo_msg = {'gamma': 0.99, 'k_epo': int(k_epo_init / process_num * 1.5), 'eps_c': 0.2, 'a_std': action_std,
+               'device': 'cpu', 'loss': nn.MSELoss()}
+    for i in range(agent.num_of_pro):
+        worker = Worker(g_pi=agent.global_policy,
+                        l_pi=PPOActorCritic(agent.env.state_dim, agent.env.action_dim, action_std, 'LocalPolicy',
+                                            simulation_path),
+                        g_opt=agent.optimizer,
+                        g_train_n=agent.global_training_num,
+                        _index=i,
+                        _name='worker' + str(i),
+                        _env=env,
+                        _queue=agent.queue,
+                        _lock=agent.lock,
+                        _ppo_msg=ppo_msg)
+        agent.add_worker(worker)
+    agent.DPPO_info()
+    '''5. 原神(多进程学习)启动'''
+    """
+    多个学习进程和一个评估进程，学习进程在结束后会释放标志，评估进程收集到所有学习进程标志时结束评估，
+    评估结束时，评估程序会跳出while死循环，整个程序结束，结果在评估过程中自动存储在simulation_path中。
+    """
+    agent.start_multi_process()

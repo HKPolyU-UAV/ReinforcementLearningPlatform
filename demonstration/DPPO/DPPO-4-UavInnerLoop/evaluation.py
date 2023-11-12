@@ -1,21 +1,22 @@
 import datetime
 import os
 import sys
-from matplotlib import pyplot as plt
+from numpy import deg2rad
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../")
 
-from UavHoverOuterLoop import uav_hover_outer_loop as env
-from environment.uav_robust.ref_cmd import generate_uncertainty
+from UavInnerLoop import uav_inner_loop as env
 from environment.uav_robust.uav import uav_param
 from environment.uav_robust.FNTSMC import fntsmc_param
-from algorithm.policy_base.Proximal_Policy_Optimization import Proximal_Policy_Optimization as PPO
+from algorithm.policy_base.Distributed_PPO import Distributed_PPO as DPPO
+from algorithm.policy_base.Distributed_PPO import Worker
 from utils.classes import *
+import torch.multiprocessing as mp
 
 optPath = './datasave/net/'
 show_per = 1
 timestep = 0
-ENV = 'PPO-UavHoverOuterLoop'
+ENV = 'DPPO-UavInnerLoop'
 
 
 def setup_seed(seed):
@@ -44,22 +45,9 @@ uav_param.angle0 = np.array([0, 0, 0])
 uav_param.pqr0 = np.array([0, 0, 0])
 uav_param.dt = DT
 uav_param.time_max = 10
-uav_param.pos_zone = np.atleast_2d([[-5, 5], [-5, 5], [0, 5]])
+uav_param.att_zone = np.atleast_2d(
+    [[-deg2rad(90), deg2rad(90)], [-deg2rad(90), deg2rad(90)], [deg2rad(-120), deg2rad(120)]])
 '''Parameter list of the quadrotor'''
-
-'''Parameter list of the attitude controller'''
-att_ctrl_param = fntsmc_param()
-att_ctrl_param.k1 = np.array([25, 25, 40])
-att_ctrl_param.k2 = np.array([0.1, 0.1, 0.2])
-att_ctrl_param.alpha = np.array([2.5, 2.5, 2.5])
-att_ctrl_param.beta = np.array([0.99, 0.99, 0.99])
-att_ctrl_param.gamma = np.array([1.5, 1.5, 1.2])
-att_ctrl_param.lmd = np.array([2.0, 2.0, 2.0])
-att_ctrl_param.dim = 3
-att_ctrl_param.dt = DT
-att_ctrl_param.ctrl0 = np.array([0., 0., 0.])
-att_ctrl_param.saturation = np.array([0.3, 0.3, 0.3])
-'''Parameter list of the attitude controller'''
 
 
 class PPOActorCritic(nn.Module):
@@ -85,7 +73,7 @@ class PPOActorCritic(nn.Module):
             nn.Tanh(),
             nn.Linear(128, 64),
             nn.Tanh(),
-            nn.Linear(64, 1)
+            nn.Linear(64, 1),
         )
         self.actor_reset_orthogonal()
         self.critic_reset_orthogonal()
@@ -171,42 +159,38 @@ if __name__ == '__main__':
                                                            '%Y-%m-%d-%H-%M-%S') + '-' + ENV + '/'
     os.mkdir(simulation_path)
 
-    env = env(uav_param, fntsmc_param(), att_ctrl_param, target0=np.array([-1, 3, 2]))
-    reward_norm = Normalization(shape=1)
+    ref_amplitude = np.array([np.pi / 3, np.pi / 3, np.pi / 3])
+    ref_period = np.array([4, 4, 4])
+    ref_bias_a = np.array([0, 0, 0])
+    ref_bias_phase = np.array([0., np.pi / 2, np.pi / 3])
+    env = env(uav_param, fntsmc_param(), ref_amplitude, ref_period, ref_bias_a, ref_bias_phase)
 
-    action_std_init = 0.8
-    policy = PPOActorCritic(env.state_dim, env.action_dim, action_std_init, 'Policy', simulation_path)
-    policy_old = PPOActorCritic(env.state_dim, env.action_dim, action_std_init, 'Policy_old', simulation_path)
-    agent = PPO(env=env,
-                actor_lr=3e-4,
-                critic_lr=1e-3,
-                gamma=0.99,
-                K_epochs=20,
-                eps_clip=0.2,
-                action_std_init=action_std_init,
-                buffer_size=int(env.time_max / env.dt * 2),
-                policy=policy,
-                policy_old=policy_old,
-                path=simulation_path)
-    agent.policy.load_state_dict(torch.load(optPath + 'actor-critic'))
-    test_num = 3
-    r = 0
-    for i in range(test_num):
-        r = 0
+    agent = DPPO(env=env, actor_lr=3e-4, critic_lr=1e-3, num_of_pro=0, path=simulation_path)
+    agent.global_policy = PPOActorCritic(agent.env.state_dim, agent.env.action_dim, 0.1,
+                                         'GlobalPolicy_ppo', simulation_path)
+    agent.eval_policy = PPOActorCritic(agent.env.state_dim, agent.env.action_dim, 0.1,
+                                       'EvalPolicy_ppo', simulation_path)
+    # 加载模型参数文件
+    agent.load_models(optPath + 'actor-critic')
+    # agent.load_models('')
+    agent.eval_policy.load_state_dict(agent.global_policy.state_dict())
+    env.msg_print_flag = True
+    test_num = 5
+    average_r = 0
+    for _ in range(test_num):
         env.reset_random()
+        r = 0
         while not env.is_terminal:
             env.current_state = env.next_state.copy()
-            _action_from_actor = agent.evaluate(env.current_state)
-            _action = agent.action_linear_trans(_action_from_actor.cpu().numpy().flatten())  # 将actor输出动作转换到实际动作范围
-            uncertainty = generate_uncertainty(time=env.time, is_ideal=True)  # 生成干扰信号
-            # env.dis = uncertainty
-            env.step_update(_action)  # 环境更新的动作必须是实际物理动作
+            action_from_actor = agent.evaluate(env.current_state).numpy()
+            action = agent.action_linear_trans(action_from_actor.flatten())  # 将actor输出动作转换到实际动作范围
+            env.step_update(action)  # 环境更新的动作必须是实际物理动作
             r += env.reward
             env.visualization()
         print(r)
-    env.collector.plot_pos()
-    env.collector.plot_vel()
-    env.collector.plot_att()
-    env.collector.plot_throttle()
-    plt.legend()
-    plt.show()
+        average_r += r
+    print(average_r / test_num)
+    # env.collector.plot_pos()
+    # env.collector.plot_vel()
+    # env.collector.plot_throttle()
+    # plt.show()

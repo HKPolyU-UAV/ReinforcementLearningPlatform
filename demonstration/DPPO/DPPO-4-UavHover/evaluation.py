@@ -1,21 +1,20 @@
 import datetime
 import os
 import sys
-from matplotlib import pyplot as plt
+import matplotlib.pyplot as plt
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../")
 
-from UavHoverOuterLoop import uav_hover_outer_loop as env
-from environment.uav_robust.ref_cmd import generate_uncertainty
+from UavHover import uav_hover as env
 from environment.uav_robust.uav import uav_param
 from environment.uav_robust.FNTSMC import fntsmc_param
-from algorithm.policy_base.Proximal_Policy_Optimization import Proximal_Policy_Optimization as PPO
+from Distributed_PPO import Distributed_PPO as DPPO
 from utils.classes import *
 
 optPath = './datasave/net/'
 show_per = 1
 timestep = 0
-ENV = 'PPO-UavHoverOuterLoop'
+ENV = 'DPPO-UavHover'
 
 
 def setup_seed(seed):
@@ -47,20 +46,6 @@ uav_param.time_max = 10
 uav_param.pos_zone = np.atleast_2d([[-5, 5], [-5, 5], [0, 5]])
 '''Parameter list of the quadrotor'''
 
-'''Parameter list of the attitude controller'''
-att_ctrl_param = fntsmc_param()
-att_ctrl_param.k1 = np.array([25, 25, 40])
-att_ctrl_param.k2 = np.array([0.1, 0.1, 0.2])
-att_ctrl_param.alpha = np.array([2.5, 2.5, 2.5])
-att_ctrl_param.beta = np.array([0.99, 0.99, 0.99])
-att_ctrl_param.gamma = np.array([1.5, 1.5, 1.2])
-att_ctrl_param.lmd = np.array([2.0, 2.0, 2.0])
-att_ctrl_param.dim = 3
-att_ctrl_param.dt = DT
-att_ctrl_param.ctrl0 = np.array([0., 0., 0.])
-att_ctrl_param.saturation = np.array([0.3, 0.3, 0.3])
-'''Parameter list of the attitude controller'''
-
 
 class PPOActorCritic(nn.Module):
     def __init__(self, _state_dim, _action_dim, _action_std_init, name='PPOActorCritic', chkpt_dir=''):
@@ -85,28 +70,10 @@ class PPOActorCritic(nn.Module):
             nn.Tanh(),
             nn.Linear(128, 64),
             nn.Tanh(),
-            nn.Linear(64, 1)
+            nn.Linear(64, 1),
         )
-        self.actor_reset_orthogonal()
-        self.critic_reset_orthogonal()
         self.device = 'cpu'
         self.to(self.device)
-
-    def actor_reset_orthogonal(self):
-        nn.init.orthogonal_(self.actor[0].weight, gain=1.0)
-        nn.init.constant_(self.actor[0].bias, val=1e-3)
-        nn.init.orthogonal_(self.actor[2].weight, gain=1.0)
-        nn.init.constant_(self.actor[2].bias, val=1e-3)
-        nn.init.orthogonal_(self.actor[4].weight, gain=0.01)
-        nn.init.constant_(self.actor[4].bias, val=1e-3)
-
-    def critic_reset_orthogonal(self):
-        nn.init.orthogonal_(self.critic[0].weight, gain=1.0)
-        nn.init.constant_(self.critic[0].bias, val=1e-3)
-        nn.init.orthogonal_(self.critic[2].weight, gain=1.0)
-        nn.init.constant_(self.critic[2].bias, val=1e-3)
-        nn.init.orthogonal_(self.critic[4].weight, gain=1.0)
-        nn.init.constant_(self.critic[4].bias, val=1e-3)
 
     def set_action_std(self, new_action_std):
         """手动设置动作方差"""
@@ -164,6 +131,8 @@ class PPOActorCritic(nn.Module):
 
 
 if __name__ == '__main__':
+    # rospy.init_node(name='PPO_uav_hover_outer_loop', anonymous=False)
+
     log_dir = './datasave/log/'
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
@@ -171,42 +140,44 @@ if __name__ == '__main__':
                                                            '%Y-%m-%d-%H-%M-%S') + '-' + ENV + '/'
     os.mkdir(simulation_path)
 
-    env = env(uav_param, fntsmc_param(), att_ctrl_param, target0=np.array([-1, 3, 2]))
-    reward_norm = Normalization(shape=1)
+    env = env(uav_param, fntsmc_param(), fntsmc_param(), target0=np.array([-1, 3, 2]))
 
-    action_std_init = 0.8
-    policy = PPOActorCritic(env.state_dim, env.action_dim, action_std_init, 'Policy', simulation_path)
-    policy_old = PPOActorCritic(env.state_dim, env.action_dim, action_std_init, 'Policy_old', simulation_path)
-    agent = PPO(env=env,
-                actor_lr=3e-4,
-                critic_lr=1e-3,
-                gamma=0.99,
-                K_epochs=20,
-                eps_clip=0.2,
-                action_std_init=action_std_init,
-                buffer_size=int(env.time_max / env.dt * 2),
-                policy=policy,
-                policy_old=policy_old,
-                path=simulation_path)
-    agent.policy.load_state_dict(torch.load(optPath + 'actor-critic'))
-    test_num = 3
-    r = 0
-    for i in range(test_num):
-        r = 0
+    '''1. 外环控制器加载'''
+    pos_agent = DPPO(env=env, actor_lr=3e-4, critic_lr=1e-3, num_of_pro=0, path=simulation_path)
+    pos_agent.global_policy = PPOActorCritic(int(pos_agent.env.state_dim / 2), int(pos_agent.env.action_dim / 2), 0.1,    # 这里环境维数是内外环一起的维数，需要减半
+                                             'GlobalPolicy_ppo', simulation_path)
+    pos_agent.eval_policy = PPOActorCritic(int(pos_agent.env.state_dim / 2), int(pos_agent.env.action_dim / 2), 0.1,
+                                           'EvalPolicy_ppo', simulation_path)
+    pos_agent.load_models(optPath + 'pos-actor-critic')
+    pos_agent.eval_policy.load_state_dict(pos_agent.global_policy.state_dict())
+    '''2. 内环控制器加载'''
+    att_agent = DPPO(env=env, actor_lr=3e-4, critic_lr=1e-3, num_of_pro=0, path=simulation_path)
+    att_agent.global_policy = PPOActorCritic(int(att_agent.env.state_dim / 2), int(att_agent.env.action_dim / 2), 0.1,
+                                             'GlobalPolicy_ppo', simulation_path)
+    att_agent.eval_policy = PPOActorCritic(int(att_agent.env.state_dim / 2), int(att_agent.env.action_dim / 2), 0.1,
+                                           'EvalPolicy_ppo', simulation_path)
+    att_agent.load_models(optPath + 'att-actor-critic')
+    att_agent.eval_policy.load_state_dict(att_agent.global_policy.state_dict())
+    '''3. 开始测试'''
+    env.msg_print_flag = True
+    test_num = 5
+    for _ in range(test_num):
         env.reset_random()
         while not env.is_terminal:
             env.current_state = env.next_state.copy()
-            _action_from_actor = agent.evaluate(env.current_state)
-            _action = agent.action_linear_trans(_action_from_actor.cpu().numpy().flatten())  # 将actor输出动作转换到实际动作范围
-            uncertainty = generate_uncertainty(time=env.time, is_ideal=True)  # 生成干扰信号
-            # env.dis = uncertainty
-            env.step_update(_action)  # 环境更新的动作必须是实际物理动作
-            r += env.reward
+            '''3.1 外环网络根据外环状态给出虚拟加速度'''
+            u_from_actor = pos_agent.evaluate(env.current_state[:6]).numpy()
+            '''3.2 内环网络根据内环状态给出转矩'''
+            torque_from_actor = att_agent.evaluate(env.current_state[6:]).numpy()
+            '''3.3 拼接成6维action，传入环境'''
+            action = np.concatenate((u_from_actor, torque_from_actor))
+            action = pos_agent.action_linear_trans(action.flatten())    # 两个agent用的同一个环境，动作变换是统一的，用哪个都一样
+            env.step_update(action)  # 环境更新的动作必须是实际物理动作
             env.visualization()
-        print(r)
-    env.collector.plot_pos()
-    env.collector.plot_vel()
-    env.collector.plot_att()
-    env.collector.plot_throttle()
-    plt.legend()
-    plt.show()
+        env.collector.plot_pos()
+        env.collector.plot_vel()
+        env.collector.plot_throttle()
+        env.collector.plot_att()
+        env.collector.plot_pqr()
+        env.collector.plot_torque()
+        plt.show()
