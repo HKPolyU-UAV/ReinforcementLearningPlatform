@@ -1,14 +1,13 @@
 import numpy as np
 import torch
 import torch.nn.functional as F
+import torch.multiprocessing as mp
 import sys, os, time
 
-sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../")
 
 from utils.classes import PPOActor_Gaussian, PPOCritic, SharedAdam, RolloutBuffer, Normalization
-import torch.multiprocessing as mp
 
 
 class Worker(mp.Process):
@@ -63,8 +62,8 @@ class Worker(mp.Process):
 		adv = []
 		gae = 0.
 		with torch.no_grad():
-			vs = self.g_critic(s)
-			vs_ = self.g_critic(s_)
+			vs = self.l_critic.net(s)		# TODO YYF 也改了
+			vs_ = self.l_critic.net(s_)		# TODO YYF 也改了
 			deltas = r + self.gamma * (1.0 - success) * vs_ - vs
 			for delta, d in zip(reversed(deltas.flatten().numpy()), reversed(done.flatten().numpy())):
 				gae = delta + self.gamma * self.lmd * gae * (1.0 - d)
@@ -75,34 +74,30 @@ class Worker(mp.Process):
 				adv = ((adv - adv.mean()) / (adv.std() + 1e-5))
 
 		for _ in range(self.k_epo):  # 每次的轨迹数据学习 K_epochs 次
-			dist_now = self.g_actor.get_dist(s)
+			dist_now = self.l_actor.get_dist(s)
 			dist_entropy = dist_now.entropy().sum(1, keepdim=True)  # shape(mini_batch_size X 1)
 			a_logprob_now = dist_now.log_prob(a)
 
-			# a/b=exp(log(a)-log(b))  In multi-dimensional continuous action space，we need to sum up the log_prob
+			# Update actor
 			ratios = torch.exp(a_logprob_now.sum(1, keepdim=True) - a_lp.sum(1, keepdim=True))
-
 			surr1 = ratios * adv  # Only calculate the gradient of 'a_logprob_now' in ratios
 			surr2 = torch.clamp(ratios, 1 - self.eps_clip, 1 + self.eps_clip) * adv
 			actor_loss = -torch.min(surr1, surr2) - self.entropy_coef * dist_entropy  # Trick 5: policy entropy
-
-			# Update actor
 			self.g_opt_actor.zero_grad()
 			actor_loss.mean().backward()
 			if self.use_grad_clip:
-				torch.nn.utils.clip_grad_norm_(self.g_actor.parameters(), 0.5)
+				torch.nn.utils.clip_grad_norm_(self.l_actor.parameters(), 0.5)	# TODO YYF 也改了
 			for l_a, g_a in zip(self.l_actor.parameters(), self.g_actor.parameters()):
 				g_a._grad = l_a.grad
 			self.g_opt_actor.step()
 
-			v_s = self.g_critic(s)
-			critic_loss = F.mse_loss(v_target, v_s)
-
 			# Update critic
+			v_s = self.l_critic.net(s)
+			critic_loss = F.mse_loss(v_target, v_s)
 			self.g_opt_critic.zero_grad()
 			critic_loss.backward()
 			if self.use_grad_clip:  # Trick 7: Gradient clip
-				torch.nn.utils.clip_grad_norm_(self.g_critic.parameters(), 0.5)
+				torch.nn.utils.clip_grad_norm_(self.l_critic.parameters(), 0.5)	# TODO YYF 也改了
 			for l_c, g_c in zip(self.l_critic.parameters(), self.g_critic.parameters()):
 				g_c._grad = l_c.grad
 			self.g_opt_critic.step()
@@ -113,7 +108,7 @@ class Worker(mp.Process):
 			dist = self.l_actor.get_dist(t_state)
 			# print(self.l_actor.std)
 			a = dist.sample()
-			a = torch.maximum(torch.minimum(a, self.l_actor.a_max), self.l_actor.a_min)
+			a = torch.maximum(torch.minimum(a, self.l_actor.a_max), self.l_actor.a_min)		# TODO a_max a_min 正确
 			a_logprob = dist.log_prob(a)
 		return a.detach().cpu().numpy().flatten(), a_logprob.detach().cpu().numpy().flatten()
 
@@ -138,8 +133,8 @@ class Worker(mp.Process):
 					self.env.step_update(a)
 					# env.visualization()
 					sumr += self.env.reward
-					# success = 0.0 if self.env.terminal_flag == 1 else 1.0  # 1 对应出界，固定时间内，不出界，就是 success
-					success = 1.0
+					success = 0.0 if self.env.terminal_flag == 1 else 1.0  # 1 对应出界，固定时间内，不出界，就是 success
+					# success = 1.0
 					self.buffer.append(s=self.env.current_state,
 										a=a,
 										log_prob=a_log_prob,
@@ -171,7 +166,7 @@ class Worker(mp.Process):
 				self.global_training_num.value += 1
 			self.queue.put(round(sumr, 2))
 			# print('~~~~~~~~~~  Training End ~~~~~~~~~~')
-		self.queue.put(None)  # 这个进程结束了，就把None放进去，用于global判断
+		# self.queue.put(None)  # 这个进程结束了，就把None放进去，用于global判断
 
 
 class Distributed_PPO2:
@@ -202,7 +197,6 @@ class Distributed_PPO2:
 		'''DPPO'''
 
 		'''global variable'''
-		# self.global_policy = PPOActorCritic(self.state_dim_nn, self.action_dim_nn, 0.6, name='Policy_ppo', chkpt_dir=self.path)
 		self.global_critic = PPOCritic(state_dim=env.state_dim, use_orthogonal_init=True)
 		self.global_actor = PPOActor_Gaussian(state_dim=env.state_dim,
 											  action_dim=env.action_dim,
@@ -244,7 +238,7 @@ class Distributed_PPO2:
 			if self.global_training_num.value % 50 == 0:
 				print('Training count:, ', self.global_training_num.value)
 
-			if self.global_training_num.value % 10 == 0:
+			if self.global_training_num.value % 500 == 0:
 				self.eval_actor.load_state_dict(self.global_actor.state_dict())  # 复制 global policy
 
 				training_num_temp = self.global_training_num.value  # 记录一下当前的数字，因为测试和学习同时进行的，号码容易窜
@@ -262,8 +256,8 @@ class Distributed_PPO2:
 					r = 0
 					while not self.env.is_terminal:
 						self.env.current_state = self.env.next_state.copy()
-						_a = self.eval_actor.evaluate(self.env.current_state)
-						print(_a)
+						_a = self.evaluate(self.env.current_state)
+						# print(_a)
 						self.env.step_update(_a)
 						r += self.env.reward
 						self.env.visualization()
@@ -283,9 +277,9 @@ class Distributed_PPO2:
 		with torch.no_grad():
 			t_state = torch.FloatTensor(state).to(self.device)
 			action_mean = self.eval_actor.evaluate(t_state)
-		return action_mean.detach()
+		return action_mean
 
-	def DPPO_info(self):
+	def DPPO2_info(self):
 		print('number of process:', self.num_of_pro)
 		print('agent name：', self.env.name)
 		print('state_dim:', self.state_dim_nn)

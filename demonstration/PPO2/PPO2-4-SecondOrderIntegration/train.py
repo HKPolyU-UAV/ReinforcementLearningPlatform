@@ -139,7 +139,7 @@ if __name__ == '__main__':
     os.mkdir(simulationPath)
     c = cv.waitKey(1)
 
-    RETRAIN = True
+    RETRAIN = False
 
     env = SecondOrderIntegration()
     reward_norm = Normalization(shape=1)

@@ -4,11 +4,11 @@ import random
 import numpy as np
 # from numpy import linalg
 import torch.nn as nn
-import torch.nn.functional as func
+# import torch.nn.functional as func
 import torch
 from torch.distributions import Normal
 from torch.distributions import MultivariateNormal
-from torch.distributions import Categorical
+# from torch.distributions import Categorical
 
 
 class ReplayBuffer:

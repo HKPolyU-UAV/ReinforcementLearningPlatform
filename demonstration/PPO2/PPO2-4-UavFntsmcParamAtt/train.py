@@ -6,6 +6,8 @@ import cv2 as cv
 import numpy as np
 import pandas as pd
 import torch
+import torch.nn as nn
+from torch.distributions import Normal
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../")
@@ -17,7 +19,7 @@ from environment.uav_fntsmc_param.FNTSMC import fntsmc_param
 from environment.uav_fntsmc_param.ref_cmd import *
 from algorithm.policy_base.Proximal_Policy_Optimization2 import Proximal_Policy_Optimization2 as PPO2
 from utils.functions import *
-from utils.classes import PPOActor_Gaussian, PPOCritic, Normalization
+from utils.classes import Normalization
 
 timestep = 0
 ENV = 'uav_fntsmc_param_att'
@@ -80,6 +82,105 @@ def reset_att_ctrl_param(flag: str):
 		att_ctrl_param.k2 = np.array([0.1, 0.1, 0.2])
 		att_ctrl_param.gamma = np.array([1.5, 1.5, 1.2])
 		att_ctrl_param.lmd = np.array([2.0, 2.0, 2.0])
+
+
+class PPOActor_Gaussian(nn.Module):
+	def __init__(self,
+				 state_dim: int = 3,
+				 action_dim: int = 3,
+				 a_min: np.ndarray = np.zeros(3),
+				 a_max: np.ndarray = np.ones(3),
+				 init_std: float = 0.5,
+				 use_orthogonal_init: bool = True):
+		super(PPOActor_Gaussian, self).__init__()
+		self.fc1 = nn.Linear(state_dim, 64)
+		self.fc2 = nn.Linear(64, 64)
+		self.fc3 = nn.Linear(64, 32)
+		self.mean_layer = nn.Linear(32, action_dim)
+		# self.log_std = nn.Parameter(torch.zeros(1, action_dim))  # We use 'nn.Parameter' to train log_std automatically
+		# self.log_std = nn.Parameter(np.log(init_std) * torch.ones(action_dim))  # We use 'nn.Parameter' to train log_std automatically
+		self.activate_func = nn.Tanh()
+		self.a_min = torch.tensor(a_min, dtype=torch.float)
+		self.a_max = torch.tensor(a_max, dtype=torch.float)
+		self.off = (self.a_min + self.a_max) / 2.0
+		self.gain = self.a_max - self.off
+		self.action_dim = action_dim
+		self.std = torch.tensor(init_std, dtype=torch.float)
+
+		if use_orthogonal_init:
+			self.orthogonal_init_all()
+
+	@staticmethod
+	def orthogonal_init(layer, gain=1.0):
+		nn.init.orthogonal_(layer.weight, gain=gain)
+		nn.init.constant_(layer.bias, 0)
+
+	def orthogonal_init_all(self):
+		self.orthogonal_init(self.fc1)
+		self.orthogonal_init(self.fc2)
+		self.orthogonal_init(self.fc3)
+		self.orthogonal_init(self.mean_layer, gain=0.01)
+
+	def forward(self, s):
+		s = self.activate_func(self.fc1(s))
+		s = self.activate_func(self.fc2(s))
+		s = self.activate_func(self.fc3(s))
+		# mean = torch.tanh(self.mean_layer(s)) * self.gain + self.off
+		mean = torch.relu(self.mean_layer(s))
+		return mean
+
+	def get_dist(self, s):
+		mean = self.forward(s)
+		# mean = torch.tensor(mean, dtype=torch.float)
+		# log_std = self.log_std.expand_as(mean)
+		# std = torch.exp(log_std)
+		std = self.std.expand_as(mean)
+		dist = Normal(mean, std)  # Get the Gaussian distribution
+		# std = self.std.expand_as(mean)
+		# dist = Normal(mean, std)
+		return dist
+
+	def evaluate(self, state):
+		with torch.no_grad():
+			t_state = torch.unsqueeze(torch.tensor(state, dtype=torch.float), 0)
+			action_mean = self.forward(t_state)
+		return action_mean.detach().cpu().numpy().flatten()
+
+
+class PPOCritic(nn.Module):
+	def __init__(self, state_dim=3, use_orthogonal_init: bool = True):
+		super(PPOCritic, self).__init__()
+		self.fc1 = nn.Linear(state_dim, 64)
+		self.fc2 = nn.Linear(64, 32)
+		self.fc3 = nn.Linear(32, 1)
+		self.activate_func = nn.Tanh()
+
+		if use_orthogonal_init:
+			self.orthogonal_init_all()
+
+	@staticmethod
+	def orthogonal_init(layer, gain=1.0):
+		nn.init.orthogonal_(layer.weight, gain=gain)
+		nn.init.constant_(layer.bias, 0)
+
+	def orthogonal_init_all(self):
+		self.orthogonal_init(self.fc1)
+		self.orthogonal_init(self.fc2)
+		self.orthogonal_init(self.fc3)
+
+	def forward(self, s):
+		s = self.activate_func(self.fc1(s))
+		s = self.activate_func(self.fc2(s))
+		v_s = self.fc3(s)
+		return v_s
+
+	def init(self, use_orthogonal_init):
+		if use_orthogonal_init:
+			self.orthogonal_init_all()
+		else:
+			self.fc1.reset_parameters()
+			self.fc2.reset_parameters()
+			self.fc3.reset_parameters()
 
 
 if __name__ == '__main__':
