@@ -1,6 +1,8 @@
 import cv2 as cv
 import numpy as np
 import pandas as pd
+import sys, os
+
 from utils.functions import *
 from utils.classes import Normalization
 from algorithm.rl_base import rl_base
@@ -30,7 +32,7 @@ class SecondOrderIntegration(rl_base):
 
         self.fMax = 3
         self.fMin = -3
-        self.admissible_error = 5
+        self.admissible_error = 0
 
         self.vMax = 3
 
@@ -232,10 +234,10 @@ class SecondOrderIntegration(rl_base):
     def is_Terminal(self, param=None):
         self.is_terminal = False
         self.terminal_flag = 0
-        if self.is_out():
-            print('...out...')
-            self.terminal_flag = 1
-            self.is_terminal = True
+        # if self.is_out():
+        #     print('...out...')
+        #     self.terminal_flag = 1
+        #     self.is_terminal = True
         if self.time > self.time_max:
             # print('...time out...')
             self.terminal_flag = 2
@@ -258,20 +260,20 @@ class SecondOrderIntegration(rl_base):
         # u_acc = -np.dot(self.acc ** 2, Q_acc)
         Q_pos = 1
         Q_vel = 0.1
-        Q_acc = 0.1
+        Q_acc = 0.05
 
         e_pos = np.linalg.norm(self.target - self.pos)
         e_vel = np.linalg.norm(-self.vel)
         acc = np.linalg.norm(self.acc)
 
-        # u_pos = -e_pos * Q_pos
-        # u_vel = -e_vel * Q_vel
-        # u_acc = -acc * Q_acc
+        u_pos = -e_pos * Q_pos
+        u_vel = -e_vel * Q_vel
+        u_acc = -acc * Q_acc
 
-        e_pos_ave = np.linalg.norm(self.map_size - self.target) / 2
-        u_pos = e_pos_ave - e_pos
-        u_vel = 0.
-        u_acc = 0.
+        # e_pos_ave = np.linalg.norm(self.map_size - self.target) / 2
+        # u_pos = e_pos_ave - e_pos
+        # u_vel = 0.
+        # u_acc = 0.
 
         u_extra= 0.
         if self.terminal_flag == 1:  # position out
