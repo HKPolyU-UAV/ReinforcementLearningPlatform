@@ -5,8 +5,8 @@ import torch
 
 """use CPU or GPU"""
 use_cuda = torch.cuda.is_available()
-device = torch.device("cuda" if use_cuda else "cpu")
-# device = torch.device("cpu")
+# device = torch.device("cuda" if use_cuda else "cpu")
+device = torch.device("cpu")
 """use CPU or GPU"""
 
 

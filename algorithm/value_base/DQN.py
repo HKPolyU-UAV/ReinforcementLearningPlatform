@@ -96,14 +96,6 @@ class DQN:
         """
         t_state = torch.tensor(state).float().to(device)
         t_action_value = self.target_net(t_state).cpu().detach().numpy()
-        # 分离动作价值的各个维度，分别取最大
-        # index = self.target_net.index
-        # num = []
-        # for i in range(self.env.action_dim):
-        #     num.append(np.argmax(t_action_value[index[i]: index[i + 1]]))
-        # print(t_action_value.shape)
-        # print(index)
-        # num = np.random.choice(np.where(t_action_value == np.max(t_action_value))[0])
         return np.argmax(t_action_value)
 
     def get_action_with_fixed_epsilon(self, state, epsilon):
