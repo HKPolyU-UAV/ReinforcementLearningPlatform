@@ -2,7 +2,7 @@ from algorithm.value_base.DQN import DQN
 import torch, os, time
 
 """use CPU or GPU"""
-use_cuda = torch.cuda.is_available()
+# use_cuda = torch.cuda.is_available()
 # device = torch.device("cuda" if use_cuda else "cpu")
 device = torch.device("cpu")
 """use CPU or GPU"""
@@ -21,7 +21,7 @@ class Double_DQN(DQN):
                  target_net):
         super(Double_DQN, self).__init__(env, gamma, epsilon, learning_rate, memory_capacity, batch_size, target_replace_iter, eval_net, target_net)
 
-    def lean_double_dqn(self, path=None, is_reward_ascent=False, item=10):
+    def learn_double_dqn(self, path=None, is_reward_ascent=False, item=10):
         """
         @param saveNNPath:
         @param is_reward_ascent:
@@ -54,7 +54,7 @@ class Double_DQN(DQN):
             '''Double DQN'''
 
             for _ in range(1):
-                q_eval = self.eval_net(t_s).gather(1, t_a_pos)
+                q_eval = self.eval_net(t_s).gather(1, t_a_pos.unsqueeze(1))
                 loss = self.loss_func(q_eval, q_target)
                 self.optimizer.zero_grad()
                 loss.backward()

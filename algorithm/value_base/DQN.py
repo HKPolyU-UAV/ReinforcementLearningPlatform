@@ -7,9 +7,9 @@ import os, time
 from utils.classes import DQNNet, ReplayBuffer
 
 """use CPU or GPU"""
-use_cuda = torch.cuda.is_available()
-device = torch.device("cuda:0" if use_cuda else "cpu")
-# device = torch.device("cpu")
+# use_cuda = torch.cuda.is_available()
+# device = torch.device("cuda:0" if use_cuda else "cpu")
+device = torch.device("cpu")
 """use CPU or GPU"""
 
 
@@ -158,11 +158,6 @@ class DQN:
             self.target_net.load_state_dict(self.eval_net.state_dict())
             print('Save net', self.target_replace_count)
             self.save_net(msg='', path=temp)
-            # torch.save(self.target_net, saveNNPath + '/' + 'dqn.pkl')
-            # torch.save(self.target_net.state_dict(), saveNNPath + '/' + 'dqn_parameters.pkl')
-            # torch.save(self.eval_net, saveNNPath + '/' + 'eval_dqn.pkl')
-            # torch.save(self.eval_net.state_dict(), saveNNPath + '/' + 'eval_dqn_parameters.pkl')
-            # print('网络更新：', int(self.target_replace_count / self.target_replace_iter))
 
         for _ in range(iter):
             state, action, reward, new_state, done = self.memory.sample_buffer(is_reward_ascent=is_reward_ascent)
