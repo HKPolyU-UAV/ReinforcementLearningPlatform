@@ -4,11 +4,105 @@ import random
 import numpy as np
 # from numpy import linalg
 import torch.nn as nn
-# import torch.nn.functional as func
+import torch.nn.functional as func
 import torch
 from torch.distributions import Normal
 from torch.distributions import MultivariateNormal
 # from torch.distributions import Categorical
+
+
+class DQNNet(nn.Module):
+    def __init__(self, _input: int = 1, _output: list = None):
+        """
+        :brief:             神经网络初始化
+        :param _input:      输入维度
+        :param _output:     输出维度
+        """
+        super(DQNNet, self).__init__()
+        if _output is None:
+            _output = [1]
+        self.hidden1 = nn.Linear(_input, 64)  # input -> hidden1
+        self.hidden2 = nn.Linear(64, 64)  # hidden1 -> hidden2
+        self.out = nn.Linear(64, _output[0])  # hidden2 -> output
+        self.init()
+
+    def init(self):
+        torch.nn.init.orthogonal_(self.hidden1.weight, gain=1)
+        torch.nn.init.uniform_(self.hidden1.bias, 0, 1)
+        torch.nn.init.orthogonal_(self.hidden2.weight, gain=1)
+        torch.nn.init.uniform_(self.hidden2.bias, 0, 1)
+        torch.nn.init.orthogonal_(self.out.weight, gain=1)
+        torch.nn.init.uniform_(self.out.bias, 0, 1)
+
+    def forward(self, _x):
+        """
+        :brief:         神经网络前向传播
+        :param _x:      输入网络层的张量
+        :return:        网络的输出
+        """
+        x = _x
+        x = self.hidden1(x)
+        x = func.relu(x)
+        x = self.hidden2(x)
+        x = func.relu(x)
+        state_action_value = self.out(x)
+        return state_action_value
+
+
+class DuelingNeuralNetwork(nn.Module):
+    def __init__(self, _input: int, _output: list):
+        """
+        :brief:             神经网络初始化
+        :param _input:      输入维度
+        :param _output:     输出维度
+        """
+        super(DuelingNeuralNetwork, self).__init__()
+        self.hidden1 = nn.Linear(_input, 64)  # input -> hidden1
+        self.hidden2 = nn.Linear(64, 64)  # hidden1 -> hidden2
+        # self.out = nn.Linear(64, _output)  # hidden2 -> output
+        self.value = nn.Linear(64, _output[0])
+        self.advantage = nn.Linear(64, _output[0])
+        # self.init()
+        self.init_default()
+
+    def init(self):
+        torch.nn.init.orthogonal_(self.hidden1.weight, gain=1)
+        torch.nn.init.uniform_(self.hidden1.bias, 0, 1)
+        torch.nn.init.orthogonal_(self.hidden2.weight, gain=1)
+        torch.nn.init.uniform_(self.hidden2.bias, 0, 1)
+        torch.nn.init.orthogonal_(self.out.weight, gain=1)
+        torch.nn.init.uniform_(self.out.bias, 0, 1)
+        torch.nn.init.orthogonal_(self.value.weight, gain=1)
+        torch.nn.init.uniform_(self.value.bias, 0, 1)
+        torch.nn.init.orthogonal_(self.advantage.weight, gain=1)
+        torch.nn.init.uniform_(self.advantage.bias, 0, 1)
+
+    def init_default(self):
+        self.hidden1.reset_parameters()
+        self.hidden2.reset_parameters()
+        self.value.reset_parameters()
+        self.advantage.reset_parameters()
+
+    def forward(self, _x):
+        """
+        :brief:         神经网络前向传播
+        :param _x:      输入网络层的张量
+        :return:        网络的输出
+        """
+        x = _x
+        x = self.hidden1(x)
+        x = func.relu(x)
+        x = self.hidden2(x)
+        x = func.relu(x)
+
+        x1 = self.value(x)
+        x1 = func.relu(x1)
+
+        x2 = self.advantage(x)
+        x2 = func.relu(x2)
+
+        state_action_value = x1 + (x2 - x2.mean())
+        return state_action_value
 
 
 class ReplayBuffer:
@@ -52,6 +146,7 @@ class ReplayBuffer:
     def sample_buffer(self, is_reward_ascent: bool = True, has_log_prob: bool = False):
         max_mem = min(self.mem_counter, self.mem_size)
         if is_reward_ascent:
+            self.get_reward_sort()
             batchNum = min(int(0.25 * max_mem), self.batch_size)
             batch = random.sample(self.sorted_index[-int(0.25 * max_mem):], batchNum)
         else:
