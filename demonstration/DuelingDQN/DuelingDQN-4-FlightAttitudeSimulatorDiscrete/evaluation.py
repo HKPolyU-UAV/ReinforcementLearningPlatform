@@ -12,10 +12,6 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../../")
 
 from FlightAttitudeSimulatorDiscrete import FlightAttitudeSimulatorDiscrete as env
 
-is_storage_only_success = False
-ALGORITHM = 'DuelingDQN'
-ENV = 'FlightAttitudeSimulatorDiscrete'
-
 
 class DuelingNeuralNetwork(nn.Module):
 	def __init__(self, state_dim=1, action_dim=1):
@@ -76,20 +72,24 @@ class DuelingNeuralNetwork(nn.Module):
 		state_action_value = x1 + (x2 - x2.mean())
 		return state_action_value
 
+	def evaluate(self, s):
+		t_state = torch.tensor(s).float().to(self.device)
+		v = self.forward(t_state).cpu().detach().numpy()
+		return np.argmax(v)
+
 
 if __name__ == '__main__':
-	optPath = './datasave/net/'
+	optPath = os.path.dirname(os.path.abspath(__file__)) + '/datasave/net/'
 	env = env()
 	eval_net = DuelingNeuralNetwork(state_dim=env.state_dim, action_dim=env.action_num[0])
+	# torch.load(optPath + 'eval')
 	eval_net.load_state_dict(torch.load(optPath + 'eval'))
 
 	n = 10
-
 	for _ in range(n):
 		# env.reset()
 		env.reset_random()
 		sumr = 0
-
 		while not env.is_terminal:
 			c = cv.waitKey(1)
 			env.current_state = env.next_state.copy()
