@@ -2,33 +2,42 @@ import sys
 import datetime
 import os
 import cv2 as cv
+import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as func
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../../")
 
 from FlightAttitudeSimulatorDiscrete import FlightAttitudeSimulatorDiscrete as env
-from algorithm.value_base.Double_DQN import Double_DQN
+from algorithm.value_base.Dueling_DQN import Dueling_DQN
 
 is_storage_only_success = False
-ALGORITHM = 'DoubleDQN'
+ALGORITHM = 'DuelingDQN'
 ENV = 'FlightAttitudeSimulatorDiscrete'
 
 
-class DQNNet(nn.Module):
+class DuelingNeuralNetwork(nn.Module):
 	def __init__(self, state_dim=1, action_dim=1):
-		super(DQNNet, self).__init__()
+		"""
+		:brief:             神经网络初始化
+		:param state_dim:      输入维度
+		:param action_dim:     输出维度
+		"""
+		super(DuelingNeuralNetwork, self).__init__()
 		self.state_dim = state_dim
 		self.action_dim = action_dim
 
-		self.fc1 = nn.Linear(state_dim, 64)
-		self.fc2 = nn.Linear(64, 64)
-		self.out = nn.Linear(64, action_dim)
+		self.fc1 = nn.Linear(state_dim, 64)  # input -> hidden1
+		self.fc2 = nn.Linear(64, 64)  # hidden1 -> hidden2
+		self.value = nn.Linear(64, 1)
 
-		self.init()
+		assert action_dim <= 100, '动作空间过大，建议采用其他RL算法'
+		self.advantage = nn.Linear(64, action_dim)
+		# self.init()
+		self.init_default()
 
-		# self.device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 		self.device = 'cpu'
 		self.to(self.device)
 
@@ -39,6 +48,16 @@ class DQNNet(nn.Module):
 		torch.nn.init.uniform_(self.fc2.bias, 0, 1)
 		torch.nn.init.orthogonal_(self.out.weight, gain=1)
 		torch.nn.init.uniform_(self.out.bias, 0, 1)
+		torch.nn.init.orthogonal_(self.value.weight, gain=1)
+		torch.nn.init.uniform_(self.value.bias, 0, 1)
+		torch.nn.init.orthogonal_(self.advantage.weight, gain=1)
+		torch.nn.init.uniform_(self.advantage.bias, 0, 1)
+
+	def init_default(self):
+		self.fc1.reset_parameters()
+		self.fc2.reset_parameters()
+		self.value.reset_parameters()
+		self.advantage.reset_parameters()
 
 	def forward(self, _x):
 		"""
@@ -47,10 +66,15 @@ class DQNNet(nn.Module):
 		:return:        网络的输出
 		"""
 		x = _x
-		x = torch.relu(self.fc1(x))
-		x = torch.relu(self.fc2(x))
-		state_action_value = self.out(x)
+		x = self.fc1(x)
+		x = func.relu(x)
+		x = self.fc2(x)
+		x = func.relu(x)
 
+		x1 = self.value(x)
+		x2 = self.advantage(x)
+
+		state_action_value = x1 + (x2 - x2.mean())
 		return state_action_value
 
 
@@ -138,15 +162,15 @@ if __name__ == '__main__':
 	simulationPath = log_dir + datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d-%H-%M-%S') + '-' + ALGORITHM + '-' + ENV + '/'
 	os.mkdir(simulationPath)
 
-	RETRAIN = False  # 基于之前的训练结果重新训练
+	RETRAIN = True  # 基于之前的训练结果重新训练
 
 	c = cv.waitKey(1)
 
 	env = env()
-	eval_net = DQNNet(state_dim=env.state_dim, action_dim=env.action_num[0])
-	target_net = DQNNet(state_dim=env.state_dim, action_dim=env.action_num[0])
+	eval_net = DuelingNeuralNetwork(state_dim=env.state_dim, action_dim=env.action_num[0])
+	target_net = DuelingNeuralNetwork(state_dim=env.state_dim, action_dim=env.action_num[0])
 
-	agent = Double_DQN(env=env,
+	agent = Dueling_DQN(env=env,
 					   gamma=0.99,
 					   epsilon=0.95,
 					   learning_rate=1e-4,
@@ -165,11 +189,14 @@ if __name__ == '__main__':
 	agent.episode = 0  # 设置起始回合
 	if RETRAIN:
 		print('Retraining')
-		fullFillReplayMemory_with_Optimal_Exploration(torch_pkl_file='dqn_parameters_ok3.pkl',
-													  randomEnv=True,
-													  fullFillRatio=0.5,
-													  epsilon=0.5,
-													  is_only_success=True)
+		# fullFillReplayMemory_with_Optimal_Exploration(torch_pkl_file='dqn_parameters_ok3.pkl',
+		# 											  randomEnv=True,
+		# 											  fullFillRatio=0.5,
+		# 											  epsilon=0.5,
+		# 											  is_only_success=True)
+		path = './datasave/net/'
+		agent.target_net.load_state_dict(torch.load(path + 'target'))
+		agent.eval_net.load_state_dict(torch.load(path + 'eval'))
 		# 如果注释掉，就是在上次的基础之上继续学习，如果不是就是重新学习，但是如果两次的奖励函数有变化，那么就必须执行这两句话
 		'''生成初始数据之后要再次初始化网络'''
 		# agent.eval_net.init()
@@ -214,7 +241,7 @@ if __name__ == '__main__':
 			else:
 				agent.memory.store_transition(env.current_state, env.current_action, env.reward, env.next_state, 1 if env.is_terminal else 0)
 
-			agent.learn_double_dqn(path=simulationPath, is_reward_ascent=False, item=1)
+			agent.learn(path=simulationPath, is_reward_ascent=False, iter=1)
 		'''跳出循环代表回合结束'''
 		if is_storage_only_success and env.terminal_flag == 3:
 			print('Update Replay Memory......')

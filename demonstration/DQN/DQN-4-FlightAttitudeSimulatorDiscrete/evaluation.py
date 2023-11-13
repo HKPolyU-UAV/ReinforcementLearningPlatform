@@ -60,7 +60,7 @@ class DQNNet(nn.Module):
 
 
 if __name__ == '__main__':
-	optPath = './net/'
+	optPath = './datasave/net/'
 	env = env()
 	eval_net = DQNNet(state_dim=env.state_dim, action_dim=env.action_num[0])
 	eval_net.load_state_dict(torch.load(optPath + 'eval'))
