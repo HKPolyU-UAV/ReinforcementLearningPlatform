@@ -228,13 +228,13 @@ if __name__ == '__main__':
 			pd.DataFrame({'sumr_list': sumr_list}).to_csv(simulationPath + 'sumr_list.csv')
 			print('   Testing finished...')
 			print('   Go back to training...')
-		'''3. 每学习 50 次，测试一下'''
+		'''3. 每学习 10 次，测试一下'''
 
 		'''4. 每学习 50 次，减小一次探索概率'''
 		if t_epoch % 50 == 0 and t_epoch > 0:
 			if agent.actor.std > 0.1:
 				agent.actor.std -= 0.05
-		'''4. 每学习 100 次，减小一次探索概率'''
+		'''4. 每学习 50 次，减小一次探索概率'''
 
 		'''5. 每学习 50 次，保存一下 policy'''
 		if t_epoch % 50 == 0 and t_epoch > 0:

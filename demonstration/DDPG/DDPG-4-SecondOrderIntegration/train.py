@@ -11,15 +11,15 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../")
 
-from FlightAttitudeSimulator import FlightAttitudeSimulator as env
+from SecondOrderIntegration import SecondOrderIntegration as env
 from algorithm.actor_critic.DDPG import DDPG
 from utils.functions import *
 from utils.classes import Normalization
 
 timestep = 0
-ENV = 'FlightAttitudeSimulator'
+ENV = 'SecondOrderIntegration'
 ALGORITHM = 'DDPG'
-MAX_EPISODE = 1500
+MAX_EPISODE = 3000
 r_norm = Normalization(shape=1)
 
 
@@ -109,7 +109,7 @@ def fullFillReplayMemory_with_Optimal(randomEnv: bool, fullFillRatio: float, is_
 	fullFillCount = max(min(fullFillCount, agent.memory.mem_size), agent.memory.batch_size)
 	_new_state, _new_action, _new_reward, _new_state_, _new_done = [], [], [], [], []
 	while agent.memory.mem_counter < fullFillCount:
-		env.reset_random() if randomEnv else env.reset()
+		env.reset(randomEnv)
 		_new_state.clear()
 		_new_action.clear()
 		_new_reward.clear()
@@ -141,7 +141,7 @@ def fullFillReplayMemory_Random(randomEnv: bool, fullFillRatio: float):
 	fullFillCount = int(fullFillRatio * agent.memory.mem_size)
 	fullFillCount = max(min(fullFillCount, agent.memory.mem_size), agent.memory.batch_size)
 	while agent.memory.mem_counter < fullFillCount:
-		env.reset_random() if randomEnv else env.reset()
+		env.reset(randomEnv)
 		while not env.is_terminal:
 			if agent.memory.mem_counter % 1000 == 0:
 				print('replay_count = ', agent.memory.mem_counter)
@@ -205,7 +205,7 @@ if __name__ == '__main__':
 	sigma0 = 1.0
 	while agent.episode <= MAX_EPISODE:
 		# env.reset()
-		env.reset_random()
+		env.reset(random=True)
 		sumr = 0
 		new_state.clear()
 		new_action.clear()
