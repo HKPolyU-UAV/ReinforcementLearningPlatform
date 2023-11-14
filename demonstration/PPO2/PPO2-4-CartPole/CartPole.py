@@ -1,74 +1,80 @@
+import math
+
 import numpy as np
 
 from utils.functions import *
 from algorithm.rl_base import rl_base
 import cv2 as cv
 from environment.color import Color
-import pandas as pd
 
 
-class CartPoleAngleOnly(rl_base):
-	def __init__(self, initTheta: float):
+class CartPole(rl_base):
+	def __init__(self, initTheta: float, initX: float):
 		"""
-        :param initTheta:       initial angle, which should be less than 30 degree
-        :param save_cfg:        save the model config file or not
-        """
-		super(CartPoleAngleOnly, self).__init__()
+		:param initTheta:       initial angle, which should be less than 30 degree
+		:param initX:           initial position
+		"""
+		super(CartPole, self).__init__()
 		'''physical parameters'''
-		self.name = 'CartPoleAngleOnly'
 		self.initTheta = initTheta
+		self.initX = initX
 		self.theta = self.initTheta
-		self.x = 0
+		self.x = self.initX
 		self.dtheta = 0.  # 从左往右转为正
 		self.dx = 0.  # 水平向左为正
 		self.force = 0.  # 外力，水平向左为正
 
-		self.thetaMax = deg2rad(45)  # maximum angle
-		# self.dthetaMax = deg2rad(720)   # maximum angular rate
+		self.theta_max = deg2rad(45)
+		self.dtheta_max = deg2rad(90)
+		self.x_max = 1.5
+		self.dx_max = 3
 
 		self.staticGain = 2.0
-		self.norm_4_boundless_state = 4
 
 		self.M = 1.0  # mass of the cart
 		self.m = 0.1  # mass of the pole
 		self.g = 9.8
 		self.ell = 0.2  # 1 / 2 length of the pole
 		self.kf = 0.2  # friction coefficient
-		self.fm = 5  # maximum force added on the cart
+		self.fm = 8  # maximum force added on the cart
 
-		self.dt = 0.02  # 10ms
-		self.timeMax = 5  # maximum time of each episode
+		self.dt = 0.01  # 10ms
+		self.timeMax = 6  # maximum time of each episode
 		self.time = 0.
 		self.etheta = 0. - self.theta
 		self.ex = 0. - self.x
+		self.name = 'CartPole'
 		'''physical parameters'''
 
 		'''RL_BASE'''
-		self.state_dim = 2  # theta, dtheta
-		self.state_num = [np.inf for _ in range(self.state_dim)]
+		self.use_norm = True
+		self.state_dim = 4  # theta, dtheta, x, dx
+		self.state_num = [math.inf for _ in range(self.state_dim)]
 		self.state_step = [None for _ in range(self.state_dim)]
 		self.state_space = [None for _ in range(self.state_dim)]
 		self.state_range = [[-self.staticGain, self.staticGain],
-							[-np.inf, np.inf]]
+							[-math.inf, math.inf],
+							[-self.staticGain, self.staticGain],
+							[-math.inf, math.inf]]
 		self.isStateContinuous = [True for _ in range(self.state_dim)]
-		self.initial_state = np.array([self.theta / self.thetaMax * self.staticGain,
-									   self.dtheta / self.norm_4_boundless_state * self.staticGain])
-		self.current_state = self.initial_state.copy()
-		self.next_state = self.initial_state.copy()
+		self.current_state = self.get_state()
+		self.next_state = self.current_state.copy()
 
 		self.action_dim = 1
 		self.action_step = [None]
 		self.action_range = [[-self.fm, self.fm]]
-		self.action_num = [np.inf]
+		self.action_num = [math.inf]
 		self.action_space = [None]
 		self.isActionContinuous = True
 		self.initial_action = [self.force]
 		self.current_action = self.initial_action.copy()
 
 		self.reward = 0.0
-		self.Q_theta = 3.5  # cost for angular error
-		self.Q_dtheta = 0.01  # cost for angular rate error
-		self.R = 0.2  # cost for control input
+		self.Q_x = 100  # cost for position error
+		self.Q_dx = 0.2  # cost for linear velocity error
+		self.Q_theta = 200  # cost for angular error
+		self.Q_dtheta = 0.1  # cost for angular rate error
+		self.R = 0.5  # cost for control input
 		self.is_terminal = False
 		self.terminal_flag = 0
 		'''RL_BASE'''
@@ -76,14 +82,14 @@ class CartPoleAngleOnly(rl_base):
 		'''visualization_opencv'''
 		self.width = 400
 		self.height = 200
-		self.name4image = 'CartPoleAngleOnly'
+		self.image = np.ones([self.height, self.width, 3], np.uint8) * 255
+		self.name4image = 'cartpole'
 		self.xoffset = 0  # pixel
-		self.scale = (self.width - 2 * self.xoffset) / 2 / 1.5  # m -> pixel
+		self.scale = (self.width - 2 * self.xoffset) / 2 / self.x_max  # m -> pixel
 		self.cart_x_pixel = 40  # 仅仅为了显示，比例尺不一样的
 		self.cart_y_pixel = 30
 		self.pixel_per_n = 20  # 每牛顿的长度
 		self.pole_ell_pixel = 50
-		self.image = np.ones([self.height, self.width, 3], np.uint8) * 255
 		self.image_copy = self.image.copy()
 		self.draw_slide()
 		'''visualization_opencv'''
@@ -132,69 +138,80 @@ class CartPoleAngleOnly(rl_base):
 		cv.imshow(self.name4image, self.image)
 		cv.waitKey(1)
 
+	def get_state(self):
+		if self.use_norm:
+			s = np.array([self.theta / self.theta_max,
+						  self.dtheta / self.dtheta_max,
+						  self.x / self.x_max,
+						  self.dx / self.dx_max]) * self.staticGain
+		else:
+			s = np.array([self.theta, self.dtheta, self.x, self.dx])
+		return s
+
 	def is_success(self):
-		if np.linalg.norm([self.etheta, self.dtheta]) < 1e-2:
+		if np.linalg.norm([self.ex, self.dx, self.etheta, self.dtheta]) < 1e-2:
 			return True
 		return False
 
 	def is_Terminal(self, param=None):
 		"""
-        :brief:     判断回合是否结束
-        :return:    是否结束
-        """
+		:brief:     判断回合是否结束
+		:return:    是否结束
+		"""
 		self.terminal_flag = 0
-		if (self.theta > self.thetaMax + deg2rad(1)) or self.theta < -self.thetaMax - deg2rad(1):
+		self.is_terminal = False
+		if (self.theta > self.theta_max + deg2rad(1)) or self.theta < -self.dtheta_max - deg2rad(1):
 			self.terminal_flag = 1
 			# print('Angle out...')
-			return True
+			self.is_terminal = True
+
+		if self.x > self.x_max or self.x < -self.x_max:
+			self.terminal_flag = 2
+			# print('Position out...')
+			self.is_terminal = True
 
 		if self.time > self.timeMax:
 			self.terminal_flag = 3
-			print('Time out')
-			return True
+			# print('Time out')
+			self.is_terminal = True
 
 		# if self.is_success():
 		# 	self.terminal_flag = 4
-		# 	print('Success')
-		# 	return True
-		return False
+		# 	# print('Success')
+		# 	self.is_terminal = True
 
 	def get_reward(self, param=None):
 		"""
-        :param param:   extra parameters for reward function
-        :return:
-        """
-		'''Should be a function with respec to [theta, dtheta, force]'''
-		'''玄学，完全是玄学, sun of a bitch'''
-		'''二次型奖励'''
-		Q_theta = 1
+		:param param:   extra parameters for reward function
+		:return:
+		"""
+		Q_x = 1
+		Q_dx = 0.0
+		Q_theta = 5
 		Q_omega = 0.0
 		R = 0.00
-		# r1_min = -self.thetaMax ** 2 * self.Q_theta
-		# r2_min = -8 ** 2 * self.Q_omega
-		# r3_min = -self.fm ** 2 * R		# 有正有负，仅此而已
-		theta_middle = self.thetaMax / 2
 
-		# r1 = -self.theta ** 2 * Q_theta
-		r1 = (theta_middle - np.fabs(self.theta)) * 10
-		r2 = -self.dtheta ** 2 * Q_omega # - r2_min / 2
-		r3 = -self.force ** 2 * R # - r3_min / 2
-		# r3 = 0
-		r4 = 0.
-		if self.terminal_flag == 1:		# 如果角度出界
+		theta_middle = self.theta_max / 2
+		x_middle = self.x_max / 2
+
+		r_x = (x_middle - np.fabs(self.x)) * Q_x
+		r_dx = -np.fabs(self.dx) * Q_dx
+		r_theta = (theta_middle - np.fabs(self.theta)) * Q_theta
+		r_omega = -np.fabs(self.dtheta) * Q_omega
+		r_f = -np.fabs(self.force) * R
+
+		r_extra = 0.
+		if self.terminal_flag == 1 or self.terminal_flag == 2:
 			_n = (self.timeMax - self.time) / self.dt
-			r4 = _n * (r1 + r2 + r3)
-			# print('结束',_n, r1, r2, r3, r4)
-			# print(self.theta)
-		r = r1 + r2 + r3 + r4
-		'''二次型奖励'''
-		self.reward = r
+			r_extra = _n * (r_x + r_dx + r_theta + r_omega + r_f)
+
+		self.reward = r_x + r_dx + r_theta + r_omega + r_f + r_extra
 
 	def ode(self, xx: np.ndarray):
 		"""
-        :param xx:  微分方程的状态，不是强化学习的状态。
-        :return:
-        """
+		:param xx:  微分方程的状态，不是强化学习的状态。
+		:return:
+		"""
 		'''微分方程里面的状态：[theta, dtheta, x, dx]'''
 		_theta = xx[0]
 		_dtheta = xx[1]
@@ -229,29 +246,27 @@ class CartPoleAngleOnly(rl_base):
 	def step_update(self, action: list):
 		self.force = action[0]  # get the extra force
 		self.current_action = action.copy()
-		self.current_state = np.array([self.theta / self.thetaMax * self.staticGain,
-									   self.dtheta / self.norm_4_boundless_state * self.staticGain])
-		'''RK-44'''
+		self.current_state = self.get_state()
 		self.rk44(np.array([self.force]))
-		'''RK-44'''
 
 		'''角度，位置误差更新'''
 		self.etheta = 0. - self.theta
 		self.ex = 0. - self.x
-		self.is_terminal = self.is_Terminal()
-		self.next_state = np.array([self.theta / self.thetaMax * self.staticGain,
-									self.dtheta / self.norm_4_boundless_state * self.staticGain])
-		'''角度，位置误差更新'''
+		self.is_Terminal()
+		self.next_state = self.get_state()
 		self.get_reward()
 
-	def reset(self):
+	def reset(self, random: bool = False):
 		"""
-        :brief:     reset
-        :return:    None
-        """
+		:brief:     reset
+		:return:    None
+		"""
 		'''physical parameters'''
+		if random:
+			self.initTheta = np.random.uniform(-self.theta_max / 2, self.theta_max / 2)
+			self.initX = np.random.uniform(-self.x_max / 2, self.x_max / 2)
 		self.theta = self.initTheta
-		self.x = 0
+		self.x = self.initX
 		self.dtheta = 0.  # 从左往右转为正
 		self.dx = 0.  # 水平向左为正
 		self.force = 0.  # 外力，水平向左为正
@@ -261,54 +276,12 @@ class CartPoleAngleOnly(rl_base):
 		'''physical parameters'''
 
 		'''RL_BASE'''
-		self.initial_state = np.array([self.theta / self.thetaMax * self.staticGain,
-									   self.dtheta / self.norm_4_boundless_state * self.staticGain])
-		self.current_state = self.initial_state.copy()
-		self.next_state = self.initial_state.copy()
+		self.current_state = self.get_state()
+		self.next_state = self.current_state.copy()
 
-		self.initial_action = [self.force]
-		self.current_action = self.initial_action.copy()
+		self.current_action = [0.]
 
 		self.reward = 0.0
 		self.is_terminal = False
 		self.terminal_flag = 0
 		'''RL_BASE'''
-
-		self.image = np.ones([self.height, self.width, 3], np.uint8) * 255
-		self.image_copy = self.image.copy()
-		self.draw_slide()
-
-	def reset_random(self):
-		"""
-        :brief:     reset
-        :return:    None
-        """
-		'''physical parameters'''
-		self.initTheta = np.random.uniform(-self.thetaMax / 2, self.thetaMax / 2)
-		self.theta = self.initTheta
-		self.x = 0
-		self.dtheta = 0.  # 从左往右转为正
-		self.dx = 0.  # 水平向左为正
-		self.force = 0.  # 外力，水平向左为正
-		self.time = 0.
-		self.etheta = 0. - self.theta
-		self.ex = 0. - self.x
-		'''physical parameters'''
-
-		'''RL_BASE'''
-		self.initial_state = np.array([self.theta / self.thetaMax * self.staticGain,
-									   self.dtheta / self.norm_4_boundless_state * self.staticGain])
-		self.current_state = self.initial_state.copy()
-		self.next_state = self.initial_state.copy()
-
-		self.initial_action = [self.force]
-		self.current_action = self.initial_action.copy()
-
-		self.reward = 0.0
-		self.is_terminal = False
-		self.terminal_flag = 0
-		'''RL_BASE'''
-
-		self.image = np.ones([self.height, self.width, 3], np.uint8) * 255
-		self.image_copy = self.image.copy()
-		self.draw_slide()
