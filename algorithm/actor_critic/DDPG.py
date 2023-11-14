@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 from utils.functions import *
 from utils.classes import Actor, Critic, ReplayBuffer, GaussianNoise
@@ -5,14 +6,14 @@ import torch.nn.functional as func
 
 """use CPU or GPU"""
 use_cuda = torch.cuda.is_available()
-use_cpu_only = True
+use_cpu_only = False
 device = torch.device("cpu") if use_cpu_only else torch.device("cuda" if use_cuda else "cpu")
 """use CPU or GPU"""
 
 
 class DDPG:
 	def __init__(self,
-				 env,
+				 env_msg:dict,
 				 gamma: float = 0.99,
 				 actor_soft_update: float = 1e-2,
 				 critic_soft_update: float = 1e-2,
@@ -22,24 +23,27 @@ class DDPG:
 				 target_actor: Actor = Actor(),
 				 critic: Critic = Critic(),
 				 target_critic: Critic = Critic()):
-		self.env = env
 
 		'''DDPG'''
+		self.env_msg = env_msg
 		self.gamma = gamma
 		self.actor_tau = actor_soft_update
 		self.critic_tau = critic_soft_update
-		self.memory = ReplayBuffer(memory_capacity, batch_size, self.env.state_dim, self.env.action_dim)
+		self.memory = ReplayBuffer(memory_capacity, batch_size, env_msg['state_dim'], env_msg['action_dim'])
 		'''DDPG'''
 
 		'''network'''
 		self.actor = actor
 		self.target_actor = target_actor
+		self.target_actor.load_state_dict(self.actor.state_dict())
+
 		self.critic = critic
 		self.target_critic = target_critic
+		self.target_critic.load_state_dict(self.critic.state_dict())
 		'''network'''
 
-		self.noise_gaussian = GaussianNoise(mu=np.zeros(self.env.action_dim))
-		self.update_network_parameters()
+		self.a_min = env_msg['action_range'][:, 0]
+		self.a_max = env_msg['action_range'][:, 1]
 
 		self.episode = 0
 		self.reward = 0
@@ -49,26 +53,21 @@ class DDPG:
         :brief:     因为该函数与choose_action并列
         :return:    random action
         """
-		return np.random.uniform(low=-1, high=1, size=self.env.action_dim)
+		return np.random.uniform(low=self.a_min, high=self.a_max)
 
-	def choose_action(self, state, is_optimal=False, sigma=1 / 3):
-		self.actor.eval()  # 切换到测试模式
-		t_state = torch.tensor(state, dtype=torch.float).to(self.actor.device)  # get the tensor of the state
-		mu = self.actor(t_state).to(self.actor.device)  # choose action
-		if is_optimal:
-			mu_prime = mu
-		else:
-			mu_prime = mu + torch.tensor(self.noise_gaussian(sigma=sigma), dtype=torch.float).to(self.actor.device)  # action with gaussian noise
-			# mu_prime = mu + torch.tensor(self.noise_OU(), dtype=torch.float).to(self.actor.device)             # action with OU noise
-		self.actor.train()  # 切换回训练模式
-		mu_prime_np = mu_prime.cpu().detach().numpy()
-		return np.clip(mu_prime_np, -1, 1)  # 将数据截断在[-1, 1]之间
+	def choose_action(self, state, is_optimal=False, sigma: float = 1 / 3, action_dim: int = 1):
+		t_state = torch.tensor(state, dtype=torch.float).to(self.actor.device)
+		mu = self.actor(t_state).to(self.actor.device)
+		if not is_optimal:
+			noise = torch.Tensor(np.random.normal(0, sigma, size=action_dim)).to(self.actor.device)
+			mu = mu + noise
+		mu_np = mu.cpu().detach().numpy().flatten()
+		mu_np = np.clip(mu_np, self.a_min, self.a_max)
+		return mu_np
 
 	def evaluate(self, state):
-		self.target_actor.eval()
-		t_state = torch.tensor(state, dtype=torch.float).to(self.actor.device)  # get the tensor of the state
-		act = self.target_actor(t_state).to(self.target_actor.device)
-		return act.cpu().detach().numpy()
+		t_state = torch.tensor(state, dtype=torch.float).to(self.actor.device)
+		return self.target_actor(t_state).to(self.target_actor.device).cpu().detach().numpy().flatten()
 
 	def learn(self, is_reward_ascent=True, iter=1):
 		if self.memory.mem_counter < self.memory.batch_size:
@@ -125,19 +124,7 @@ class DDPG:
 		torch.save(self.target_critic.state_dict(), path + 'target_critic' + msg)
 
 	def DDPG_info(self):
-		print('agent name：', self.env.name)
-		print('state_dim:', self.env.state_dim)
-		print('action_dim:', self.env.action_dim)
-		print('action_range:', self.env.action_range)
-
-	def action_linear_trans(self, action):
-		# the action output
-		linear_action = []
-		for i in range(self.env.action_dim):
-			a = min(max(action[i], -1), 1)
-			maxa = self.env.action_range[i][1]
-			mina = self.env.action_range[i][0]
-			k = (maxa - mina) / 2
-			b = (maxa + mina) / 2
-			linear_action.append(k * a + b)
-		return np.array(linear_action)
+		print('agent name：', self.env_msg['name'])
+		print('state_dim:', self.env_msg['state_dim'])
+		print('action_dim:', self.env_msg['action_dim'])
+		print('action_range:', self.env_msg['action_range'])

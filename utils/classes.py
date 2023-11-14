@@ -21,14 +21,21 @@ class GaussianNoise(object):
 
 
 class Actor(nn.Module):
-    def __init__(self, alpha=1e-4, state_dim=1, action_dim=1):
+    def __init__(self, alpha=1e-4, state_dim=1, action_dim=1, a_min=-1, a_max=1):
         super(Actor, self).__init__()
         self.state_dim = state_dim
         self.action_dim = action_dim
-        self.alpha = alpha
-        self.layer = nn.Linear(state_dim, action_dim)
+        self.a_min = torch.tensor(a_min, dtype=torch.float)
+        self.a_max = torch.tensor(a_max, dtype=torch.float)
+        self.off = (self.a_min + self.a_max) / 2.0
+        self.gain = self.a_max - self.off
+        self.fc1 = nn.Linear(self.state_dim, 256)
+        self.fc2 = nn.Linear(256, 256)
+        self.mu = nn.Linear(256, self.action_dim)
+        self.initialization()
         self.optimizer = torch.optim.Adam(self.parameters(), lr=alpha)
         self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+        # self.device = 'cpu'
         self.to(self.device)
 
     def initialization(self):

@@ -11,7 +11,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../")
 
-from FlightAttitudeSimulator import Flight_Attitude_Simulator as fas
+from FlightAttitudeSimulator import FlightAttitudeSimulator as env
 from algorithm.actor_critic.DDPG import DDPG
 from utils.functions import *
 from utils.classes import Normalization
@@ -20,9 +20,7 @@ timestep = 0
 ENV = 'FlightAttitudeSimulator'
 ALGORITHM = 'DDPG'
 MAX_EPISODE = 1500
-test_episode = []
-test_reward = []
-sumr_list = []
+r_norm = Normalization(shape=1)
 
 
 class Critic(nn.Module):
@@ -44,7 +42,6 @@ class Critic(nn.Module):
 	def forward(self, s, a):
 		sv = func.relu(self.fc1(s))
 		sv = self.fc2(sv)
-
 		av = func.relu(self.action_value(a))
 		sav = func.relu(torch.add(sv, av))
 		sav = self.q(sav)
@@ -66,17 +63,22 @@ class Critic(nn.Module):
 
 
 class Actor(nn.Module):
-	def __init__(self, alpha, state_dim, action_dim):
+	def __init__(self, alpha, state_dim, action_dim, a_min, a_max):
 		super(Actor, self).__init__()
+		self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+		# self.device = 'cpu'
 		self.state_dim = state_dim
 		self.action_dim = action_dim
+		self.a_min = torch.tensor(a_min, dtype=torch.float).to(self.device)
+		self.a_max = torch.tensor(a_max, dtype=torch.float).to(self.device)
+		self.off = (self.a_min + self.a_max) / 2.0
+		self.gain = self.a_max - self.off
+		# print(self.gain, self.off)
 		self.fc1 = nn.Linear(self.state_dim, 256)
 		self.fc2 = nn.Linear(256, 256)
 		self.mu = nn.Linear(256, self.action_dim)
 		self.initialization()
 		self.optimizer = torch.optim.Adam(self.parameters(), lr=alpha)
-		self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-		# self.device = 'cpu'
 		self.to(self.device)
 
 	def initialization(self):
@@ -96,6 +98,7 @@ class Actor(nn.Module):
 		s = func.relu(self.fc1(s))
 		s = func.relu(self.fc2(s))
 		x = torch.tanh(self.mu(s))
+		x = self.gain * x + self.off
 		return x
 
 
@@ -116,8 +119,7 @@ def fullFillReplayMemory_with_Optimal(randomEnv: bool, fullFillRatio: float, is_
 			if agent.memory.mem_counter % 100 == 0:
 				print('replay_count = ', agent.memory.mem_counter)
 			env.current_state = env.next_state.copy()  # 状态更新
-			_action_from_actor = agent.choose_action(env.current_state, is_optimal=True)
-			_action = agent.action_linear_trans(_action_from_actor)
+			_action = agent.choose_action(env.current_state, is_optimal=True)
 			env.step_update(_action)
 			# env.visualization()
 			if is_only_success:
@@ -135,23 +137,16 @@ def fullFillReplayMemory_with_Optimal(randomEnv: bool, fullFillRatio: float, is_
 
 
 def fullFillReplayMemory_Random(randomEnv: bool, fullFillRatio: float):
-	"""
-	:param randomEnv:       init env randomly
-	:param fullFillRatio:   the ratio
-	:return:                None
-	"""
 	print('Collecting...')
 	fullFillCount = int(fullFillRatio * agent.memory.mem_size)
 	fullFillCount = max(min(fullFillCount, agent.memory.mem_size), agent.memory.batch_size)
 	while agent.memory.mem_counter < fullFillCount:
 		env.reset_random() if randomEnv else env.reset()
 		while not env.is_terminal:
-			if agent.memory.mem_counter % 100 == 0:
+			if agent.memory.mem_counter % 1000 == 0:
 				print('replay_count = ', agent.memory.mem_counter)
 			env.current_state = env.next_state.copy()  # 状态更新
-			# _action_from_actor = agent.choose_action(env.current_state, False, sigma=0.5)
-			_action_from_actor = agent.choose_action_random()
-			_action = agent.action_linear_trans(_action_from_actor)
+			_action = agent.choose_action_random()
 			env.step_update(_action)
 			# env.visualization()
 			# if env.reward > 0:
@@ -168,14 +163,15 @@ if __name__ == '__main__':
 
 	RETRAIN = False
 
-	env = fas(deg2rad(0))
+	env = env()
 	reward_norm = Normalization(shape=1)
 
-	actor = Actor(1e-4, env.state_dim, env.action_dim)
-	target_actor = Actor(1e-4, env.state_dim, env.action_dim)
-	critic = Critic(3e-4, env.state_dim, env.action_dim)
-	target_critic = Critic(3e-4, env.state_dim, env.action_dim)
-	agent = DDPG(env=env,
+	actor = Actor(1e-4, env.state_dim, env.action_dim, env.action_range[:, 0], env.action_range[:, 1])
+	target_actor = Actor(1e-4, env.state_dim, env.action_dim, env.action_range[:, 0], env.action_range[:, 1])
+	critic = Critic(1e-4, env.state_dim, env.action_dim)
+	target_critic = Critic(1e-4, env.state_dim, env.action_dim)
+	env_msg = {'state_dim': env.state_dim, 'action_dim': env.action_dim, 'action_range': env.action_range, 'name': ENV}
+	agent = DDPG(env_msg=env_msg,
 				 gamma=0.99,
 				 actor_soft_update=0.005,
 				 critic_soft_update=0.005,
@@ -206,7 +202,7 @@ if __name__ == '__main__':
 	new_state, new_action, new_reward, new_state_, new_done = [], [], [], [], []
 	step = 0
 	is_storage_only_success = False
-	sigma0 = 0.5
+	sigma0 = 1.0
 	while agent.episode <= MAX_EPISODE:
 		# env.reset()
 		env.reset_random()
@@ -220,11 +216,10 @@ if __name__ == '__main__':
 			c = cv.waitKey(1)
 			env.current_state = env.next_state.copy()
 			if np.random.uniform(0, 1) < 0.00:
-				action_from_actor = agent.choose_action_random()  # 有一定探索概率完全随机探索
+				action = agent.choose_action_random()  # 有一定探索概率完全随机探索
 			else:
 				sigma = sigma0 - agent.episode * (sigma0 - 0.1) / MAX_EPISODE
-				action_from_actor = agent.choose_action(env.current_state, False, sigma=sigma)  # 剩下的是神经网络加噪声
-			action = agent.action_linear_trans(action_from_actor)
+				action = agent.choose_action(env.current_state, False, sigma=sigma)  # 剩下的是神经网络加噪声
 			env.step_update(action)
 			step += 1
 			if agent.episode % 10 == 0:
@@ -239,7 +234,7 @@ if __name__ == '__main__':
 			else:
 				# if env.reward > 0:
 				agent.memory.store_transition(env.current_state, env.current_action, env.reward, env.next_state, 1 if env.is_terminal else 0)
-			agent.learn(is_reward_ascent=False, iter=5)
+			agent.learn(is_reward_ascent=False, iter=1)
 		'''跳出循环代表回合结束'''
 		if is_storage_only_success:
 			if env.terminal_flag == 3:
