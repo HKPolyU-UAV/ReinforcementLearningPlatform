@@ -143,13 +143,13 @@ if __name__ == '__main__':
 	sumr = 0.
 	buffer_index = 0
 	ppo_msg = {'gamma': 0.99,
-			   'K_epochs': 100,
+			   'K_epochs': 30,
 			   'eps_clip': 0.2,
 			   'buffer_size': int(env.timeMax / env.dt) * 6,
 			   'state_dim': env.state_dim,
 			   'action_dim': env.action_dim,
-			   'a_lr': 3e-4,
-			   'c_lr': 1e-3,
+			   'a_lr': 1e-4,
+			   'c_lr': 1e-4,
 			   'set_adam_eps': True,
 			   'lmd': 0.95,
 			   'use_adv_norm': True,

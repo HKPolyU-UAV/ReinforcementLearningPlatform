@@ -38,8 +38,8 @@ class CartPole(rl_base):
 		self.kf = 0.2  # friction coefficient
 		self.fm = 8  # maximum force added on the cart
 
-		self.dt = 0.01  # 10ms
-		self.timeMax = 6  # maximum time of each episode
+		self.dt = 0.02  # 10ms
+		self.timeMax = 5  # maximum time of each episode
 		self.time = 0.
 		self.etheta = 0. - self.theta
 		self.ex = 0. - self.x
