@@ -101,15 +101,16 @@ class CartPole(rl_base):
 		self.image_copy = self.image.copy()  # show是基础画布
 
 	def draw_cartpole_force(self):
-		cx = self.xoffset + 1.5 * self.scale
+		# self.image = self.show.copy()
+		cx = self.xoffset + (self.x + self.x_max) * self.scale
 		cy = self.height / 2
 		pt1 = (int(cx - self.cart_x_pixel / 2), int(cy + self.cart_y_pixel / 2))
 		pt2 = (int(cx + self.cart_x_pixel / 2), int(cy - self.cart_y_pixel / 2))
 		cv.rectangle(self.image, pt1=pt1, pt2=pt2, color=Color().Orange, thickness=-1)
 
 		pt1 = np.atleast_1d([int(cx), int(cy - self.cart_y_pixel / 2)])
-		pt2 = np.atleast_1d([int(cx + self.pole_ell_pixel * S(self.theta)),
-							 int(cy - self.cart_y_pixel / 2 - self.pole_ell_pixel * C(self.theta))])
+		pt2 = np.atleast_1d([int(cx + self.pole_ell_pixel * math.sin(self.theta)),
+							 int(cy - self.cart_y_pixel / 2 - self.pole_ell_pixel * math.cos(self.theta))])
 		cv.line(img=self.image, pt1=pt1, pt2=pt2, color=Color().Red, thickness=4)
 		if self.force >= 0:
 			pt1 = np.atleast_1d([int(cx - self.cart_x_pixel / 2 - np.fabs(self.force) * self.pixel_per_n), int(cy)])

@@ -11,6 +11,54 @@ from torch.distributions import MultivariateNormal
 # from torch.distributions import Categorical
 
 
+class GaussianNoise(object):
+    def __init__(self, mu):
+        self.mu = mu
+        self.sigma = 1 / 3
+
+    def __call__(self, sigma=1 / 3):
+        return np.random.normal(self.mu, sigma, self.mu.shape)
+
+
+class Actor(nn.Module):
+    def __init__(self, alpha=1e-4, state_dim=1, action_dim=1):
+        super(Actor, self).__init__()
+        self.state_dim = state_dim
+        self.action_dim = action_dim
+        self.alpha = alpha
+        self.layer = nn.Linear(state_dim, action_dim)
+        self.optimizer = torch.optim.Adam(self.parameters(), lr=alpha)
+        self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+        self.to(self.device)
+
+    def initialization(self):
+        pass
+
+    def forward(self, state):
+        # x = torch.tanh(state)  # bound the output to [-1, 1]
+        # return x
+        pass
+
+
+class Critic(nn.Module):
+    def __init__(self, beta=1e-3, state_dim=1, action_dim=1):
+        super(Critic, self).__init__()
+        self.state_dim = state_dim
+        self.action_dim = action_dim
+        self.beta = beta
+        self.layer = nn.Linear(state_dim + action_dim, 1)  # layer for the first Q
+        self.optimizer = torch.optim.Adam(self.parameters(), lr=beta)
+        self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+        self.to(self.device)
+
+    def forward(self, state, action):
+        state_action_value = self.layer(torch.cat([state, action], 1))
+        return state_action_value
+
+    def initialization(self):
+        pass
+
+
 class DQNNet(nn.Module):
     def __init__(self, _input: int = 1, _output: list = None):
         """
