@@ -82,7 +82,7 @@ class DDPG:
 
 			with torch.no_grad():
 				Q_ = self.target_critic(s_, self.target_actor(s_))
-				target_Q = r + self.gamma * (1 - done) * Q_
+				target_Q = r.unsqueeze(1) + self.gamma * done.unsqueeze(1) * Q_
 
 			current_Q = self.critic(s, a)
 			critic_loss = func.mse_loss(target_Q, current_Q)
