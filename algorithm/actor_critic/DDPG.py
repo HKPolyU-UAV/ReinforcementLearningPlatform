@@ -1,5 +1,7 @@
 import numpy as np
 import torch
+from torch.distributions import Normal
+
 from utils.functions import *
 from utils.classes import Actor, Critic, ReplayBuffer
 import torch.nn.functional as func
@@ -55,15 +57,13 @@ class DDPG:
         """
 		return np.random.uniform(low=self.a_min, high=self.a_max)
 
-	def choose_action(self, state, is_optimal=False, sigma: float = 1 / 3, action_dim: int = 1):
+	def choose_action(self, state, is_optimal=False, sigma: np.ndarray = np.zeros(1)):
 		t_state = torch.tensor(state, dtype=torch.float).to(self.actor.device)
 		mu = self.actor(t_state).to(self.actor.device)
 		if not is_optimal:
-			noise = torch.Tensor(np.random.normal(0, sigma, size=action_dim)).to(self.actor.device)
-			mu = mu + noise
-		mu_np = mu.cpu().detach().numpy().flatten()
-		mu_np = np.clip(mu_np, self.a_min, self.a_max)
-		return mu_np
+			noise = np.random.multivariate_normal(np.zeros_like(sigma), np.diag(sigma ** 2))
+			mu = mu.cpu().detach().numpy().flatten() + noise
+		return np.clip(mu, self.a_min, self.a_max)
 
 	def evaluate(self, state):
 		t_state = torch.tensor(state, dtype=torch.float).to(self.actor.device)
