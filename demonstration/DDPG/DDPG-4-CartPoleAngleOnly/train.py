@@ -11,15 +11,15 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../")
 
-from SecondOrderIntegration import SecondOrderIntegration as env
+from CartPoleAngleOnly import CartPoleAngleOnly as env
 from algorithm.actor_critic.DDPG import DDPG
 from utils.functions import *
 from utils.classes import Normalization
 
 timestep = 0
-ENV = 'SecondOrderIntegration'
+ENV = 'CartPoleAngleOnly'
 ALGORITHM = 'DDPG'
-MAX_EPISODE = 3000
+MAX_EPISODE = 1500
 r_norm = Normalization(shape=1)
 
 
@@ -164,7 +164,7 @@ if __name__ == '__main__':
 
     RETRAIN = False
 
-    env = env()
+    env = env(initTheta=0.)
     reward_norm = Normalization(shape=1)
 
     actor = Actor(1e-4, env.state_dim, env.action_dim, env.action_range[:, 0], env.action_range[:, 1])

@@ -52,8 +52,8 @@ class SecondOrderIntegration(rl_base):
         self.state_range = np.array(
             [[-self.map_size[0], self.map_size[0]],
              [-self.map_size[1], self.map_size[1]],
-             [-self.vMax , self.vMax ],
-             [-self.vMax , self.vMax ]])
+             [-self.vMax, self.vMax],
+             [-self.vMax, self.vMax]])
 
         self.initial_state = self.get_state()
         self.current_state = self.get_state()
@@ -235,10 +235,10 @@ class SecondOrderIntegration(rl_base):
     def is_Terminal(self, param=None):
         self.is_terminal = False
         self.terminal_flag = 0
-        # if self.is_out():
-        #     print('...out...')
-        #     self.terminal_flag = 1
-        #     self.is_terminal = True
+        if self.is_out():
+            # print('...out...')
+            self.terminal_flag = 1
+            self.is_terminal = True
         if self.time > self.time_max:
             # print('...time out...')
             self.terminal_flag = 2
@@ -276,7 +276,7 @@ class SecondOrderIntegration(rl_base):
         # u_vel = 0.
         # u_acc = 0.
 
-        u_extra= 0.
+        u_extra = 0.
         if self.terminal_flag == 1:  # position out
             _n = (self.time_max - self.time) / self.dt
             u_extra = _n * (u_pos + u_vel + u_acc)
