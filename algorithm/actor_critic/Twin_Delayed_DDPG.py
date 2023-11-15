@@ -1,259 +1,162 @@
+import numpy as np
 import torch
 from utils.functions import *
-from utils.classes import Actor, Critic, ReplayBuffer, GaussianNoise
+from utils.classes import Actor, TD3Critic, ReplayBuffer
 import torch.nn.functional as func
 
 """use CPU or GPU"""
 use_cuda = torch.cuda.is_available()
-use_cpu_only = True
+use_cpu_only = False
 device = torch.device("cpu") if use_cpu_only else torch.device("cuda" if use_cuda else "cpu")
 """use CPU or GPU"""
 
 
 class Twin_Delayed_DDPG:
-    def __init__(self,
-                 env,
-                 gamma: float = 0.9,
-                 noise_clip: float = 1 / 2,
-                 noise_policy: float = 1 / 4,
-                 policy_delay: int = 5,
-                 critic1_soft_update: float = 1e-2,
-                 critic2_soft_update: float = 1e-2,
-                 actor_soft_update: float = 1e-2,
-                 memory_capacity: int = 5000,
-                 batch_size: int = 64,
-                 actor: Actor = Actor(),
-                 target_actor: Actor = Actor(),
-                 critic1: Critic = Critic(),
-                 target_critic1: Critic = Critic(),
-                 critic2: Critic = Critic(),
-                 target_critic2: Critic = Critic(),
-                 path: str = ''):
-        self.env = env
-        '''Twin-Delay-DDPG'''
-        self.gamma = gamma
-        # for target policy smoothing regularization
-        self.noise_clip = noise_clip
-        self.noise_policy = noise_policy
-        self.action_regularization = GaussianNoise(mu=np.zeros(self.env.action_dim))
-        # for target policy smoothing regularization
-        self.policy_delay = policy_delay
-        self.policy_delay_iter = 0
-        self.critic1_tau = critic1_soft_update
-        self.critic2_tau = critic2_soft_update
-        self.actor_tau = actor_soft_update
-        self.memory = ReplayBuffer(memory_capacity, batch_size, self.env.state_dim, self.env.action_dim)
-        self.path = path
-        '''Twin-Delay-DDPG'''
+	def __init__(self,
+				 env_msg: dict,
+				 gamma: float = 0.9,
+				 noise_clip: float = 1 / 2,
+				 noise_policy: float = 1 / 4,
+				 policy_delay: int = 5,
+				 td3critic_tau: float = 5e-3,
+				 actor_tau: float = 5e-3,
+				 memory_capacity: int = 5000,
+				 batch_size: int = 64,
+				 actor: Actor = Actor(),
+				 target_actor: Actor = Actor(),
+				 td3critic: TD3Critic = TD3Critic(),
+				 target_td3critic: TD3Critic = TD3Critic()):
 
-        '''network'''
-        self.actor = actor
-        self.target_actor = target_actor
+		'''Twin-Delay-DDPG'''
+		self.gamma = gamma
+		self.env_msg = env_msg
+		self.policy_delay = policy_delay
+		self.policy_delay_iter = 0
+		self.td3critic_tau = td3critic_tau
+		self.actor_tau = actor_tau
+		self.memory = ReplayBuffer(memory_capacity, batch_size, env_msg['state_dim'], env_msg['action_dim'])
+		'''Twin-Delay-DDPG'''
 
-        self.critic1 = critic1
-        self.target_critic1 = target_critic1
+		'''network'''
+		self.actor = actor
+		self.target_actor = target_actor
+		self.td3critic = td3critic
+		self.target_td3critic = target_td3critic
+		self.device = self.td3critic.device
+		self.actor_replace_iter = 0
+		'''network'''
 
-        self.critic2 = critic2
-        self.target_critic2 = target_critic2
-        self.actor_replace_iter = 0
-        '''network'''
+		self.a_min = torch.FloatTensor(env_msg['action_range'][:, 0])
+		self.a_max = torch.FloatTensor(env_msg['action_range'][:, 1])
+		self.noise_clip = torch.FloatTensor(noise_clip * (self.a_max - self.a_min))
+		self.noise_policy = torch.FloatTensor(noise_policy * (self.a_max - self.a_min))
 
-        self.noise_gaussian = GaussianNoise(mu=np.zeros(self.env.action_dim))
-        self.update_network_parameters()
+		self.episode = 0
+		self.reward = 0
 
-        self.episode = 0
-        self.reward = 0
+	def choose_action_random(self):
+		a = torch.rand(self.env_msg['action_dim']) * (self.a_max - self.a_min) + self.a_min
+		return a.cpu().detach().numpy().flatten()
 
-        self.save_episode = []  # 保存的每一个回合的回合数
-        self.save_reward = []  # 保存的每一个回合的奖励
-        self.save_time = []
-        self.save_average_reward = []  # 保存的每一个回合的平均时间的奖励
-        self.save_successful_rate = []
-        self.save_step = []  # 保存的每一步的步数
-        self.save_stepreward = []  # 保存的每一步的奖励
+	def choose_action(self, state, is_optimal, sigma: np.ndarray):
+		t_state = torch.FloatTensor(state) if self.device == 'cpu' else torch.cuda.FloatTensor(state)
+		mu = self.actor(t_state).cpu().detach().numpy().flatten()
+		if not is_optimal:
+			noise = np.random.multivariate_normal(np.zeros_like(sigma), np.diag(sigma ** 2))	# mu sigma^2
+			mu = mu + noise
+		return np.clip(mu, self.a_min.cpu().detach().numpy().flatten(), self.a_max.cpu().detach().numpy().flatten())
 
-    def choose_action_random(self):
-        """
-        :brief:     因为该函数与choose_action并列，所以输出也必须是[-1, 1]之间
-        :return:    random action
-        """
-        return np.random.uniform(low=-1, high=1, size=self.env.action_dim)
+	def evaluate(self, state):
+		t_state = torch.tensor(state, dtype=torch.float).to(self.device)
+		act = self.target_actor(t_state).to(self.device)
+		return act.cpu().detach().numpy().flatten()
 
-    def choose_action(self, state, is_optimal=False, sigma=1 / 3):
-        self.actor.eval()  # 切换到测试模式
-        t_state = torch.tensor(state, dtype=torch.float).to(self.actor.device)  # get the tensor of the state
-        mu = self.actor(t_state).to(self.actor.device)  # choose action
-        if is_optimal:
-            mu_prime = mu
-        else:
-            mu_prime = mu + torch.tensor(self.noise_gaussian(sigma=sigma), dtype=torch.float).to(
-                self.actor.device)  # action with gaussian noise
-            # mu_prime = mu + torch.tensor(self.noise_OU(), dtype=torch.float).to(self.actor.device)             # action with OU noise
-        self.actor.train()  # 切换回训练模式
-        mu_prime_np = mu_prime.cpu().detach().numpy()
-        return np.clip(mu_prime_np, -1, 1)  # 将数据截断在[-1, 1]之间
+	def learn(self, is_reward_ascent=False, critic_random=True, iter=1):
+		if self.memory.mem_counter < self.memory.batch_size:
+			return
+		for _ in range(iter):
+			s, a, r, s_, done = self.memory.sample_buffer(is_reward_ascent=is_reward_ascent)
+			s = torch.FloatTensor(s).to(self.device)
+			a = torch.FloatTensor(a).to(self.device)
+			r = torch.FloatTensor(r).unsqueeze(1).to(self.device)
+			s_ = torch.FloatTensor(s_).to(self.device)
+			done = torch.FloatTensor(done).unsqueeze(1).to(self.device)
 
-    def evaluate(self, state):
-        self.target_actor.eval()
-        t_state = torch.tensor(state, dtype=torch.float).to(self.target_actor.device)  # get the tensor of the state
-        act = self.target_actor(t_state).to(self.target_actor.device)  # choose action
-        return act.cpu().detach().numpy()
+			'''
+				Shapes of tensors:
+				s: [batch_size, state_dim]
+				a: [batch_size, action_dim]
+				r: [batch_size, 1]
+				s_: [batch_size, state_dim]
+				done: [batch_size, 1]
+			'''
+			with torch.no_grad():
+				noise = torch.randn_like(a.cpu()) * self.noise_policy
+				noise = torch.maximum(torch.minimum(noise, self.noise_clip), -self.noise_clip)
+				next_action = self.target_actor(s_).cpu() + noise
+				next_action = torch.maximum(torch.minimum(next_action, self.a_max), self.a_min)
 
-    def learn(self, is_reward_ascent=True, critic_random=True):
-        if self.memory.mem_counter < self.memory.batch_size:
-            return
+				target_Q1, target_Q2 = self.target_td3critic(s_, next_action.to(self.device))
+				target_Q = r + self.gamma * done * torch.min(target_Q1, target_Q2)
 
-        state, action, reward, new_state, done = self.memory.sample_buffer(is_reward_ascent=is_reward_ascent)
-        state = torch.tensor(state, dtype=torch.float).to(self.critic1.device)
-        action = torch.tensor(action, dtype=torch.float).to(self.critic1.device)
-        reward = torch.tensor(reward, dtype=torch.float).to(self.critic1.device)
-        new_state = torch.tensor(new_state, dtype=torch.float).to(self.critic1.device)
-        done = torch.tensor(done, dtype=torch.float).to(self.critic1.device)
+			# 得到当前的 Q value
+			current_Q1, current_Q2 = self.td3critic(s, a)
 
-        '''这里TD3的不同Critic网络，默认在同一块GPU上，当然......我就有一块GPU'''
-        # state = torch.tensor(state, dtype=torch.float).to(self.critic2.device)
-        # action = torch.tensor(action, dtype=torch.float).to(self.critic2.device)
-        # reward = torch.tensor(reward, dtype=torch.float).to(self.critic2.device)
-        # new_state = torch.tensor(new_state, dtype=torch.float).to(self.critic2.device)
-        # done = torch.tensor(done, dtype=torch.float).to(self.critic2.device)
-        '''这里TD3的不同Critic网络，默认在同一块GPU上，当然......我就有一块GPU'''
+			# Compute the critic loss
+			critic_loss = func.mse_loss(current_Q1, target_Q) + func.mse_loss(current_Q2, target_Q)
 
-        self.target_actor.eval()  # PI'
-        self.target_critic1.eval()  # Q1'
-        self.critic1.eval()  # Q1
-        self.target_critic2.eval()  # Q2'
-        self.critic2.eval()  # Q2
+			# Optimize the critic
+			self.td3critic.optimizer.zero_grad()
+			critic_loss.backward()
+			self.td3critic.optimizer.step()
 
-        target_actions = self.target_actor.forward(new_state).to(self.critic1.device)  # a' = PI'(s')
-        '''动作正则化'''
-        action_noise = torch.clip(torch.tensor(self.action_regularization(sigma=self.noise_policy)), -self.noise_clip,
-                                  self.noise_clip).to(self.critic1.device)
-        target_actions += action_noise
-        '''动作正则化'''
-        critic_value1_ = self.target_critic1.forward(new_state, target_actions)
-        critic_value1 = self.critic1.forward(state, action)
-        critic_value2_ = self.target_critic2.forward(new_state, target_actions)
-        critic_value2 = self.critic2.forward(state, action)
+			self.policy_delay_iter += 1
 
-        '''
-        Attention please!
-        这里的target变量最开始的实现是用list的方式实现，具体如下：
-        target = []
-        for j in range(self.memory.batch_size):
-            target.append(reward[j] + self.gamma * torch.minimum(critic_value1_[j], critic_value2_[j]) * done[j])
-        如此实现，使得learn函数中将近90%的时间被这个循环所占用。因此，将target这个变量直接用tensor的方式去构建，具体如下：
-        target = reward + self.gamma * torch.minimum(critic_value1_.squeeze(), critic_value2_.squeeze()) * done
-        为防止搞错tensor的维度，将记录的维度列在下边
-                reward:           torch.Size([batch])
-            critic_value1_:       torch.Size([batch, 1])
-            critic_value2_:       torch.Size([batch, 1])
-                done:             torch.Size([batch])
-               target:            torch.Size([batch])
-          .view之前的target:    torch.Size([batch])
-          .view之后的target:    torch.Size([batch, 1])
-        经验：数据处理，千万不要使用list，用numpy或者tensor都行。
-        '''
-        '''取较小的Q'''
-        target = torch.tensor(
-            reward + self.gamma * torch.minimum(critic_value1_.squeeze(), critic_value2_.squeeze()) * done).to(
-            self.critic1.device)
+			'''延迟更新'''
+			if self.policy_delay_iter % self.policy_delay == 0:
+				for params in self.td3critic.parameters():
+					params.requires_grad = False
 
-        target1 = target.view(self.memory.batch_size, 1)
-        target2 = target.view(self.memory.batch_size, 1)
+				mu = self.actor.forward(s)
+				if critic_random and np.random.randint(1, 2) == 2:
+					actor_loss = -self.td3critic.q2(s, mu).mean()
+				else:
+					actor_loss = -self.td3critic.q1(s, mu).mean()
+				self.actor.optimizer.zero_grad()
+				actor_loss.backward()
+				self.actor.optimizer.step()
 
-        '''critic1 training'''
-        self.critic1.train()
-        self.critic1.optimizer.zero_grad()
-        critic_loss = func.mse_loss(target1, critic_value1)
-        critic_loss.backward()
-        self.critic1.optimizer.step()
-        '''critic1 training'''
+				for params in self.td3critic.parameters():
+					params.requires_grad = True
 
-        '''critic2 training'''
-        self.critic2.train()
-        self.critic2.optimizer.zero_grad()
-        critic_loss = func.mse_loss(target2, critic_value2)
-        critic_loss.backward()
-        self.critic2.optimizer.step()
-        '''critic2 training'''
+			self.update_network_parameters()
 
-        self.policy_delay_iter += 1
+	def update_network_parameters(self, is_target_critic_delay: bool = False):
+		"""
+		:return:        None
+		"""
+		if not is_target_critic_delay:
+			for target_param, param in zip(self.target_td3critic.parameters(), self.td3critic.parameters()):
+				target_param.data.copy_(
+					target_param.data * (1.0 - self.td3critic_tau) + param.data * self.td3critic_tau)
 
-        '''actor training, choose critic1 or critic2 randomly'''
-        '''延迟更新'''
-        if self.policy_delay_iter % self.policy_delay == 0:
-            if critic_random:
-                if np.random.randint(1, 2) == 1:
-                    self.critic1.eval()
-                    self.actor.optimizer.zero_grad()
-                    mu = self.actor.forward(state)
-                    self.actor.train()
-                    actor_loss = -self.critic1.forward(state, mu)
-                else:
-                    self.critic2.eval()
-                    self.actor.optimizer.zero_grad()
-                    mu = self.actor.forward(state)
-                    self.actor.train()
-                    actor_loss = -self.critic2.forward(state, mu)
-            else:
-                self.critic1.eval()
-                self.actor.optimizer.zero_grad()
-                mu = self.actor.forward(state)
-                self.actor.train()
-                actor_loss = -self.critic1.forward(state, mu)
-            actor_loss = torch.mean(actor_loss)
-            actor_loss.backward()
-            self.actor.optimizer.step()
-        '''actor training, choose critic1 or critic2 randomly'''
+		if self.policy_delay_iter % self.policy_delay == 0:
+			for target_param, param in zip(self.target_actor.parameters(), self.actor.parameters()):
+				target_param.data.copy_(
+					target_param.data * (1.0 - self.actor_tau) + param.data * self.actor_tau)
+			if is_target_critic_delay:
+				for target_param, param in zip(self.target_td3critic.parameters(), self.td3critic.parameters()):
+					target_param.data.copy_(
+						target_param.data * (1.0 - self.td3critic_tau) + param.data * self.td3critic_tau)
 
-        self.update_network_parameters()
+	def save_ac(self, msg, path):
+		torch.save(self.actor.state_dict(), path + 'actor' + msg)
+		torch.save(self.target_actor.state_dict(), path + 'target_actor' + msg)
+		torch.save(self.td3critic.state_dict(), path + 'td3critic' + msg)
+		torch.save(self.target_td3critic.state_dict(), path + 'target_td3critic' + msg)
 
-    def update_network_parameters(self, is_target_critics_delay: bool = False):
-        """
-        :return:        None
-        """
-        if not is_target_critics_delay:
-            for target_param, param in zip(self.target_critic1.parameters(), self.critic1.parameters()):
-                target_param.data.copy_(
-                    target_param.data * (1.0 - self.critic1_tau) + param.data * self.critic1_tau)  # soft update
-            for target_param, param in zip(self.target_critic2.parameters(), self.critic2.parameters()):
-                target_param.data.copy_(
-                    target_param.data * (1.0 - self.critic2_tau) + param.data * self.critic2_tau)  # soft update
-
-        if self.policy_delay_iter % self.policy_delay == 0:
-            for target_param, param in zip(self.target_actor.parameters(), self.actor.parameters()):
-                target_param.data.copy_(
-                    target_param.data * (1.0 - self.actor_tau) + param.data * self.actor_tau)  # soft update
-            if is_target_critics_delay:
-                for target_param, param in zip(self.target_critic1.parameters(), self.critic1.parameters()):
-                    target_param.data.copy_(
-                        target_param.data * (1.0 - self.critic1_tau) + param.data * self.critic1_tau)  # soft update
-                for target_param, param in zip(self.target_critic2.parameters(), self.critic2.parameters()):
-                    target_param.data.copy_(
-                        target_param.data * (1.0 - self.critic2_tau) + param.data * self.critic2_tau)
-
-    def save_ac(self, msg, path):
-        torch.save(self.actor.state_dict(), path + 'actor' + msg)
-        torch.save(self.target_actor.state_dict(), path + 'target_actor' + msg)
-        torch.save(self.critic1.state_dict(), path + 'critic1' + msg)
-        torch.save(self.target_critic1.state_dict(), path + 'target_critic1' + msg)
-        torch.save(self.critic2.state_dict(), path + 'critic2' + msg)
-        torch.save(self.target_critic2.state_dict(), path + 'target_critic2' + msg)
-
-    def TD3_info(self):
-        print('agent name：', self.env.name)
-        print('state_dim:', self.env.state_dim)
-        print('action_dim:', self.env.action_dim)
-        print('action_range:', self.env.action_range)
-
-    def action_linear_trans(self, action):
-        # the action output
-        linear_action = []
-        for i in range(self.env.action_dim):
-            a = min(max(action[i], -1), 1)
-            maxa = self.env.action_range[i][1]
-            mina = self.env.action_range[i][0]
-            k = (maxa - mina) / 2
-            b = (maxa + mina) / 2
-            linear_action.append(k * a + b)
-        return linear_action
+	def TD3_info(self):
+		print('agent name：', self.env_msg['name'])
+		print('state_dim:', self.env_msg['state_dim'])
+		print('action_dim:', self.env_msg['action_dim'])
+		print('action_range:', self.env_msg['action_range'])

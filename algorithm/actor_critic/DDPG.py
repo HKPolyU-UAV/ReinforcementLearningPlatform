@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 from utils.functions import *
-from utils.classes import Actor, Critic, ReplayBuffer, GaussianNoise
+from utils.classes import Actor, Critic, ReplayBuffer
 import torch.nn.functional as func
 
 """use CPU or GPU"""

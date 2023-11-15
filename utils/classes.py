@@ -8,16 +8,6 @@ import torch.nn.functional as func
 import torch
 from torch.distributions import Normal
 from torch.distributions import MultivariateNormal
-# from torch.distributions import Categorical
-
-
-class GaussianNoise(object):
-    def __init__(self, mu):
-        self.mu = mu
-        self.sigma = 1 / 3
-
-    def __call__(self, sigma=1 / 3):
-        return np.random.normal(self.mu, sigma, self.mu.shape)
 
 
 class Actor(nn.Module):
@@ -64,6 +54,43 @@ class Critic(nn.Module):
 
     def initialization(self):
         pass
+
+
+class TD3Critic(nn.Module):
+    def __init__(self, state_dim: int = 3, action_dim: int = 3, lr: float = 1e-4):
+        super(TD3Critic, self).__init__()
+        self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+        self.state_dim = state_dim
+        self.action_dim = action_dim
+        self.fc_q1_1 = nn.Linear(state_dim + action_dim, 64)
+        self.fc_q1_2 = nn.Linear(64, 1)
+
+        self.fc_q2_1 = nn.Linear(state_dim + action_dim, 64)
+        self.fc_q2_2 = nn.Linear(64, 1)
+
+        self.optimizer = torch.optim.Adam(self.parameters(), lr=lr)
+        self.to(self.device)
+
+    def forward(self, s, a):
+        sav = torch.cat([s, a], 1)
+        q1 = func.relu(self.fc_q1_1(sav))
+        q1 = self.fc_q1_2(q1)
+
+        q2 = func.relu(self.fc_q2_1(sav))
+        q2 = self.fc_q2_2(q2)
+        return q1, q2
+
+    def q1(self, s, a):
+        sav = torch.cat([s, a], 1)
+        q1 = func.relu(self.fc_q1_1(sav))
+        q1 = self.fc_q1_2(q1)
+        return q1
+
+    def q2(self, s, a):
+        sav = torch.cat([s, a], 1)
+        q2 = func.relu(self.fc_q2_1(sav))
+        q2 = self.fc_q2_2(q2)
+        return q2
 
 
 class DQNNet(nn.Module):
