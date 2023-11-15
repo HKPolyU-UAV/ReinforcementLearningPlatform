@@ -20,7 +20,7 @@ timestep = 0
 ENV = 'SecondOrderIntegration'
 ALGORITHM = 'TD3'
 MAX_EPISODE = 3500
-USE_R_NORM = True
+USE_R_NORM = False
 
 r_norm = Normalization(shape=1)
 
@@ -83,7 +83,7 @@ class Actor(nn.Module):
 		self.fc1 = nn.Linear(self.state_dim, 256)
 		self.fc2 = nn.Linear(256, 256)
 		self.mu = nn.Linear(256, self.action_dim)
-		self.initialization()
+		# self.initialization()
 		self.optimizer = torch.optim.Adam(self.parameters(), lr=alpha)
 		self.to(self.device)
 
@@ -180,7 +180,7 @@ if __name__ == '__main__':
 	target_critic = TD3Critic(env.state_dim, env.action_dim, lr=3e-4)
 	env_msg = {'state_dim': env.state_dim, 'action_dim': env.action_dim, 'action_range': env.action_range, 'name': ENV}
 	agent = TD3(env_msg=env_msg,
-				gamma=0.99,
+				gamma=0.9,
 				noise_clip=1 / 2, noise_policy=1 / 4, policy_delay=3,
 				actor_tau=0.005, td3critic_tau=0.005,
 				memory_capacity=10000,

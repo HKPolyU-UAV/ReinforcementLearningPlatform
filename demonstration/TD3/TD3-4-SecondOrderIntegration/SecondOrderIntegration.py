@@ -249,28 +249,28 @@ class SecondOrderIntegration(rl_base):
         #     self.is_terminal = True
 
     def get_reward(self, param=None):
-        # Q_pos = 0.1 * np.ones(2)
-        # Q_vel = 0.01 * np.ones(2)
-        # Q_acc = 0.001 * np.ones(2)
-        #
-        # e_pos = self.target - self.pos
-        # e_vel = -self.vel
-        #
-        # u_pos = -np.dot(e_pos ** 2, Q_pos)
-        # u_vel = -np.dot(e_vel ** 2, Q_vel)
-        # u_acc = -np.dot(self.acc ** 2, Q_acc)
-        Q_pos = 1
-        Q_vel = 0.
-        Q_acc = 0.
+        Q_pos = 0.1 * np.ones(2)
+        Q_vel = 0.01 * np.ones(2)
+        Q_acc = 0.001 * np.ones(2)
 
-        e_pos = np.linalg.norm(self.target - self.pos)
-        e_vel = np.linalg.norm(-self.vel)
-        acc = np.linalg.norm(self.acc)
+        e_pos = self.target - self.pos
+        e_vel = -self.vel
 
-        e_middle = np.linalg.norm(self.map_size) / 2 / 2
-        u_pos = (e_middle - e_pos) * Q_pos
-        u_vel = -e_vel * Q_vel
-        u_acc = -acc * Q_acc
+        u_pos = -np.dot(e_pos ** 2, Q_pos)
+        u_vel = -np.dot(e_vel ** 2, Q_vel)
+        u_acc = -np.dot(self.acc ** 2, Q_acc)
+        # Q_pos = 1
+        # Q_vel = 0.1
+        # Q_acc = 0.1
+        #
+        # e_pos = np.linalg.norm(self.target - self.pos)
+        # e_vel = np.linalg.norm(-self.vel)
+        # acc = np.linalg.norm(self.acc)
+        #
+        # e_middle = np.linalg.norm(self.map_size) / 2 / 2
+        # u_pos = (e_middle - e_pos) * Q_pos
+        # u_vel = -e_vel * Q_vel
+        # u_acc = -acc * Q_acc
 
         # e_pos_ave = np.linalg.norm(self.map_size - self.target) / 2
         # u_pos = e_pos_ave - e_pos
