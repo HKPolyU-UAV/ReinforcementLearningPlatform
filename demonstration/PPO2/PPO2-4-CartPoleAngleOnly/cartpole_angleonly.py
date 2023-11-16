@@ -282,7 +282,7 @@ class CartPoleAngleOnly(rl_base):
         :return:    None
         """
 		'''physical parameters'''
-		self.initTheta = np.random.uniform(-self.thetaMax * 0.8, self.thetaMax * 0.8)
+		self.initTheta = np.random.uniform(-self.thetaMax * 0.5, self.thetaMax * 0.5)
 		self.theta = self.initTheta
 		self.x = 0
 		self.dtheta = 0.  # 从左往右转为正

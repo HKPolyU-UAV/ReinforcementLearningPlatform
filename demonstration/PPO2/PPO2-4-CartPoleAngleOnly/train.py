@@ -33,7 +33,7 @@ def setup_seed(seed):
 	np.random.seed(seed)
 
 
-setup_seed(3407)
+# setup_seed(3407)
 
 
 class PPOActor_Gaussian(nn.Module):
@@ -45,9 +45,9 @@ class PPOActor_Gaussian(nn.Module):
 				 init_std: float = 0.5,
 				 use_orthogonal_init: bool = True):
 		super(PPOActor_Gaussian, self).__init__()
-		self.fc1 = nn.Linear(state_dim, 64)
-		self.fc2 = nn.Linear(64, 64)
-		self.mean_layer = nn.Linear(64, action_dim)
+		self.fc1 = nn.Linear(state_dim, 256)
+		self.fc2 = nn.Linear(256, 256)
+		self.mean_layer = nn.Linear(256, action_dim)
 		self.activate_func = nn.Tanh()
 		self.a_min = torch.tensor(a_min, dtype=torch.float)
 		self.a_max = torch.tensor(a_max, dtype=torch.float)
@@ -92,9 +92,9 @@ class PPOActor_Gaussian(nn.Module):
 class PPOCritic(nn.Module):
 	def __init__(self, state_dim=3, use_orthogonal_init: bool = True):
 		super(PPOCritic, self).__init__()
-		self.fc1 = nn.Linear(state_dim, 64)
-		self.fc2 = nn.Linear(64, 64)
-		self.fc3 = nn.Linear(64, 1)
+		self.fc1 = nn.Linear(state_dim, 256)
+		self.fc2 = nn.Linear(256, 256)
+		self.fc3 = nn.Linear(256, 1)
 		self.activate_func = nn.Tanh()
 
 		if use_orthogonal_init:
@@ -166,7 +166,7 @@ if __name__ == '__main__':
 										 action_dim=env.action_dim,
 										 a_min=np.array(env.action_range)[:, 0],
 										 a_max=np.array(env.action_range)[:, 1],
-										 init_std=2.0,
+										 init_std=env.fm / 3,
 										 use_orthogonal_init=True),
 				 critic=PPOCritic(state_dim=env.state_dim, use_orthogonal_init=True))
 	agent.PPO2_info()

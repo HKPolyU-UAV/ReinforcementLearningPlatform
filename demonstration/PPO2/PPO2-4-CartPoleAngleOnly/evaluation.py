@@ -25,9 +25,9 @@ class PPOActor_Gaussian(nn.Module):
                  init_std: float = 0.5,
                  use_orthogonal_init: bool = True):
         super(PPOActor_Gaussian, self).__init__()
-        self.fc1 = nn.Linear(state_dim, 64)
-        self.fc2 = nn.Linear(64, 64)
-        self.mean_layer = nn.Linear(64, action_dim)
+        self.fc1 = nn.Linear(state_dim, 256)
+        self.fc2 = nn.Linear(256, 256)
+        self.mean_layer = nn.Linear(256, action_dim)
         self.activate_func = nn.Tanh()
         self.a_min = torch.tensor(a_min, dtype=torch.float)
         self.a_max = torch.tensor(a_max, dtype=torch.float)
@@ -77,12 +77,13 @@ if __name__ == '__main__':
                                   a_max=np.array(env.action_range)[:, 1],
                                   init_std=0.01,
                                   use_orthogonal_init=True)
-    optPath = os.path.dirname(os.path.abspath(__file__)) + '/datasave/trainNum_300/'
+    optPath = os.path.dirname(os.path.abspath(__file__)) + '/datasave/trainNum_1650/'
     opt_actor.load_state_dict(torch.load(optPath + 'actor'))  # 测试时，填入测试actor网络
 
     n = 10
     for i in range(10):
         env.reset_random()
+        print(rad2deg(env.theta))
         test_r = 0.
         while not env.is_terminal:
             a = opt_actor.evaluate(env.current_state)
