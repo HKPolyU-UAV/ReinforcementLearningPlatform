@@ -211,14 +211,15 @@ class UGV(rl_base):
 
 	def get_state(self) -> np.ndarray:
 		self.error = np.linalg.norm(self.target - self.pos)
+		self.e_phi = self.get_e_phi()
 		if self.use_norm:
 			_s = 2 / self.e_max * self.error - 1
-			_lv = self.vel / self.v_max
-			_phi = 2 / self.e_phi_max * self.phi - 1
+			_vel = self.vel / self.v_max
+			_e_phi = 2 / self.e_phi_max * self.e_phi - 1
 			_omega = self.omega / self.omega_max
-			return np.array([_s, _lv, _phi, _omega]) * self.static_gain
+			return np.array([_s, _vel, _e_phi, _omega]) * self.static_gain
 		else:
-			return np.array([self.error, self.vel, self.phi, self.omega])
+			return np.array([self.error, self.vel, self.e_phi, self.omega])
 
 	def is_out(self):
 		"""
@@ -256,7 +257,7 @@ class UGV(rl_base):
 		Q_pos = 1.
 		Q_vel = 0.05
 		Q_phi = 2.
-		Q_omega = 0.5
+		Q_omega = 2.
 
 		u_pos = -self.error * Q_pos
 		u_vel = -np.fabs(self.vel) * Q_vel

@@ -250,9 +250,10 @@ if __name__ == '__main__':
         '''3. 每学习 10 次，测试一下'''
 
         '''4. 每学习 50 次，减小一次探索概率'''
+        STD_DELAY_PER = 0.05
         if t_epoch % 100 == 0 and t_epoch > 0:
-            if agent.actor.std > 0.4:
-                agent.actor.std -= 0.05
+            _ratio = max(1 - t_epoch / 100 * STD_DELAY_PER, 0.05)
+            agent.actor.std  = torch.tensor(std0 * _ratio, dtype=torch.float)
         '''4. 每学习 50 次，减小一次探索概率'''
 
         '''5. 每学习 50 次，保存一下 policy'''
