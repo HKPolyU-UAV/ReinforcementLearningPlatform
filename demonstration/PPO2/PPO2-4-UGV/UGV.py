@@ -63,7 +63,7 @@ class UGV(rl_base):
 		'''rl_base'''
 		self.use_norm = True
 		self.static_gain = 2
-		self.state_dim = 5  # e, v, e_theta, omega 位置误差，线速度，角度误差，角速度
+		self.state_dim = 4  # e, v, e_theta, omega 位置误差，线速度，角度误差，角速度
 		self.state_num = [np.inf for _ in range(self.state_dim)]
 		self.state_step = [None for _ in range(self.state_dim)]
 		self.state_space = [None for _ in range(self.state_dim)]
@@ -141,13 +141,13 @@ class UGV(rl_base):
 	def draw_grid(self):
 		xNum = 5
 		yNum = 5
-		stepy = self.map_size / xNum
+		stepy = self.map_size[0] / xNum
 		for i in range(xNum):
 			cv.line(self.image,
-					self.dis2pixel([0, 0 + (i + 1) * stepy[1]]),
-					self.dis2pixel([self.map_size[0], 0 + (i + 1) * stepy[1]]),
+					self.dis2pixel([0, 0 + (i + 1) * stepy]),
+					self.dis2pixel([self.map_size[0], 0 + (i + 1) * stepy]),
 					Color().Black, 1)
-		stepx = self.map_size / yNum
+		stepx = self.map_size[1] / yNum
 		for i in range(yNum):
 			cv.line(self.image,
 					self.dis2pixel([0 + (i + 1) * stepx, 0]),
@@ -162,20 +162,19 @@ class UGV(rl_base):
 	def draw_text(self):
 		cv.putText(
 			self.image,
-			'time:   %.3fs' % (round(self.time, 3)),
+			'time: %.2f s' % (round(self.time, 2)),
 			(self.image_size[0] - self.board - 5, 25), cv.FONT_HERSHEY_COMPLEX, 0.5, Color().Purple, 1)
-
 		cv.putText(
 			self.image,
-			'pos: [%.2f, %.2f]m' % (round(self.pos[0], 3), round(self.pos[1], 3)),
+			'pos: [%.2f, %.2f] m' % (round(self.pos[0], 3), round(self.pos[1], 3)),
 			(self.image_size[0] - self.board - 5, 60), cv.FONT_HERSHEY_COMPLEX, 0.5, Color().Purple, 1)
 		cv.putText(
 			self.image,
-			'error: [%.2f, %.2f]m' % (round(self.error[0], 3), round(self.error[1], 3)),
+			'e_pos: %.2f m' % (round(self.error, 2)),
 			(self.image_size[0] - self.board - 5, 95), cv.FONT_HERSHEY_COMPLEX, 0.5, Color().Purple, 1)
 		cv.putText(
 			self.image,
-			'vel: %.2fm/s' % (round(self.vel, 2)),
+			'vel: %.2f m/s' % (round(self.vel, 2)),
 			(self.image_size[0] - self.board - 5, 130), cv.FONT_HERSHEY_COMPLEX, 0.5, Color().Purple, 1)
 		cv.putText(
 			self.image,
@@ -183,8 +182,12 @@ class UGV(rl_base):
 			(self.image_size[0] - self.board - 5, 165), cv.FONT_HERSHEY_COMPLEX, 0.5, Color().Purple, 1)
 		cv.putText(
 			self.image,
-			'omega: %.2f PI' % (round(self.omega / np.pi, 2)),
+			'e_phi: %.2f ' % (round(rad2deg(self.e_phi), 2)),
 			(self.image_size[0] - self.board - 5, 200), cv.FONT_HERSHEY_COMPLEX, 0.5, Color().Purple, 1)
+		cv.putText(
+			self.image,
+			'omega: %.2f PI' % (round(self.omega / np.pi, 2)),
+			(self.image_size[0] - self.board - 5, 235), cv.FONT_HERSHEY_COMPLEX, 0.5, Color().Purple, 1)
 
 	def draw_target(self):
 		cv.circle(self.image, self.dis2pixel(self.target), 5, Color().random_color_by_BGR(), -1)
@@ -314,6 +317,7 @@ class UGV(rl_base):
 		self.current_action = action.copy()
 		self.current_state = self.get_state()
 		self.rk44(action=action)
+		self.is_Terminal()
 		self.next_state = self.get_state()
 		self.get_reward()
 

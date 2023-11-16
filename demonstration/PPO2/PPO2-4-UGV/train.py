@@ -13,7 +13,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../")
 
-from CartPole import CartPole
+from UGV import UGV
 from algorithm.policy_base.Proximal_Policy_Optimization2 import Proximal_Policy_Optimization2 as PPO2
 from utils.functions import *
 from utils.classes import Normalization
@@ -135,7 +135,7 @@ if __name__ == '__main__':
 
     RETRAIN = False
 
-    env = CartPole(0., 0.)
+    env = UGV()
     reward_norm = Normalization(shape=1)
     env_msg = {'state_dim': env.state_dim, 'action_dim': env.action_dim, 'name': env.name, 'action_range': env.action_range}
     t_epoch = 0  # 当前训练次数
@@ -145,7 +145,7 @@ if __name__ == '__main__':
     ppo_msg = {'gamma': 0.999,
                'K_epochs': 30,
                'eps_clip': 0.2,
-               'buffer_size': int(env.timeMax / env.dt) * 4,
+               'buffer_size': int(env.time_max / env.dt) * 4,
                'state_dim': env.state_dim,
                'action_dim': env.action_dim,
                'a_lr': 3e-4,
@@ -160,13 +160,14 @@ if __name__ == '__main__':
                'max_train_steps': int(5e6),
                'using_mini_batch': False}
 
+    std0 = (env.action_range[:, 1] - env.action_range[:, 0]) / 2 / 3
     agent = PPO2(env_msg=env_msg,
                  ppo_msg=ppo_msg,
                  actor=PPOActor_Gaussian(state_dim=env.state_dim,
                                          action_dim=env.action_dim,
-                                         a_min=np.array(env.action_range)[:, 0],
-                                         a_max=np.array(env.action_range)[:, 1],
-                                         init_std=env.fm / 3,
+                                         a_min=env.action_range[:, 0],
+                                         a_max=env.action_range[:, 1],
+                                         init_std=std0,
                                          use_orthogonal_init=True),
                  critic=PPOCritic(state_dim=env.state_dim, use_orthogonal_init=True))
     agent.PPO2_info()
@@ -182,51 +183,51 @@ if __name__ == '__main__':
 
     env.is_terminal = True
     while True:
-        '''1. 收集数据'''
-        while buffer_index < agent.buffer.batch_size:
-            if env.is_terminal:  # 如果某一个回合结束
-                print('Sumr:  ', sumr)
-                sumr_list.append(sumr)
-                sumr = 0.
-                env.reset(random=True)
-            else:
-                env.current_state = env.next_state.copy()
-                a, a_log_prob = agent.choose_action(env.current_state)
-                env.step_update(a)
-                # env.visualization()
-                sumr += env.reward
-
-                if env.is_terminal:
-                    if env.terminal_flag == 3:
-                        success = 0
-                    else:
-                        success = 1
-                else:
-                    success = 0
-
-                agent.buffer.append(s=env.current_state,
-                                    a=a,
-                                    log_prob=a_log_prob,
-                                    r=reward_norm(env.reward),
-                                    # r=env.reward,
-                                    s_=env.next_state,
-                                    done=1.0 if env.is_terminal else 0.0,   # 只要没有 s' 全都是 1
-                                    success=success,                        #
-                                    index=buffer_index)
-                buffer_index += 1
-        '''1. 收集数据'''
-
-        '''2. 学习'''
-        print('~~~~~~~~~~ Training Start~~~~~~~~~~')
-        print('Train Epoch: {}'.format(t_epoch))
-        timestep += ppo_msg['buffer_size']
-        agent.learn(timestep, buf_num=1)
-        agent.cnt += 1
-        buffer_index = 0
-        '''2. 学习'''
+        # '''1. 收集数据'''
+        # while buffer_index < agent.buffer.batch_size:
+        #     if env.is_terminal:  # 如果某一个回合结束
+        #         print('Sumr:  ', sumr)
+        #         sumr_list.append(sumr)
+        #         sumr = 0.
+        #         env.reset(random=True)
+        #     else:
+        #         env.current_state = env.next_state.copy()
+        #         a, a_log_prob = agent.choose_action(env.current_state)
+        #         env.step_update(a)
+        #         # env.visualization()
+        #         sumr += env.reward
+        #
+        #         if env.is_terminal:
+        #             if env.terminal_flag == 3:
+        #                 success = 0
+        #             else:
+        #                 success = 1
+        #         else:
+        #             success = 0
+        #
+        #         agent.buffer.append(s=env.current_state,
+        #                             a=a,
+        #                             log_prob=a_log_prob,
+        #                             r=reward_norm(env.reward),
+        #                             # r=env.reward,
+        #                             s_=env.next_state,
+        #                             done=1.0 if env.is_terminal else 0.0,   # 只要没有 s' 全都是 1
+        #                             success=success,                        #
+        #                             index=buffer_index)
+        #         buffer_index += 1
+        # '''1. 收集数据'''
+        #
+        # '''2. 学习'''
+        # print('~~~~~~~~~~ Training Start~~~~~~~~~~')
+        # print('Train Epoch: {}'.format(t_epoch))
+        # timestep += ppo_msg['buffer_size']
+        # agent.learn(timestep, buf_num=1)
+        # agent.cnt += 1
+        # buffer_index = 0
+        # '''2. 学习'''
 
         '''3. 每学习 10 次，测试一下'''
-        if t_epoch % 10 == 0 and t_epoch > 0:
+        if t_epoch % 1 == 0 and t_epoch > 0:
             n = 5
             print('   Training pause......')
             print('   Testing...')
@@ -236,6 +237,7 @@ if __name__ == '__main__':
                 while not env.is_terminal:
                     env.current_state = env.next_state.copy()
                     _a = agent.evaluate(env.current_state)
+                    _a = np.array([0., np.pi/2])
                     env.step_update(_a)
                     test_r += env.reward
                     env.visualization()
