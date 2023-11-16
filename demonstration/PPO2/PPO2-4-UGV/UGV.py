@@ -207,6 +207,7 @@ class UGV(rl_base):
 		self.draw_target()
 		self.draw_text()
 		cv.imshow(self.name, self.image)
+		cv.waitKey(1)
 
 	def get_state(self) -> np.ndarray:
 		self.error = np.linalg.norm(self.target - self.pos)
@@ -254,8 +255,8 @@ class UGV(rl_base):
 	def get_reward(self, param=None):
 		Q_pos = 1.
 		Q_vel = 0.05
-		Q_phi = 4.
-		Q_omega = 0.001
+		Q_phi = 2.
+		Q_omega = 0.5
 
 		u_pos = -self.error * Q_pos
 		u_vel = -np.fabs(self.vel) * Q_vel

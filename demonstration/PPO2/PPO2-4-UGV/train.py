@@ -19,7 +19,7 @@ from utils.functions import *
 from utils.classes import Normalization
 
 timestep = 0
-ENV = 'CartPole'
+ENV = 'UGV'
 ALGORITHM = 'PPO2'
 test_episode = []
 test_reward = []
@@ -183,51 +183,51 @@ if __name__ == '__main__':
 
     env.is_terminal = True
     while True:
-        # '''1. 收集数据'''
-        # while buffer_index < agent.buffer.batch_size:
-        #     if env.is_terminal:  # 如果某一个回合结束
-        #         print('Sumr:  ', sumr)
-        #         sumr_list.append(sumr)
-        #         sumr = 0.
-        #         env.reset(random=True)
-        #     else:
-        #         env.current_state = env.next_state.copy()
-        #         a, a_log_prob = agent.choose_action(env.current_state)
-        #         env.step_update(a)
-        #         # env.visualization()
-        #         sumr += env.reward
-        #
-        #         if env.is_terminal:
-        #             if env.terminal_flag == 3:
-        #                 success = 0
-        #             else:
-        #                 success = 1
-        #         else:
-        #             success = 0
-        #
-        #         agent.buffer.append(s=env.current_state,
-        #                             a=a,
-        #                             log_prob=a_log_prob,
-        #                             r=reward_norm(env.reward),
-        #                             # r=env.reward,
-        #                             s_=env.next_state,
-        #                             done=1.0 if env.is_terminal else 0.0,   # 只要没有 s' 全都是 1
-        #                             success=success,                        #
-        #                             index=buffer_index)
-        #         buffer_index += 1
-        # '''1. 收集数据'''
-        #
-        # '''2. 学习'''
-        # print('~~~~~~~~~~ Training Start~~~~~~~~~~')
-        # print('Train Epoch: {}'.format(t_epoch))
-        # timestep += ppo_msg['buffer_size']
-        # agent.learn(timestep, buf_num=1)
-        # agent.cnt += 1
-        # buffer_index = 0
-        # '''2. 学习'''
+        '''1. 收集数据'''
+        while buffer_index < agent.buffer.batch_size:
+            if env.is_terminal:  # 如果某一个回合结束
+                print('Sumr:  ', sumr)
+                sumr_list.append(sumr)
+                sumr = 0.
+                env.reset(random=True)
+            else:
+                env.current_state = env.next_state.copy()
+                a, a_log_prob = agent.choose_action(env.current_state)
+                env.step_update(a)
+                # env.visualization()
+                sumr += env.reward
+
+                if env.is_terminal:
+                    if env.terminal_flag == 2:
+                        success = 0
+                    else:       # 只有回合结束，并且过早结束的时候，才是 1
+                        success = 1
+                else:
+                    success = 0
+
+                agent.buffer.append(s=env.current_state,
+                                    a=a,
+                                    log_prob=a_log_prob,
+                                    r=reward_norm(env.reward),
+                                    # r=env.reward,
+                                    s_=env.next_state,
+                                    done=1.0 if env.is_terminal else 0.0,   # 只要没有 s' 全都是 1
+                                    success=success,                        #
+                                    index=buffer_index)
+                buffer_index += 1
+        '''1. 收集数据'''
+
+        '''2. 学习'''
+        print('~~~~~~~~~~ Training Start~~~~~~~~~~')
+        print('Train Epoch: {}'.format(t_epoch))
+        timestep += ppo_msg['buffer_size']
+        agent.learn(timestep, buf_num=1)
+        agent.cnt += 1
+        buffer_index = 0
+        '''2. 学习'''
 
         '''3. 每学习 10 次，测试一下'''
-        if t_epoch % 1 == 0 and t_epoch > 0:
+        if t_epoch % 10 == 0 and t_epoch > 0:
             n = 5
             print('   Training pause......')
             print('   Testing...')
@@ -237,7 +237,6 @@ if __name__ == '__main__':
                 while not env.is_terminal:
                     env.current_state = env.next_state.copy()
                     _a = agent.evaluate(env.current_state)
-                    _a = np.array([0., np.pi/2])
                     env.step_update(_a)
                     test_r += env.reward
                     env.visualization()
