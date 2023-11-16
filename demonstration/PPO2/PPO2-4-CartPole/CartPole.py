@@ -39,7 +39,7 @@ class CartPole(rl_base):
 		self.fm = 8  # maximum force added on the cart
 
 		self.dt = 0.02  # 10ms
-		self.timeMax = 5  # maximum time of each episode
+		self.timeMax = 8  # maximum time of each episode
 		self.time = 0.
 		self.etheta = 0. - self.theta
 		self.ex = 0. - self.x
@@ -119,7 +119,7 @@ class CartPole(rl_base):
 			pt1 = np.atleast_1d([int(cx + self.cart_x_pixel / 2 + np.fabs(self.force) * self.pixel_per_n), int(cy)])
 			pt2 = np.atleast_1d([int(cx + self.cart_x_pixel / 2), int(cy)])
 		if np.fabs(self.force) > 1e-2:
-			cv.arrowedLine(self.image, pt1, pt2, Color().Red, 2, 8, 0, 0.5 / np.fabs(self.force))
+			cv.arrowedLine(self.image, pt1, pt2, Color().Red, 2, 8, 0, 0.5)
 
 	def draw_center(self):
 		cv.circle(self.image, (int(self.xoffset + 1.5 * self.scale), int(self.height / 2)), 4, Color().Black, -1)
@@ -176,28 +176,33 @@ class CartPole(rl_base):
 			# print('Time out')
 			self.is_terminal = True
 
-		# if self.is_success():
-		# 	self.terminal_flag = 4
-		# 	# print('Success')
-		# 	self.is_terminal = True
+		if self.is_success():
+			self.terminal_flag = 4
+			# print('Success')
+			self.is_terminal = True
 
 	def get_reward(self, param=None):
 		"""
 		:param param:   extra parameters for reward function
 		:return:
 		"""
-		Q_x = 1
+		Q_x = 10
 		Q_dx = 0.0
-		Q_theta = 5
+		Q_theta = 1
 		Q_omega = 0.0
-		R = 0.00
+		R = 0.001
 
-		theta_middle = self.theta_max / 2
-		x_middle = self.x_max / 2
+		# theta_middle = self.theta_max / 2
+		# x_middle = self.x_max / 2
+		# r_x = (x_middle - np.fabs(self.x)) * Q_x
+		# r_dx = -np.fabs(self.dx) * Q_dx
+		# r_theta = (theta_middle - np.fabs(self.theta)) * Q_theta
+		# r_omega = -np.fabs(self.dtheta) * Q_omega
+		# r_f = -np.fabs(self.force) * R
 
-		r_x = (x_middle - np.fabs(self.x)) * Q_x
+		r_x = -np.fabs(self.x) * Q_x
 		r_dx = -np.fabs(self.dx) * Q_dx
-		r_theta = (theta_middle - np.fabs(self.theta)) * Q_theta
+		r_theta = -np.fabs(self.theta) * Q_theta
 		r_omega = -np.fabs(self.dtheta) * Q_omega
 		r_f = -np.fabs(self.force) * R
 

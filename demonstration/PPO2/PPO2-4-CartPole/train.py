@@ -45,9 +45,9 @@ class PPOActor_Gaussian(nn.Module):
                  init_std: float = 0.5,
                  use_orthogonal_init: bool = True):
         super(PPOActor_Gaussian, self).__init__()
-        self.fc1 = nn.Linear(state_dim, 128)
-        self.fc2 = nn.Linear(128, 64)
-        self.mean_layer = nn.Linear(64, action_dim)
+        self.fc1 = nn.Linear(state_dim, 256)
+        self.fc2 = nn.Linear(256, 256)
+        self.mean_layer = nn.Linear(256, action_dim)
         self.activate_func = nn.Tanh()
         self.a_min = torch.tensor(a_min, dtype=torch.float)
         self.a_max = torch.tensor(a_max, dtype=torch.float)
@@ -92,9 +92,9 @@ class PPOActor_Gaussian(nn.Module):
 class PPOCritic(nn.Module):
     def __init__(self, state_dim=3, use_orthogonal_init: bool = True):
         super(PPOCritic, self).__init__()
-        self.fc1 = nn.Linear(state_dim, 128)
-        self.fc2 = nn.Linear(128, 64)
-        self.fc3 = nn.Linear(64, 1)
+        self.fc1 = nn.Linear(state_dim, 256)
+        self.fc2 = nn.Linear(256, 256)
+        self.fc3 = nn.Linear(256, 1)
         self.activate_func = nn.Tanh()
 
         if use_orthogonal_init:
@@ -142,14 +142,14 @@ if __name__ == '__main__':
     test_num = 0
     sumr = 0.
     buffer_index = 0
-    ppo_msg = {'gamma': 0.99,
+    ppo_msg = {'gamma': 0.999,
                'K_epochs': 30,
                'eps_clip': 0.2,
-               'buffer_size': int(env.timeMax / env.dt) * 6,
+               'buffer_size': int(env.timeMax / env.dt) * 4,
                'state_dim': env.state_dim,
                'action_dim': env.action_dim,
-               'a_lr': 1e-4,
-               'c_lr': 1e-4,
+               'a_lr': 3e-4,
+               'c_lr': 1e-3,
                'set_adam_eps': True,
                'lmd': 0.95,
                'use_adv_norm': True,
@@ -166,7 +166,7 @@ if __name__ == '__main__':
                                          action_dim=env.action_dim,
                                          a_min=np.array(env.action_range)[:, 0],
                                          a_max=np.array(env.action_range)[:, 1],
-                                         init_std=2.0,
+                                         init_std=8.0/3,
                                          use_orthogonal_init=True),
                  critic=PPOCritic(state_dim=env.state_dim, use_orthogonal_init=True))
     agent.PPO2_info()
@@ -195,20 +195,23 @@ if __name__ == '__main__':
                 env.step_update(a)
                 # env.visualization()
                 sumr += env.reward
-                # success = .0 if env.terminal_flag == 1 else 1.0  # 3 成功，不出界，就是 success
-                if env.terminal_flag == 1 or env.terminal_flag == 2:
-                    success = 0.0
+
+                if env.is_terminal:
+                    if env.terminal_flag == 3:
+                        success = 0
+                    else:
+                        success = 1
                 else:
-                    success = 1.0
-                success = 1.0
+                    success = 0
+
                 agent.buffer.append(s=env.current_state,
                                     a=a,
                                     log_prob=a_log_prob,
                                     # r=reward_norm(env.reward),
                                     r=env.reward,
                                     s_=env.next_state,
-                                    done=1.0 if env.is_terminal else 0.0,
-                                    success=success,
+                                    done=1.0 if env.is_terminal else 0.0,   # 只要没有 s' 全都是 1
+                                    success=success,                        #
                                     index=buffer_index)
                 buffer_index += 1
         '''1. 收集数据'''
@@ -243,13 +246,13 @@ if __name__ == '__main__':
             pd.DataFrame({'sumr_list': sumr_list}).to_csv(simulationPath + 'sumr_list.csv')
             print('   Testing finished...')
             print('   Go back to training...')
-        '''3. 每学习 50 次，测试一下'''
+        '''3. 每学习 10 次，测试一下'''
 
         '''4. 每学习 50 次，减小一次探索概率'''
-        if t_epoch % 50 == 0 and t_epoch > 0:
+        if t_epoch % 100 == 0 and t_epoch > 0:
             if agent.actor.std > 0.4:
-                agent.actor.std -= 0.1
-        '''4. 每学习 100 次，减小一次探索概率'''
+                agent.actor.std -= 0.05
+        '''4. 每学习 50 次，减小一次探索概率'''
 
         '''5. 每学习 50 次，保存一下 policy'''
         if t_epoch % 50 == 0 and t_epoch > 0:

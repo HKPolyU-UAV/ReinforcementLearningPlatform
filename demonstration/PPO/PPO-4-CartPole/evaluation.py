@@ -8,7 +8,7 @@ from CartPole import CartPole as env
 from algorithm.policy_base.Proximal_Policy_Optimization import Proximal_Policy_Optimization as PPO
 from utils.classes import *
 
-optPath = './datasave/net/'
+optPath = os.path.dirname(os.path.abspath(__file__)) + '/datasave/net/'
 show_per = 1
 timestep = 0
 ENV = 'PPO-CartPole'
@@ -125,7 +125,7 @@ class PPOActorCritic(nn.Module):
 
 
 if __name__ == '__main__':
-    log_dir = './datasave/log/'
+    log_dir = os.path.dirname(os.path.abspath(__file__)) + '/datasave/log/'
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
     simulation_path = log_dir + datetime.datetime.strftime(datetime.datetime.now(),
