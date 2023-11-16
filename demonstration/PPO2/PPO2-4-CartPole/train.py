@@ -133,7 +133,7 @@ if __name__ == '__main__':
     os.mkdir(simulationPath)
     c = cv.waitKey(1)
 
-    RETRAIN = False
+    RETRAIN = True
 
     env = CartPole(0., 0.)
     reward_norm = Normalization(shape=1)
@@ -166,7 +166,7 @@ if __name__ == '__main__':
                                          action_dim=env.action_dim,
                                          a_min=np.array(env.action_range)[:, 0],
                                          a_max=np.array(env.action_range)[:, 1],
-                                         init_std=8.0/3,
+                                         init_std=env.fm / 3,
                                          use_orthogonal_init=True),
                  critic=PPOCritic(state_dim=env.state_dim, use_orthogonal_init=True))
     agent.PPO2_info()
@@ -174,10 +174,10 @@ if __name__ == '__main__':
     if RETRAIN:
         print('RELOADING......')
         '''如果两次奖励函数不一样，那么必须重新初始化 critic'''
-        optPath = os.path.dirname(os.path.abspath(__file__)) + '/trainNum_100/'
+        optPath = os.path.dirname(os.path.abspath(__file__)) + '/datasave/trainNum_3650/'
         agent.actor.load_state_dict(torch.load(optPath + 'actor'))
         agent.critic.load_state_dict(torch.load(optPath + 'critic'))
-        # agent.critic.init(True)
+        agent.critic.init(True)
         '''如果两次奖励函数不一样，那么必须重新初始化 critic'''
 
     env.is_terminal = True
@@ -207,8 +207,8 @@ if __name__ == '__main__':
                 agent.buffer.append(s=env.current_state,
                                     a=a,
                                     log_prob=a_log_prob,
-                                    # r=reward_norm(env.reward),
-                                    r=env.reward,
+                                    r=reward_norm(env.reward),
+                                    # r=env.reward,
                                     s_=env.next_state,
                                     done=1.0 if env.is_terminal else 0.0,   # 只要没有 s' 全都是 1
                                     success=success,                        #

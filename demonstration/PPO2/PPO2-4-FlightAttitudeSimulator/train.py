@@ -186,7 +186,13 @@ if __name__ == '__main__':
 				env.step_update(a)
 				# env.visualization()
 				sumr += env.reward
-				success = 1.0 if env.terminal_flag == 3 else 0.0	# 3 成功，不出界，就是 success
+				if env.is_terminal:
+					if env.terminal_flag == 3:
+						success = 0.
+					else:
+						success = 1.0
+				else:
+					success = 0.0
 				agent.buffer.append(s=env.current_state,
 									a=a,
 									log_prob=a_log_prob,

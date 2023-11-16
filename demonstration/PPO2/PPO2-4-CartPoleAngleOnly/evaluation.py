@@ -77,7 +77,7 @@ if __name__ == '__main__':
                                   a_max=np.array(env.action_range)[:, 1],
                                   init_std=0.01,
                                   use_orthogonal_init=True)
-    optPath = os.path.dirname(os.path.abspath(__file__)) + '/datasave/net/'
+    optPath = os.path.dirname(os.path.abspath(__file__)) + '/datasave/trainNum_300/'
     opt_actor.load_state_dict(torch.load(optPath + 'actor'))  # 测试时，填入测试actor网络
 
     n = 10

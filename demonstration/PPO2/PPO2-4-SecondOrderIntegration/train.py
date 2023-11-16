@@ -202,8 +202,10 @@ if __name__ == '__main__':
                 env.step_update(a)
                 # env.visualization()
                 sumr += env.reward
-                # success = 0.0 if env.terminal_flag == 1 else 1.0	# 1 对应出界，固定时间内，不出界，就是 success
-                success = 1.0
+                if env.is_terminal and (env.terminal_flag != 2):
+                    success = 1.0
+                else:
+                    success = 0.
                 agent.buffer.append(s=env.current_state,
                                     a=a,
                                     log_prob=a_log_prob,

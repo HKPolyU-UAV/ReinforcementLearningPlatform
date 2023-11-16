@@ -296,7 +296,10 @@ if __name__ == '__main__':
 				action_4_uav = env.generate_action_4_uav()
 				env.step_update(action_4_uav)
 				sumr += env.reward
-				success = 1.0 if env.terminal_flag == 1 else 0.0
+				if env.is_terminal and (env.terminal_flag != 1):
+					success = 1.0
+				else:
+					success = 0.
 				agent.buffer.append(s=s,
 									a=a,  # a
 									log_prob=a_log_prob,  # a_lp

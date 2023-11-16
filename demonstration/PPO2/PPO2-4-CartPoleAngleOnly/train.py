@@ -142,10 +142,10 @@ if __name__ == '__main__':
 	test_num = 0
 	sumr = 0.
 	buffer_index = 0
-	ppo_msg = {'gamma': 0.99,
-			   'K_epochs': 100,
+	ppo_msg = {'gamma': 0.999,
+			   'K_epochs': 30,
 			   'eps_clip': 0.2,
-			   'buffer_size': int(env.timeMax / env.dt) * 2,
+			   'buffer_size': int(env.timeMax / env.dt) * 4,
 			   'state_dim': env.state_dim,
 			   'action_dim': env.action_dim,
 			   'a_lr': 3e-4,
@@ -174,10 +174,10 @@ if __name__ == '__main__':
 	if RETRAIN:
 		print('RELOADING......')
 		'''如果两次奖励函数不一样，那么必须重新初始化 critic'''
-		optPath = os.path.dirname(os.path.abspath(__file__)) + '/trainNum_100/'
+		optPath = os.path.dirname(os.path.abspath(__file__)) + '/datasave/trainNum_900/'
 		agent.actor.load_state_dict(torch.load(optPath + 'actor'))
 		agent.critic.load_state_dict(torch.load(optPath + 'critic'))
-		# agent.critic.init(True)
+		agent.critic.init(True)
 		'''如果两次奖励函数不一样，那么必须重新初始化 critic'''
 
 	env.is_terminal = True
@@ -195,13 +195,20 @@ if __name__ == '__main__':
 				env.step_update(a)
 				# env.visualization()
 				sumr += env.reward
-				# success = .0 if env.terminal_flag == 1 else 1.0  # 3 成功，不出界，就是 success
-				success = 1.0
+
+				if env.is_terminal:
+					if env.terminal_flag == 3:
+						success = 0
+					else:
+						success = 1
+				else:
+					success = 0
+
 				agent.buffer.append(s=env.current_state,
 									a=a,
 									log_prob=a_log_prob,
-									# r=reward_norm(env.reward),
-									r=env.reward,
+									r=reward_norm(env.reward),
+									# r=env.reward,
 									s_=env.next_state,
 									done=1.0 if env.is_terminal else 0.0,
 									success=success,

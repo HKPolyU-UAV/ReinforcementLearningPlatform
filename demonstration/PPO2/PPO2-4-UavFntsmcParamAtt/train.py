@@ -275,7 +275,10 @@ if __name__ == '__main__':
 				torque = env.att_control(rhod, dot_rhod, None)
 				env.step_update([torque[0], torque[1], torque[2]])
 				sumr += env.reward
-				success = 1.0 if env.terminal_flag == 1 else 0.0
+				if env.is_terminal and (env.terminal_flag != 1):
+					success = 1.0
+				else:
+					success = 0.
 				agent.buffer.append(s=s,
 									a=a,  # a
 									log_prob=a_log_prob,  # a_lp

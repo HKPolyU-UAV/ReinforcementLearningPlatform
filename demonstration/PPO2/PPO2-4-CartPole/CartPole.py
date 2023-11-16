@@ -39,7 +39,7 @@ class CartPole(rl_base):
 		self.fm = 8  # maximum force added on the cart
 
 		self.dt = 0.02  # 10ms
-		self.timeMax = 8  # maximum time of each episode
+		self.timeMax = 5  # maximum time of each episode
 		self.time = 0.
 		self.etheta = 0. - self.theta
 		self.ex = 0. - self.x
@@ -91,7 +91,7 @@ class CartPole(rl_base):
 		self.pixel_per_n = 20  # 每牛顿的长度
 		self.pole_ell_pixel = 50
 		self.image_copy = self.image.copy()
-		self.draw_slide()
+		# self.draw_slide()
 		'''visualization_opencv'''
 
 	def draw_slide(self):
@@ -119,7 +119,8 @@ class CartPole(rl_base):
 			pt1 = np.atleast_1d([int(cx + self.cart_x_pixel / 2 + np.fabs(self.force) * self.pixel_per_n), int(cy)])
 			pt2 = np.atleast_1d([int(cx + self.cart_x_pixel / 2), int(cy)])
 		if np.fabs(self.force) > 1e-2:
-			cv.arrowedLine(self.image, pt1, pt2, Color().Red, 2, 8, 0, 0.5)
+			cv.circle(self.image, pt2, 5, Color().Red, -1)
+			cv.line(self.image, pt1, pt2, Color().Red, 2, 8, 0)
 
 	def draw_center(self):
 		cv.circle(self.image, (int(self.xoffset + 1.5 * self.scale), int(self.height / 2)), 4, Color().Black, -1)
@@ -186,11 +187,11 @@ class CartPole(rl_base):
 		:param param:   extra parameters for reward function
 		:return:
 		"""
-		Q_x = 10
+		Q_x = 5
 		Q_dx = 0.0
 		Q_theta = 1
 		Q_omega = 0.0
-		R = 0.001
+		R = 0.01
 
 		# theta_middle = self.theta_max / 2
 		# x_middle = self.x_max / 2
@@ -269,7 +270,7 @@ class CartPole(rl_base):
 		"""
 		'''physical parameters'''
 		if random:
-			self.initTheta = np.random.uniform(-self.theta_max / 2, self.theta_max / 2)
+			self.initTheta = np.random.uniform(-self.theta_max * 0.5, self.theta_max * 0.5)
 			self.initX = np.random.uniform(-self.x_max / 2, self.x_max / 2)
 		self.theta = self.initTheta
 		self.x = self.initX
