@@ -19,7 +19,7 @@ from utils.classes import Normalization
 timestep = 0
 ENV = 'SecondOrderIntegration'
 ALGORITHM = 'TD3'
-MAX_EPISODE = 3500
+MAX_EPISODE = 30000
 USE_R_NORM = False
 
 r_norm = Normalization(shape=1)
@@ -180,11 +180,11 @@ if __name__ == '__main__':
 	target_critic = TD3Critic(env.state_dim, env.action_dim, lr=3e-4)
 	env_msg = {'state_dim': env.state_dim, 'action_dim': env.action_dim, 'action_range': env.action_range, 'name': ENV}
 	agent = TD3(env_msg=env_msg,
-				gamma=0.9,
-				noise_clip=1 / 2, noise_policy=1 / 4, policy_delay=3,
+				gamma=0.99,
+				noise_clip=1 / 2, noise_policy=0.2, policy_delay=2,
 				actor_tau=0.005, td3critic_tau=0.005,
-				memory_capacity=10000,
-				batch_size=64,
+				memory_capacity=20000,
+				batch_size=256,
 				actor=actor,
 				target_actor=target_actor,
 				td3critic=critic,
@@ -203,7 +203,7 @@ if __name__ == '__main__':
 		fullFillReplayMemory_with_Optimal(randomEnv=True, fullFillRatio=0.5, is_only_success=False)
 	else:
 		'''fullFillReplayMemory_Random'''
-		fullFillReplayMemory_Random(randomEnv=True, fullFillRatio=0.1)
+		fullFillReplayMemory_Random(randomEnv=True, fullFillRatio=0.8)
 		'''fullFillReplayMemory_Random'''
 
 	print('Start to train...')
@@ -225,7 +225,8 @@ if __name__ == '__main__':
 			if np.random.uniform(0, 1) < 0.00:
 				action = agent.choose_action_random()  # 有一定探索概率完全随机探索
 			else:
-				sigma = sigma0 - agent.episode * (sigma0 - 0.1) / MAX_EPISODE
+				# sigma = sigma0 - agent.episode * (sigma0 - 0.1) / MAX_EPISODE
+				sigma = sigma0
 				action = agent.choose_action(env.current_state, is_optimal=False, sigma=sigma)
 			env.step_update(action)
 			step += 1
@@ -242,7 +243,7 @@ if __name__ == '__main__':
 			else:
 				# if env.reward > 0:
 				agent.memory.store_transition(env.current_state, env.current_action, r, env.next_state, 1 if env.is_terminal else 0)
-			agent.learn(is_reward_ascent=False, critic_random=False, iter=2)
+			agent.learn(is_reward_ascent=False, critic_random=False, iter=1)
 		'''跳出循环代表回合结束'''
 		if is_storage_only_success:
 			if env.terminal_flag == 3:
@@ -251,7 +252,7 @@ if __name__ == '__main__':
 		'''跳出循环代表回合结束'''
 		print('Episode:', agent.episode, 'Cumulative reward:', round(sumr, 3))
 		agent.episode += 1
-		if agent.episode % 30 == 0:
+		if agent.episode % 10 == 0:
 			temp = simulationPath + 'trainNum_{}/'.format(agent.episode)
 			os.mkdir(temp)
 			time.sleep(0.01)

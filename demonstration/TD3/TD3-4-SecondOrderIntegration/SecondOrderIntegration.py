@@ -249,28 +249,30 @@ class SecondOrderIntegration(rl_base):
         #     self.is_terminal = True
 
     def get_reward(self, param=None):
-        Q_pos = 0.1 * np.ones(2)
-        Q_vel = 0.01 * np.ones(2)
-        Q_acc = 0.001 * np.ones(2)
-
-        e_pos = self.target - self.pos
-        e_vel = -self.vel
-
-        u_pos = -np.dot(e_pos ** 2, Q_pos)
-        u_vel = -np.dot(e_vel ** 2, Q_vel)
-        u_acc = -np.dot(self.acc ** 2, Q_acc)
-        # Q_pos = 1
-        # Q_vel = 0.1
-        # Q_acc = 0.1
+        # Q_pos = 0.1 * np.ones(2)
+        # Q_vel = 0.01 * np.ones(2)
+        # Q_acc = 0.001 * np.ones(2)
         #
-        # e_pos = np.linalg.norm(self.target - self.pos)
-        # e_vel = np.linalg.norm(-self.vel)
-        # acc = np.linalg.norm(self.acc)
-        #
+        # e_pos = self.target - self.pos
+        # e_vel = -self.vel
+
+        # u_pos = -np.dot(e_pos ** 2, Q_pos)
+        # u_vel = -np.dot(e_vel ** 2, Q_vel)
+        # u_acc = -np.dot(self.acc ** 2, Q_acc)
+
+        Q_pos = 1
+        Q_vel = 0.1
+        Q_acc = 0.01
+
+        e_pos = np.linalg.norm(self.target - self.pos)
+        e_vel = np.linalg.norm(-self.vel)
+        acc = np.linalg.norm(self.acc)
+
         # e_middle = np.linalg.norm(self.map_size) / 2 / 2
         # u_pos = (e_middle - e_pos) * Q_pos
-        # u_vel = -e_vel * Q_vel
-        # u_acc = -acc * Q_acc
+        u_pos = -e_pos * Q_pos
+        u_vel = -e_vel * Q_vel
+        u_acc = -acc * Q_acc
 
         # e_pos_ave = np.linalg.norm(self.map_size - self.target) / 2
         # u_pos = e_pos_ave - e_pos
@@ -328,15 +330,13 @@ class SecondOrderIntegration(rl_base):
 
     def reset(self, random: bool = False):
         if random:
-            self.init_pos = np.array([np.random.uniform(0 + 0.1, self.map_size[0] - 0.1),
-                                      np.random.uniform(0 + 0.1, self.map_size[1] - 0.1)])
+            self.init_pos = np.array([np.random.uniform(self.target[0] - 2, self.target[0] + 2),
+                                      np.random.uniform(self.target[1] - 2, self.target[1] + 2)])
             self.init_vel = np.zeros(2)
-            self.init_target = self.map_size / 2
         self.pos = self.init_pos.copy()
         self.vel = self.init_vel.copy()
         self.acc = np.array([0., 0.])
         self.force = np.array([0., 0.])
-        self.target = self.init_target.copy()
         self.error = self.target - self.pos
         self.time = 0.
 
