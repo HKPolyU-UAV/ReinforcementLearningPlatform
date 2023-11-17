@@ -51,7 +51,7 @@ class Twin_Delayed_DDPG:
 		self.a_max = torch.FloatTensor(env_msg['action_range'][:, 1])
 		self.noise_clip = torch.FloatTensor(noise_clip * (self.a_max - self.a_min) / 2)
 		# self.noise_policy = torch.FloatTensor(noise_policy * (self.a_max - self.a_min) / 2)
-		self.noise_policy = Normal(torch.zeros(env_msg['action_dim']), noise_clip * (self.a_max - self.a_min) / 2)
+		self.noise_policy = Normal(torch.zeros(env_msg['action_dim']), noise_policy * (self.a_max - self.a_min) / 2)
 
 		self.episode = 0
 		self.reward = 0
@@ -93,7 +93,7 @@ class Twin_Delayed_DDPG:
 				done: [batch_size, 1]
 			'''
 			with torch.no_grad():
-				noise = self.noise_policy.sample((self.memory.batch_size, 1)).squeeze()
+				noise = self.noise_policy.sample(torch.Size((self.memory.batch_size, 1))).squeeze()
 				noise = torch.maximum(torch.minimum(noise, self.noise_clip), -self.noise_clip)
 				next_action = self.target_actor(s_).cpu() + noise
 				next_action = torch.maximum(torch.minimum(next_action, self.a_max), self.a_min)

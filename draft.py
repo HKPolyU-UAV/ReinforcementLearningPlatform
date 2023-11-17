@@ -26,13 +26,16 @@ from torch.distributions import  MultivariateNormal, Normal
 # x = mvn.sample((2,1))
 # print(x)
 
-mean = torch.zeros(3)
-std = torch.tensor([1, 10., 100])
-dis = Normal(mean, std)
-a = dis.sample((5, 1)).squeeze()
+# mean = torch.zeros(3)
+# std = torch.tensor([1, 10., 100])
+# dis = Normal(mean, std)
+# a = dis.sample((5, 1)).squeeze()
+#
+# clip = torch.tensor([1, 2, 3])
+# noise = torch.maximum(torch.minimum(a, clip), -clip)
 
-clip = torch.tensor([1, 2, 3])
-noise = torch.maximum(torch.minimum(a, clip), -clip)
+# print(a)
+# print(noise)
 
-print(a)
-print(noise)
+b = torch.Size((2, 3))
+print(b)
