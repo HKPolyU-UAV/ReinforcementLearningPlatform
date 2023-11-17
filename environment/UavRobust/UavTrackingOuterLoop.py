@@ -207,7 +207,7 @@ class uav_tracking_outer_loop(rl_base, uav_pos_ctrl):
         if random:
             self.x, self.y, self.z = \
                 self.set_random_init_pos(pos0=self.trajectory[0][0:3], r=0.3 * np.ones(3))  # 设置初始位置在轨迹第一个点附近
-        self.init_image()
+        self.draw_init_image()
         self.pos_ref, self.dot_pos_ref, _, _ = ref_uav(self.time, self.ref_amplitude, self.ref_period, self.ref_bias_a,
                                                        self.ref_bias_phase)
         self.error = self.uav_pos() - self.pos_ref
@@ -254,9 +254,13 @@ class uav_tracking_outer_loop(rl_base, uav_pos_ctrl):
         self.trajectory = self.generate_ref_pos_trajectory(self.ref_amplitude, self.ref_period,
                                                            self.ref_bias_a, self.ref_bias_phase)
 
-    def init_image(self):
+    def draw_init_image(self):
         self.draw_3d_trajectory_projection(self.trajectory)
-        self.draw_init_image()
+        self.draw_boundary()
+        self.draw_label()
+        self.draw_region_grid(6, 6, 6)
+        self.draw_axis(6, 6, 6)
+        self.image_copy = self.image.copy()
 
     def visualization(self):
         self.image = self.image_copy.copy()

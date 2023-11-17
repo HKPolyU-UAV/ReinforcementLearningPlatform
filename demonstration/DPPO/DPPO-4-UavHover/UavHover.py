@@ -1,6 +1,8 @@
 import math
 import os
 import sys
+
+import numpy as np
 from numpy import deg2rad
 from algorithm.rl_base import rl_base
 from environment.UavRobust.Color import Color
@@ -17,6 +19,7 @@ class uav_hover(rl_base, uav_pos_ctrl):
     """
     这个环境是内外环的动作和状态合并在一块的环境，用于将分别训练好的内环和外环控制器合并进行悬停控制测试使用
     """
+
     def __init__(self, UAV_param: uav_param, pos_ctrl_param: fntsmc_param,
                  att_ctrl_param: fntsmc_param, target0: np.ndarray):
         rl_base.__init__(self)
@@ -26,7 +29,6 @@ class uav_hover(rl_base, uav_pos_ctrl):
         self.name = 'uav_hover'
 
         self.collector = data_collector(round(self.time_max / self.dt))
-        self.init_image()
 
         self.pos_ref = target0
         self.pos_error = self.uav_pos() - self.pos_ref
@@ -84,12 +86,12 @@ class uav_hover(rl_base, uav_pos_ctrl):
         self.action_num = [math.inf for _ in range(self.action_dim)]
         self.action_step = [None for _ in range(self.action_dim)]
         self.action_space = [None for _ in range(self.action_dim)]
-        self.action_range = [[self.u_min, self.u_max],
-                             [self.u_min, self.u_max],
-                             [self.u_min, self.u_max],
-                             [self.torque_min, self.torque_max],
-                             [self.torque_min, self.torque_max],
-                             [self.torque_min, self.torque_max]]
+        self.action_range = np.array([[self.u_min, self.u_max],
+                                      [self.u_min, self.u_max],
+                                      [self.u_min, self.u_max],
+                                      [self.torque_min, self.torque_max],
+                                      [self.torque_min, self.torque_max],
+                                      [self.torque_min, self.torque_max]])
         self.is_action_continuous = [True for _ in range(self.action_dim)]
 
         self.current_action = np.zeros(self.action_dim)
@@ -118,7 +120,8 @@ class uav_hover(rl_base, uav_pos_ctrl):
         计算奖励
         """
         Qx, Qv, R = 1, 0.1, 0.02
-        r1 = - np.linalg.norm(np.tanh(10 * self.pos_error)) ** 2 * 0.5 * Qx - np.linalg.norm(self.pos_error) ** 2 * 0.5 * Qx
+        r1 = - np.linalg.norm(np.tanh(10 * self.pos_error)) ** 2 * 0.5 * Qx - np.linalg.norm(
+            self.pos_error) ** 2 * 0.5 * Qx
         r2 = - np.linalg.norm(np.tanh(10 * self.uav_vel())) ** 2 * 0.5 * Qx - np.linalg.norm(
             self.uav_vel()) ** 2 * 0.5 * Qv
         # norm_action = (np.array(self.current_action) * 2 - self.u_max - self.u_min) / (self.u_max - self.u_min)
@@ -216,7 +219,7 @@ class uav_hover(rl_base, uav_pos_ctrl):
 
         self.image = np.ones([self.height, self.width, 3], np.uint8) * 255
         self.image_copy = self.image.copy()
-        self.init_image()
+        self.draw_init_image()
 
         if random:
             self.pos_ref = self.generate_random_point(offset=1.0)  # 随即目标点
@@ -240,8 +243,12 @@ class uav_hover(rl_base, uav_pos_ctrl):
         """
         return np.random.uniform(low=self.pos_zone[:, 0] + offset, high=self.pos_zone[:, 1] - offset)
 
-    def init_image(self):
-        self.draw_init_image()
+    def draw_init_image(self):
+        self.draw_boundary()
+        self.draw_label()
+        self.draw_region_grid(6, 6, 6)
+        self.draw_axis(6, 6, 6)
+        self.image_copy = self.image.copy()
 
     def visualization(self):
         self.image = self.image_copy.copy()

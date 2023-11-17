@@ -1,8 +1,6 @@
 import math
 import os
 import sys
-
-import numpy as np
 from numpy import deg2rad
 
 from algorithm.rl_base import rl_base
@@ -73,9 +71,9 @@ class uav_inner_loop(rl_base, uav_att_ctrl):
         self.action_num = [math.inf for _ in range(self.action_dim)]
         self.action_step = [None for _ in range(self.action_dim)]
         self.action_space = [None for _ in range(self.action_dim)]
-        self.action_range = [[self.torque_min, self.torque_max],
-                             [self.torque_min, self.torque_max],
-                             [self.torque_min, self.torque_max]]
+        self.action_range = np.array([[self.torque_min, self.torque_max],
+                                      [self.torque_min, self.torque_max],
+                                      [self.torque_min, self.torque_max]])
         self.is_action_continuous = [True for _ in range(self.action_dim)]
 
         self.current_action = np.zeros(self.action_dim)

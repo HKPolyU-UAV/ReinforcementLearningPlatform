@@ -1,8 +1,6 @@
 import math
 import os
 import sys
-
-import numpy as np
 from numpy import deg2rad
 from algorithm.rl_base import rl_base
 from environment.UavRobust.Color import Color
@@ -28,7 +26,6 @@ class uav_hover_outer_loop(rl_base, uav_pos_ctrl):
 
         self.pos_ref = target0
         self.error = self.uav_pos() - self.pos_ref
-        self.init_image()
 
         '''state action limitation'''
         self.static_gain = 1.0
@@ -67,9 +64,9 @@ class uav_hover_outer_loop(rl_base, uav_pos_ctrl):
         self.action_num = [math.inf for _ in range(self.action_dim)]
         self.action_step = [None for _ in range(self.action_dim)]
         self.action_space = [None for _ in range(self.action_dim)]
-        self.action_range = [[self.u_min, self.u_max],
-                             [self.u_min, self.u_max],
-                             [self.u_min, self.u_max]]
+        self.action_range = np.array([[self.u_min, self.u_max],
+                                      [self.u_min, self.u_max],
+                                      [self.u_min, self.u_max]])
         self.is_action_continuous = [True for _ in range(self.action_dim)]
 
         self.current_action = np.zeros(self.action_dim)
@@ -194,7 +191,7 @@ class uav_hover_outer_loop(rl_base, uav_pos_ctrl):
 
         self.image = np.ones([self.height, self.width, 3], np.uint8) * 255
         self.image_copy = self.image.copy()
-        self.init_image()
+        self.draw_init_image()
 
         if random:
             self.pos_ref = self.generate_random_point(offset=1.0)  # 随机目标点
@@ -214,8 +211,12 @@ class uav_hover_outer_loop(rl_base, uav_pos_ctrl):
         """
         return np.random.uniform(low=self.pos_zone[:, 0] + offset, high=self.pos_zone[:, 1] - offset)
 
-    def init_image(self):
-        self.draw_init_image()
+    def draw_init_image(self):
+        self.draw_boundary()
+        self.draw_label()
+        self.draw_region_grid(6, 6, 6)
+        self.draw_axis(6, 6, 6)
+        self.image_copy = self.image.copy()
 
     def visualization(self):
         self.image = self.image_copy.copy()

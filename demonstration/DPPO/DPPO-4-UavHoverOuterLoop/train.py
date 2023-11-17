@@ -1,17 +1,17 @@
 import datetime
 import os
 import sys
-
-import numpy as np
 from numpy import deg2rad
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../")
+sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../")
+sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../../")
 
 from UavHoverOuterLoop import uav_hover_outer_loop as env
-from environment.uav_robust.uav import uav_param
-from environment.uav_robust.FNTSMC import fntsmc_param
-from algorithm.policy_base.Distributed_PPO import Distributed_PPO as DPPO
-from algorithm.policy_base.Distributed_PPO import Worker
+from environment.UavRobust.uav import uav_param
+from environment.UavRobust.FNTSMC import fntsmc_param
+from Distributed_PPO import Distributed_PPO as DPPO
+from Distributed_PPO import Worker
 from utils.classes import *
 import torch.multiprocessing as mp
 
@@ -61,14 +61,12 @@ att_ctrl_param.saturation = np.array([0.3, 0.3, 0.3])
 
 
 class PPOActorCritic(nn.Module):
-    def __init__(self, _state_dim, _action_dim, _action_std_init, name='PPOActorCritic', chkpt_dir=''):
+    def __init__(self, _state_dim, _action_dim, _action_std_init):
         super(PPOActorCritic, self).__init__()
-        self.checkpoint_file = chkpt_dir + name + '_ppo'
-        self.checkpoint_file_whole_net = chkpt_dir + name + '_ppoALL'
         self.state_dim = _state_dim
         self.action_dim = _action_dim
         self.action_std_init = _action_std_init
-        self.action_var = torch.full((self.action_dim,), self.action_std_init * self.action_std_init)
+        self.action_var = torch.Tensor(self.action_std_init ** 2)
 
         self.actor = nn.Sequential(
             nn.Linear(self.state_dim, 128),
@@ -83,7 +81,7 @@ class PPOActorCritic(nn.Module):
             nn.Tanh(),
             nn.Linear(128, 64),
             nn.Tanh(),
-            nn.Linear(64, 1),
+            nn.Linear(64, 1)
         )
         self.actor_reset_orthogonal()
         self.critic_reset_orthogonal()
@@ -108,7 +106,7 @@ class PPOActorCritic(nn.Module):
 
     def set_action_std(self, new_action_std):
         """手动设置动作方差"""
-        self.action_var = torch.full((self.action_dim,), new_action_std * new_action_std).to(self.device)
+        self.action_var = torch.Tensor(new_action_std ** 2)
 
     def forward(self):
         raise NotImplementedError
@@ -121,9 +119,8 @@ class PPOActorCritic(nn.Module):
 
         _a = dist.sample()
         action_logprob = dist.log_prob(_a)
-        state_val = self.critic(s)
 
-        return _a.detach(), action_logprob.detach(), state_val.detach()
+        return _a.detach(), action_logprob.detach()
 
     def evaluate(self, s, a):
         """评估状态动作价值"""
@@ -144,21 +141,7 @@ class PPOActorCritic(nn.Module):
 
     def save_checkpoint(self, name=None, path='', num=None):
         print('...saving checkpoint...')
-        if name is None:
-            torch.save(self.state_dict(), self.checkpoint_file)
-        else:
-            if num is None:
-                torch.save(self.state_dict(), path + name)
-            else:
-                torch.save(self.state_dict(), path + name + str(num))
-
-    def save_all_net(self):
-        print('...saving all net...')
-        torch.save(self, self.checkpoint_file_whole_net)
-
-    def load_checkpoint(self):
-        print('...loading checkpoint...')
-        self.load_state_dict(torch.load(self.checkpoint_file))
+        torch.save(self.state_dict(), path + name + str(num))
 
 
 if __name__ == '__main__':
@@ -180,14 +163,12 @@ if __name__ == '__main__':
     process_num = 15
     actor_lr = 1e-5 / min(process_num, 5)
     critic_lr = 1e-4 / min(process_num, 5)
-    action_std = 0.8
+    action_std_init = (env.action_range[:, 1] - env.action_range[:, 0]) / 2 / 3
     k_epo_init = 100
     agent = DPPO(env=env, actor_lr=actor_lr, critic_lr=critic_lr, num_of_pro=process_num, path=simulation_path)
     '''3. 重新加载全局网络和优化器，这是必须的操作，考虑到不同学习环境设计不同的网络结构，训练前要重写PPOActorCritic'''
-    agent.global_policy = PPOActorCritic(agent.env.state_dim, agent.env.action_dim, action_std, 'GlobalPolicy',
-                                         simulation_path)
-    agent.eval_policy = PPOActorCritic(agent.env.state_dim, agent.env.action_dim, action_std, 'EvalPolicy',
-                                       simulation_path)
+    agent.global_policy = PPOActorCritic(agent.env.state_dim, agent.env.action_dim, action_std_init)
+    agent.eval_policy = PPOActorCritic(agent.env.state_dim, agent.env.action_dim, action_std_init)
     if RETRAIN:
         agent.global_policy.load_state_dict(torch.load('Policy_PPO47400'))
         '''如果修改了奖励函数，则原来的critic网络已经不起作用了，需要重新初始化'''
@@ -198,12 +179,11 @@ if __name__ == '__main__':
         {'params': agent.global_policy.critic.parameters(), 'lr': critic_lr}
     ])
     '''4. 添加进程'''
-    ppo_msg = {'gamma': 0.99, 'k_epo': int(k_epo_init / process_num * 1.5), 'eps_c': 0.2, 'a_std': action_std,
+    ppo_msg = {'gamma': 0.99, 'k_epo': int(k_epo_init / process_num * 1.5), 'eps_c': 0.2, 'a_std': action_std_init,
                'device': 'cpu', 'loss': nn.MSELoss()}
     for i in range(agent.num_of_pro):
         worker = Worker(g_pi=agent.global_policy,
-                        l_pi=PPOActorCritic(agent.env.state_dim, agent.env.action_dim, action_std, 'LocalPolicy',
-                                            simulation_path),
+                        l_pi=PPOActorCritic(agent.env.state_dim, agent.env.action_dim, action_std_init),
                         g_opt=agent.optimizer,
                         g_train_n=agent.global_training_num,
                         _index=i,

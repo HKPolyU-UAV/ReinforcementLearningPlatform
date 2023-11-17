@@ -185,7 +185,7 @@ class uav_inner_loop(rl_base, uav_att_ctrl):
 
         self.att_image = np.ones([self.att_h, self.att_w, 3], np.uint8) * 255
         self.att_image_copy = self.image.copy()
-        self.init_image()
+        self.draw_init_image()
 
         if random:
             self.ref_amplitude, self.ref_period, self.ref_bias_a, self.ref_bias_phase = self.generate_random_signal()
@@ -215,7 +215,7 @@ class uav_inner_loop(rl_base, uav_att_ctrl):
         bias_phase = np.random.uniform(low=0, high=np.pi / 2, size=3)
         return amplitude, period, bias_a, bias_phase
 
-    def init_image(self):
+    def draw_init_image(self):
         self.draw_att_init_image()
 
     def visualization(self):

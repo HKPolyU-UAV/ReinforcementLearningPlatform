@@ -1,5 +1,4 @@
 import math
-
 from utils.functions import *
 from algorithm.rl_base import rl_base
 import cv2 as cv
@@ -54,26 +53,28 @@ class CartPole(rl_base):
         self.state_num = [math.inf for _ in range(self.state_dim)]
         self.state_step = [None for _ in range(self.state_dim)]
         self.state_space = [None for _ in range(self.state_dim)]
-        self.state_range = [[-self.staticGain, self.staticGain],
-                            [-math.inf, math.inf],
-                            [-self.staticGain, self.staticGain],
-                            [-math.inf, math.inf]]
+        self.use_norm = True
+        if self.use_norm:
+            self.state_range = [[-self.staticGain, self.staticGain],
+                                [-self.staticGain, self.staticGain],
+                                [-self.staticGain, self.staticGain],
+                                [-self.staticGain, self.staticGain]]
+        else:
+            self.state_range = [[-self.thetaMax, self.thetaMax],
+                                [-np.inf, np.inf],
+                                [-self.xMax, self.xMax],
+                                [-np.inf, np.inf]]
         self.isStateContinuous = [True for _ in range(self.state_dim)]
-        self.initial_state = np.array([self.theta / self.thetaMax * self.staticGain,
-                                       self.dtheta / self.norm_4_boundless_state * self.staticGain,
-                                       self.x / self.xMax * self.staticGain,
-                                       self.dx / self.norm_4_boundless_state * self.staticGain])
-        self.current_state = self.initial_state.copy()
-        self.next_state = self.initial_state.copy()
+        self.current_state = self.get_state()
+        self.next_state = self.current_state.copy()
 
         self.action_dim = 1
         self.action_step = [None]
-        self.action_range = [[-self.fm, self.fm]]
+        self.action_range = np.array([[-self.fm, self.fm]])
         self.action_num = [math.inf]
         self.action_space = [None]
         self.isActionContinuous = True
-        self.initial_action = [self.force]
-        self.current_action = self.initial_action.copy()
+        self.current_action = np.zeros(self.action_dim)
 
         self.reward = 0.0
         self.Q_x = 100  # cost for position error
@@ -102,10 +103,6 @@ class CartPole(rl_base):
 
         self.show = self.image.copy()
         self.save = self.image.copy()
-
-        # self.draw_slide()
-        # self.draw_cartpole()
-        # self.make_text()
         '''visualization_opencv'''
 
         '''datasave'''
@@ -155,6 +152,9 @@ class CartPole(rl_base):
                    Color().Black, 1)
         cv.putText(self.image, "  x  : %.3f m" % self.x, (20, 60), cv.FONT_HERSHEY_COMPLEX, 0.4, Color().Black, 1)
 
+    def draw_init_image(self):
+        self.draw_slide()
+
     def visualization(self):
         self.image = self.show.copy()
         self.draw_cartpole()
@@ -162,6 +162,17 @@ class CartPole(rl_base):
         self.draw_center()
         cv.imshow(self.name4image, self.image)
         cv.waitKey(1)
+
+    def get_state(self):
+        if self.use_norm:
+            theta = self.theta / self.thetaMax * self.staticGain
+            dtheta = self.dtheta / self.norm_4_boundless_state * self.staticGain
+            x = self.x / self.xMax * self.staticGain
+            dx = self.dx / self.norm_4_boundless_state * self.staticGain
+            state = np.array([theta, dtheta, x, dx])
+        else:
+            state = np.array([self.theta, self.dtheta, self.x, self.dx])
+        return state
 
     def is_success(self):
         if np.linalg.norm([self.ex, self.dx, self.etheta, self.dtheta]) < 1e-2:
@@ -266,10 +277,7 @@ class CartPole(rl_base):
         self.current_action = action.copy()
         self.etheta = 0. - self.theta
         self.ex = 0. - self.x
-        self.current_state = np.array([self.theta / self.thetaMax * self.staticGain,
-                                       self.dtheta / self.norm_4_boundless_state * self.staticGain,
-                                       self.x / self.xMax * self.staticGain,
-                                       self.dx / self.norm_4_boundless_state * self.staticGain])
+        self.current_state = self.get_state()
         '''RK-44'''
         self.rk44(np.array([self.force]))
         '''RK-44'''
@@ -278,13 +286,9 @@ class CartPole(rl_base):
         self.etheta = 0. - self.theta
         self.ex = 0. - self.x
         self.is_terminal = self.is_Terminal()
-        self.next_state = np.array([self.theta / self.thetaMax * self.staticGain,
-                                    self.dtheta / self.norm_4_boundless_state * self.staticGain,
-                                    self.x / self.xMax * self.staticGain,
-                                    self.dx / self.norm_4_boundless_state * self.staticGain])
+        self.next_state = self.get_state()
         '''角度，位置误差更新'''
         self.get_reward()
-        return self.current_state, action, self.reward, self.next_state, self.is_terminal
 
     def reset(self, random: bool = False):
         """
@@ -306,15 +310,10 @@ class CartPole(rl_base):
         '''physical parameters'''
 
         '''RL_BASE'''
-        self.initial_state = np.array([self.theta / self.thetaMax * self.staticGain,
-                                       self.dtheta / self.norm_4_boundless_state * self.staticGain,
-                                       self.x / self.xMax * self.staticGain,
-                                       self.dx / self.norm_4_boundless_state * self.staticGain])
-        self.current_state = self.initial_state.copy()
-        self.next_state = self.initial_state.copy()
+        self.current_state = self.get_state()
+        self.next_state = self.current_state.copy()
 
-        self.initial_action = [self.force]
-        self.current_action = self.initial_action.copy()
+        self.current_action = np.zeros(self.action_dim)
 
         self.reward = 0.0
         self.is_terminal = False
@@ -350,15 +349,10 @@ class CartPole(rl_base):
         '''physical parameters'''
 
         '''RL_BASE'''
-        self.initial_state = np.array([self.theta / self.thetaMax * self.staticGain,
-                                       self.dtheta / self.norm_4_boundless_state * self.staticGain,
-                                       self.x / self.xMax * self.staticGain,
-                                       self.dx / self.norm_4_boundless_state * self.staticGain])
-        self.current_state = self.initial_state.copy()
-        self.next_state = self.initial_state.copy()
+        self.current_state = self.get_state()
+        self.next_state = self.current_state.copy()
 
-        self.initial_action = [self.force]
-        self.current_action = self.initial_action.copy()
+        self.current_action = np.zeros(self.action_dim)
 
         self.reward = 0.0
         self.is_terminal = False
