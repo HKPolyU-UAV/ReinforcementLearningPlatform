@@ -10,7 +10,7 @@ device = torch.device("cpu")
 
 class Double_DQN(DQN):
     def __init__(self,
-                 env,
+                 env_msg,
                  gamma,
                  epsilon,
                  learning_rate,
@@ -19,7 +19,7 @@ class Double_DQN(DQN):
                  target_replace_iter,
                  eval_net,
                  target_net):
-        super(Double_DQN, self).__init__(env, gamma, epsilon, learning_rate, memory_capacity, batch_size, target_replace_iter, eval_net, target_net)
+        super(Double_DQN, self).__init__(env_msg, gamma, epsilon, learning_rate, memory_capacity, batch_size, target_replace_iter, eval_net, target_net)
 
     def learn_double_dqn(self, path=None, is_reward_ascent=False, item=10):
         """
@@ -61,10 +61,10 @@ class Double_DQN(DQN):
                 self.optimizer.step()
 
     def DoubleDQN_info(self):
-        print('Double DQN agent name:', self.env.name)
-        print('Double DQN input dimension:', self.env.state_dim)
-        print('Double DQN output dimension:', self.env.action_num)
-        print('Agent physical action dimension:', self.env.action_dim)
-        print('Agent action space:', self.env.action_space)
+        print('Double DQN agent name:', self.env_msg['name'])
+        print('Double DQN input dimension:', self.env_msg['state_dim'])
+        print('Double DQN output dimension:', self.env_msg['action_num'])
+        print('Agent physical action dimension:', self.env_msg['action_dim'])
+        print('Agent action space:', self.env_msg['action_space'])
         print('Replay memory capitaty:', self.memory_capacity)
         print('Batch size:', self.batch_size)

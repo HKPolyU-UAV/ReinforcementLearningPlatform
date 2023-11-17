@@ -1,5 +1,4 @@
 import numpy as np
-import cv2 as cv
 import torch
 import torch.nn as nn
 
@@ -14,16 +13,16 @@ device = torch.device("cpu") if use_cpu_only else torch.device("cuda" if use_cud
 
 class Proximal_Policy_Optimization:
     def __init__(self,
-                 env,
+                 env_msg,
                  actor_lr: float = 3e-4,
                  critic_lr: float = 1e-3,
                  gamma: float = 0.99,
                  K_epochs: int = 10,
                  eps_clip: float = 0.2,
-                 action_std_init: float = 0.6,
+                 action_std_init: np.ndarray = None,
                  buffer_size: int = 1200,
-                 policy: PPOActorCritic = PPOActorCritic(1, 1, 0.1, '', ''),
-                 policy_old: PPOActorCritic = PPOActorCritic(1, 1, 0.1, '', ''),
+                 policy: PPOActorCritic = PPOActorCritic(1, 1, 0.1),
+                 policy_old: PPOActorCritic = PPOActorCritic(1, 1, 0.1),
                  path: str = ''):
         """
 		@note:
@@ -36,15 +35,15 @@ class Proximal_Policy_Optimization:
 		@param action_std_init:		starting std for action distribution (Multivariate Normal)
 		@param path:				path
 		"""
-        self.env = env
+        self.env_msg = env_msg
         '''PPO'''
         self.gamma = gamma  # discount factor
         self.K_epochs = K_epochs  # 每隔 timestep_num 学习一次
         self.eps_clip = eps_clip
         self.action_std = action_std_init
         self.path = path
-        self.buffer = RolloutBuffer(buffer_size, self.env.state_dim, self.env.action_dim)
-        self.buffer2 = RolloutBuffer2(self.env.state_dim, self.env.action_dim)
+        self.buffer = RolloutBuffer(buffer_size, self.env_msg['state_dim'], self.env_msg['action_dim'])
+        self.buffer2 = RolloutBuffer2(self.env_msg['state_dim'], self.env_msg['action_dim'])
         self.actor_lr = actor_lr
         self.critic_lr = critic_lr
         '''PPO'''
@@ -73,6 +72,7 @@ class Proximal_Policy_Optimization:
         self.action_std = new_action_std
         self.policy.set_action_std(new_action_std)
         self.policy_old.set_action_std(new_action_std)
+        print("setting actor output action_std to : ", self.action_std)
 
     def decay_action_std(self, action_std_decay_rate, min_action_std):
         self.action_std = self.action_std - action_std_decay_rate
@@ -159,37 +159,19 @@ class Proximal_Policy_Optimization:
         '''6. Copy new weights into old policy'''
         self.policy_old.load_state_dict(self.policy.state_dict())
 
-    def save_models(self):
-        self.policy.save_checkpoint()
-        self.policy_old.save_checkpoint()
-
-    def save_models_all(self):
-        self.policy.save_all_net()
-        self.policy_old.save_all_net()
-
-    def load_models(self, path):
-        """
-		:brief:         only for test
-		:param path:    file path
-		:return:
-		"""
-        print('...loading checkpoint...')
-        self.policy.load_state_dict(torch.load(path + 'Policy_ppo'))
-        self.policy_old.load_state_dict(torch.load(path + 'Policy_old_ppo'))
-
     def PPO_info(self):
-        print('agent name：', self.env.name)
-        print('state_dim:', self.env.state_dim)
-        print('action_dim:', self.env.action_dim)
-        print('action_range:', self.env.action_range)
+        print('agent name：', self.env_msg['name'])
+        print('state_dim:', self.env_msg['state_dim'])
+        print('action_dim:', self.env_msg['action_dim'])
+        print('action_range:', self.env_msg['action_range'])
 
     def action_linear_trans(self, action):
         # the action output
         linear_action = []
-        for i in range(self.env.action_dim):
+        for i in range(self.env_msg['action_dim']):
             a = min(max(action[i], -1), 1)
-            maxa = self.env.action_range[i][1]
-            mina = self.env.action_range[i][0]
+            maxa = self.env_msg['action_range'][i][1]
+            mina = self.env_msg['action_range'][i][0]
             k = (maxa - mina) / 2
             b = (maxa + mina) / 2
             linear_action.append(k * a + b)

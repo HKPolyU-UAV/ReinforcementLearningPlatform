@@ -1,5 +1,5 @@
-import numpy as np
 import cv2 as cv
+import numpy as np
 
 from utils.functions import *
 from algorithm.rl_base import rl_base
@@ -60,19 +60,22 @@ class Flight_Attitude_Simulator(rl_base):
         self.state_num = [np.inf for _ in range(self.state_dim)]
         self.state_step = [None for _ in range(self.state_dim)]
         self.state_space = [None for _ in range(self.state_dim)]
-        self.state_range = [[self.minTheta, self.maxTheta], [self.min_omega, self.max_omega]]
+        self.use_norm = True
+        if self.use_norm:
+            self.state_range = [[-self.staticGain, self.staticGain] for _ in range(self.state_dim)]
+        else:
+            self.state_range = [[self.minTheta, self.maxTheta], [self.min_omega, self.max_omega]]
         self.isStateContinuous = [True for _ in range(self.state_dim)]
-        self.initial_state = self.state_norm()
-        self.current_state = self.initial_state.copy()
-        self.next_state = self.initial_state.copy()
+        self.current_state = self.get_state()
+        self.next_state = self.current_state.copy()
 
         self.action_dim = 1
         self.action_step = [None]
-        self.action_range = [[self.f_min, self.f_max]]
+        self.action_range = np.array([[self.f_min, self.f_max]])
         self.action_num = [np.inf]
         self.action_space = [None]
         self.isActionContinuous = True
-        self.current_action = np.array([0.0])
+        self.current_action = np.zeros(self.action_dim)
 
         self.reward = 0.0
         self.Q = 1
@@ -94,8 +97,6 @@ class Flight_Attitude_Simulator(rl_base):
         self.base_hor_h = 0.02
         self.base_ver_w = 0.02
         self.base_ver_h = 0.8
-
-        self.draw_base()
         '''visualization_opencv'''
 
     def draw_base(self):
@@ -159,6 +160,10 @@ class Flight_Attitude_Simulator(rl_base):
 
         cv.fillPoly(img=self.image, pts=np.array([[pt1, pt2, pt3, pt4]]), color=Color().Black)
 
+    def draw_init_image(self):
+        self.draw_base()
+        cv.waitKey(1)
+
     def visualization(self):
         self.image = self.image_copy.copy()
         self.draw_pendulum()
@@ -166,25 +171,19 @@ class Flight_Attitude_Simulator(rl_base):
         cv.imshow(self.name4image, self.image)
         cv.waitKey(1)
 
-    def state_norm(self) -> np.ndarray:
+    def get_state(self) -> np.ndarray:
         """
         @return:
         """
-        _Theta = (2 * self.theta - self.maxTheta - self.minTheta) / (self.maxTheta - self.minTheta) * self.staticGain
-        _dTheta = (2 * self.dTheta - self.max_omega - self.min_omega) / (
-                    self.max_omega - self.min_omega) * self.staticGain
-        norm_state = np.array([_Theta, _dTheta])
-        return norm_state
-
-    def inverse_state_norm(self, s: np.ndarray) -> np.ndarray:
-        """
-        @param s:
-        @return:
-        """
-        _Theta = (s[0] / self.staticGain * (self.maxTheta - self.minTheta) + self.maxTheta + self.minTheta) / 2
-        _dTheta = (s[1] / self.staticGain * (self.max_omega - self.min_omega) + self.max_omega + self.min_omega) / 2
-        inv_norm_state = np.array([_Theta, _dTheta])
-        return inv_norm_state
+        if self.use_norm:
+            _Theta = (2 * self.theta - self.maxTheta - self.minTheta) / (
+                        self.maxTheta - self.minTheta) * self.staticGain
+            _dTheta = (2 * self.dTheta - self.max_omega - self.min_omega) / (
+                        self.max_omega - self.min_omega) * self.staticGain
+            state = np.array([_Theta, _dTheta])
+        else:
+            state = np.array([self.theta, self.dTheta])
+        return state
 
     def is_success(self):
         if np.fabs(self.thetaError) < deg2rad(1):  # 角度误差小于1度
@@ -255,12 +254,12 @@ class Flight_Attitude_Simulator(rl_base):
 
     def step_update(self, action: np.ndarray):
         self.current_action = action.copy()
-        self.current_state = self.state_norm()
+        self.current_state = self.get_state()
         self.rk44(action=action[0])
 
         self.is_Terminal()
         self.thetaError = self.setTheta - self.theta
-        self.next_state = self.state_norm()
+        self.next_state = self.get_state()
         self.get_reward()
 
     def reset(self, random: bool = False):
@@ -277,13 +276,13 @@ class Flight_Attitude_Simulator(rl_base):
         self.thetaError = self.setTheta - self.theta
         self.sum_thetaError = 0.0
         self.image = np.ones([self.width, self.height, 3], np.uint8) * 255
-        self.draw_base()
+        self.draw_init_image()
         '''physical parameters'''
 
         '''RL_BASE'''
-        self.current_state = self.state_norm()
-        self.next_state = self.initial_state.copy()
-        self.current_action = np.array([0.])
+        self.current_state = self.get_state()
+        self.next_state = self.current_state.copy()
+        self.current_action = np.zeros(self.action_dim)
         self.reward = 0.0
         self.is_terminal = False
         '''RL_BASE'''

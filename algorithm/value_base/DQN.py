@@ -15,7 +15,7 @@ device = torch.device("cpu")
 
 class DQN:
     def __init__(self,
-                 env,
+                 env_msg,
                  gamma: float = 0.9,
                  epsilon: float = 0.95,
                  learning_rate: float = 0.01,
@@ -46,7 +46,7 @@ class DQN:
         # self.device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
         self.device = device
         '''DQN'''
-        self.env = env
+        self.env_msg = env_msg
         '''From rl_base'''
         # DQN 要求智能体状态必须是连续的，但是动作必须是离散的
         # DQN 状态维度可以是很多，每增加一维，神经网络输出就增加一维
@@ -64,7 +64,7 @@ class DQN:
         self.target_net.load_state_dict(self.eval_net.state_dict())
         self.optimizer = torch.optim.Adam(self.eval_net.parameters(), lr=self.learning_rate)
         self.loss_func = nn.MSELoss()
-        self.memory = ReplayBuffer(memory_capacity, batch_size, self.env.state_dim, self.env.action_dim)
+        self.memory = ReplayBuffer(memory_capacity, batch_size, self.env_msg['state_dim'], self.env_msg['action_dim'])
         self.target_replace_count = 0
         '''NN'''
 
@@ -86,7 +86,7 @@ class DQN:
         # _a = []
         # for _num in self.env.action_num:
         #     _a.append(np.random.choice(_num))
-        return np.random.randint(np.prod(self.env.action_num))
+        return np.random.randint(np.prod(self.env_msg['action_num']))
 
     def get_action_optimal_in_DQN(self, state):
         """
@@ -122,7 +122,7 @@ class DQN:
         # for _a, _action_space in zip(action, self.env.action_space):
         #     linear_action.append(_action_space[_a])
         # return np.array(linear_action)
-        actionSpace = self.env.action_space.copy()
+        actionSpace = self.env_msg['action_space'].copy()
         physicalAction = []
         count = 0
         for _item in reversed(actionSpace):  # 反序查找
@@ -142,7 +142,7 @@ class DQN:
             lastLen = 1
             actionIdx = 0
             idx = len(batch_action_number[i]) - 1
-            for actions in reversed(self.env.action_space):
+            for actions in reversed(self.env_msg['action_space']):
                 actionIdx += actions.index(batch_action_number[i][idx]) * lastLen
                 lastLen *= len(actions)
                 idx -= 1
@@ -189,10 +189,10 @@ class DQN:
         self.target_net.load_state_dict(torch.load(nn_para))
 
     def DQN_info(self):
-        print('DQN agent name:', self.env.name)
-        print('DQN input dimension:', self.env.state_dim)
-        print('DQN output dimension:', self.env.action_num)
-        print('Agent physical action dimension:', self.env.action_dim)
-        print('Agent action space:', self.env.action_space)
+        print('DQN agent name:', self.env_msg['name'])
+        print('DQN input dimension:', self.env_msg['state_dim'])
+        print('DQN output dimension:', self.env_msg['action_num'])
+        print('Agent physical action dimension:', self.env_msg['action_dim'])
+        print('Agent action space:', self.env_msg['action_space'])
         print('Replay memory capitaty:', self.memory_capacity)
         print('Batch size:', self.batch_size)

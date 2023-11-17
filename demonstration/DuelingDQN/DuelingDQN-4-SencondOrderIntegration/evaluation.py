@@ -1,5 +1,4 @@
 import sys
-import datetime
 import os
 import cv2 as cv
 import numpy as np
@@ -87,7 +86,6 @@ if __name__ == '__main__':
 
 	n = 10
 	for _ in range(n):
-		# env.reset()
 		env.reset(random=True)
 		sumr = 0
 		while not env.is_terminal:

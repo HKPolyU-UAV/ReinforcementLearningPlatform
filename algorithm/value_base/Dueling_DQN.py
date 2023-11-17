@@ -12,7 +12,7 @@ device = torch.device("cpu")
 
 class Dueling_DQN(DQN):
     def __init__(self,
-                 env,
+                 env_msg,
                  gamma:float,
                  epsilon: float,
                  learning_rate: float,
@@ -21,7 +21,7 @@ class Dueling_DQN(DQN):
                  target_replace_iter: int,
                  eval_net: DuelingNeuralNetwork,
                  target_net: DuelingNeuralNetwork):
-        super(Dueling_DQN, self).__init__(env, gamma, epsilon, learning_rate, memory_capacity, batch_size, target_replace_iter)
+        super(Dueling_DQN, self).__init__(env_msg, gamma, epsilon, learning_rate, memory_capacity, batch_size, target_replace_iter)
 
         '''Re-define NN'''
         self.device = device

@@ -372,10 +372,8 @@ class RolloutBuffer2:
 
 
 class PPOActorCritic(nn.Module):
-    def __init__(self, _state_dim, _action_dim, _action_std_init, name='PPOActorCritic', chkpt_dir=''):
+    def __init__(self, _state_dim, _action_dim, _action_std_init):
         super(PPOActorCritic, self).__init__()
-        self.checkpoint_file = chkpt_dir + name + '_ppo'
-        self.checkpoint_file_whole_net = chkpt_dir + name + '_ppoALL'
         self.action_dim = _action_dim
         # 初始化方差，一个动作就一个方差，两个动作就两个方差，std 是标准差
         self.action_var = torch.full((_action_dim,), _action_std_init * _action_std_init)
@@ -430,24 +428,6 @@ class PPOActorCritic(nn.Module):
         state_values = self.critic(s)
 
         return action_logprobs, state_values, dist_entropy
-
-    def save_checkpoint(self, name=None, path='', num=None):
-        print('...saving checkpoint...')
-        if name is None:
-            torch.save(self.state_dict(), self.checkpoint_file)
-        else:
-            if num is None:
-                torch.save(self.state_dict(), path + name)
-            else:
-                torch.save(self.state_dict(), path + name + str(num))
-
-    def save_all_net(self):
-        print('...saving all net...')
-        torch.save(self, self.checkpoint_file_whole_net)
-
-    def load_checkpoint(self):
-        print('...loading checkpoint...')
-        self.load_state_dict(torch.load(self.checkpoint_file))
 
 
 class PPOActor_Gaussian(nn.Module):

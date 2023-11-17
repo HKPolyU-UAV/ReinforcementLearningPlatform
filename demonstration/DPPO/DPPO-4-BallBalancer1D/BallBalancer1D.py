@@ -3,9 +3,6 @@ import random
 import cv2 as cv
 import numpy as np
 import pandas as pd
-import os, sys
-
-sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../../")
 
 from environment.color import Color
 from utils.functions import *
@@ -18,8 +15,7 @@ class BallBalancer1D(rl_base):
                  initTheta: float = 0.0,
                  initPos: float = 0.0,
                  initVel: float = 0.0,
-                 target: float = 0.0,
-                 save_cfg: bool = False):
+                 target: float = 0.0):
         """
         @note:                  通过一个二轴机械臂支撑平衡小球，机械臂第二个轴保持竖直
         @param initTheta:       initial theta
@@ -72,13 +68,16 @@ class BallBalancer1D(rl_base):
         self.state_num = [math.inf for _ in range(self.state_dim)]
         self.state_step = [None for _ in range(self.state_dim)]
         self.state_space = [None for _ in range(self.state_dim)]
-        self.state_range = [[-self.L, self.L],
-                            [self.vMin, self.vMax],
-                            [self.thetaMin, self.thetaMax]]
+        self.use_norm = True
+        if self.use_norm:
+            self.state_range = [[-self.staticGain, self.staticGain] for _ in range(self.state_dim)]
+        else:
+            self.state_range = [[-self.L, self.L],
+                                [self.vMin, self.vMax],
+                                [self.thetaMin, self.thetaMax]]
         self.isStateContinuous = [True for _ in range(self.state_dim)]
-        self.initial_state = self.state_norm()
-        self.current_state = self.initial_state.copy()
-        self.next_state = self.initial_state.copy()
+        self.current_state = self.get_state()
+        self.next_state = self.current_state.copy()
 
         self.action_dim = 1
         self.action_step = [None]
@@ -86,8 +85,7 @@ class BallBalancer1D(rl_base):
         self.action_num = [math.inf]
         self.action_space = [None]
         self.isActionContinuous = True
-        self.initial_action = np.array([0.0])
-        self.current_action = self.initial_action.copy()
+        self.current_action = np.zeros(self.action_dim)
 
         self.reward = 0.0
         self.terminal_flag = 0  # 0-正常 1-出界 2-超时 3-成功
@@ -97,10 +95,7 @@ class BallBalancer1D(rl_base):
         '''visualization_opencv'''
         self.width = 400
         self.height = 400
-        self.image = np.zeros([self.width, self.height, 3], np.uint8)
-        self.image[:, :, 0] = np.ones([self.width, self.height]) * 255
-        self.image[:, :, 1] = np.ones([self.width, self.height]) * 255
-        self.image[:, :, 2] = np.ones([self.width, self.height]) * 255
+        self.image = np.ones([self.height, self.width, 3], np.uint8) * 255
         self.name4image = 'Ball Balancer 1D'
         self.scale = 800  # cm -> pixel
         self.ybias = 250  # pixel
@@ -111,11 +106,6 @@ class BallBalancer1D(rl_base):
 
         self.show = self.image.copy()
         self.save = self.image.copy()
-
-        self.draw_base()
-        self.draw_pendulum()
-        self.draw_ball()
-        self.draw_arm()
         '''visualization_opencv'''
 
         '''data_save'''
@@ -124,7 +114,7 @@ class BallBalancer1D(rl_base):
         self.save_Pos = [self.pos]
         self.save_Vel = [self.vel]
         self.save_error = [self.error]
-        self.save_omega = [self.initial_action[0]]
+        self.save_omega = [self.current_action[0]]
         '''data_save'''
 
     def draw_base(self):
@@ -193,11 +183,12 @@ class BallBalancer1D(rl_base):
         cv.line(img=self.show, pt1=pos1, pt2=pos2, color=Color().DarkGray, thickness=2)
         cv.line(img=self.show, pt1=pos2, pt2=posMotor, color=Color().DarkGray, thickness=2)
 
-    def show_initial_image(self, isWait):
+    def draw_init_image(self):
         cv.imshow(self.name4image, self.show)
-        cv.waitKey(0) if isWait else cv.waitKey(1)
+        cv.waitKey(1)
 
     def visualization(self):
+        self.draw_base()
         self.draw_pendulum()
         self.draw_ball()
         self.draw_arm()
@@ -206,26 +197,18 @@ class BallBalancer1D(rl_base):
         self.save = self.show.copy()
         self.show = self.image.copy()
 
-    def state_norm(self) -> np.ndarray:
+    def get_state(self) -> np.ndarray:
         """
         @return:
         """
-        _pos = self.pos / self.L * self.staticGain
-        _vel = (2 * self.vel - self.vMax - self.vMin) / (self.vMax - self.vMin) * self.staticGain
-        _theta = (2 * self.theta - self.thetaMax - self.thetaMin) / (self.thetaMax - self.thetaMin) * self.staticGain
-        norm_state = np.array([_pos, _vel, _theta])
-        return norm_state
-
-    def inverse_state_norm(self, s: np.ndarray) -> np.ndarray:
-        """
-        @param s:
-        @return:
-        """
-        _pos = s[0] / self.staticGain * self.L
-        _vel = (s[1] / self.staticGain * (self.vMax - self.vMin) + self.vMax + self.vMin) / 2
-        _theta = (s[2] / self.staticGain * (self.thetaMax - self.thetaMin) + self.thetaMax + self.thetaMin) / 2
-        inv_norm_state = np.array([_pos, _vel, _theta])
-        return inv_norm_state
+        if self.use_norm:
+            _pos = self.pos / self.L * self.staticGain
+            _vel = (2 * self.vel - self.vMax - self.vMin) / (self.vMax - self.vMin) * self.staticGain
+            _theta = (2 * self.theta - self.thetaMax - self.thetaMin) / (self.thetaMax - self.thetaMin) * self.staticGain
+            state = np.array([_pos, _vel, _theta])
+        else:
+            state = np.array([self.pos, self.vel, self.theta])
+        return state
 
     def is_success(self):
         if np.fabs(self.error) <= 0.001 and np.fabs(self.vel) <= 0.005 and np.fabs(self.theta) <= deg2rad(1):  # 速度也很小
@@ -288,7 +271,7 @@ class BallBalancer1D(rl_base):
 
     def step_update(self, action: np.ndarray):
         self.current_action = action.copy()
-        self.current_state = self.state_norm()
+        self.current_state = self.get_state()
 
         '''rk44'''
         self.rk44(action=action[0])
@@ -296,7 +279,7 @@ class BallBalancer1D(rl_base):
 
         self.is_terminal = self.is_Terminal()
         self.error = self.target - self.pos
-        self.next_state = self.state_norm()
+        self.next_state = self.get_state()
 
         self.get_reward()
 
@@ -318,16 +301,13 @@ class BallBalancer1D(rl_base):
         self.time = 0.0
         self.error = self.target - self.pos
         self.alpha = np.arcsin(self.rMotor * np.sin(self.theta) / self.L)
-        self.draw_base()
-        self.draw_pendulum()
-        self.draw_ball()
-        self.draw_arm()
+        self.draw_init_image()
         '''physical parameters'''
 
         '''RL_BASE'''
-        self.current_state = self.state_norm()
-        self.next_state = self.initial_state.copy()
-        self.current_action = self.initial_action.copy()
+        self.current_state = self.get_state()
+        self.next_state = self.current_state.copy()
+        self.current_action = np.zeros(self.action_dim)
         self.reward = 0.0
         self.is_terminal = False
         '''RL_BASE'''
@@ -338,7 +318,7 @@ class BallBalancer1D(rl_base):
         self.save_Pos = [self.pos]
         self.save_Vel = [self.vel]
         self.save_error = [self.error]
-        self.save_omega = [self.initial_action[0]]
+        self.save_omega = [self.current_action[0]]
         '''data_save'''
 
     def saveData(self, is2file=False, filename='Flight_Attitude_Simulator_2State_Continuous.csv', filepath=''):

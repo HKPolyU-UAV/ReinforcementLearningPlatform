@@ -6,8 +6,8 @@ import matplotlib.pyplot as plt
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../")
 
 from UavHover import uav_hover as env
-from environment.uav_robust.uav import uav_param
-from environment.uav_robust.FNTSMC import fntsmc_param
+from environment.UavRobust.uav import uav_param
+from environment.UavRobust.FNTSMC import fntsmc_param
 from Distributed_PPO import Distributed_PPO as DPPO
 from utils.classes import *
 
@@ -162,7 +162,7 @@ if __name__ == '__main__':
     env.msg_print_flag = True
     test_num = 5
     for _ in range(test_num):
-        env.reset_random()
+        env.reset(random=True)
         while not env.is_terminal:
             env.current_state = env.next_state.copy()
             '''3.1 外环网络根据外环状态给出虚拟加速度'''

@@ -8,8 +8,8 @@ from numpy import deg2rad
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../")
 
 from UavHoverOuterLoop import uav_hover_outer_loop as env
-from environment.uav_robust.uav import uav_param
-from environment.uav_robust.FNTSMC import fntsmc_param
+from environment.UavRobust.uav import uav_param
+from environment.UavRobust.FNTSMC import fntsmc_param
 from algorithm.policy_base.Distributed_PPO import Distributed_PPO as DPPO
 from utils.classes import *
 
@@ -188,7 +188,7 @@ if __name__ == '__main__':
     test_num = 5
     average_r = 0
     for _ in range(test_num):
-        env.reset_random()
+        env.reset(random=True)
         r = 0
         while not env.is_terminal:
             env.current_state = env.next_state.copy()
