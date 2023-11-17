@@ -7,9 +7,9 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../")
 
 from uav_att_ctrl_RL import uav_att_ctrl_RL
-from environment.uav_fntsmc_param.uav import uav_param
-from environment.uav_fntsmc_param.FNTSMC import fntsmc_param
-from environment.uav_fntsmc_param.ref_cmd import *
+from environment.UavFntsmcParam.uav import uav_param
+from environment.UavFntsmcParam.FNTSMC import fntsmc_param
+from environment.UavFntsmcParam.ref_cmd import *
 from utils.functions import *
 from utils.classes import PPOActor_Gaussian
 

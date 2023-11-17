@@ -1,9 +1,6 @@
 import os
 import sys
 import datetime
-import time
-import cv2 as cv
-import numpy as np
 import pandas as pd
 import torch
 import matplotlib.pyplot as plt
@@ -13,8 +10,8 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../")
 
 from uav_pos_ctrl_RL import uav_pos_ctrl_RL
-from environment.uav_fntsmc_param.uav import uav_param
-from environment.uav_fntsmc_param.FNTSMC import fntsmc_param
+from environment.UavFntsmcParam.uav import uav_param
+from environment.UavFntsmcParam.FNTSMC import fntsmc_param
 from utils.functions import *
 from utils.classes import PPOActor_Gaussian
 

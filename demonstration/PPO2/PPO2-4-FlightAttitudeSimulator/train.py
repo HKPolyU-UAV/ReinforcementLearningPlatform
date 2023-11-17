@@ -179,7 +179,7 @@ if __name__ == '__main__':
 				print('Sumr:  ', sumr)
 				sumr_list.append(sumr)
 				sumr = 0.
-				env.reset_random()
+				env.reset(True)
 			else:
 				env.current_state = env.next_state.copy()
 				a, a_log_prob = agent.choose_action(env.current_state)
@@ -219,7 +219,7 @@ if __name__ == '__main__':
 			print('   Training pause......')
 			print('   Testing...')
 			for i in range(n):
-				env.reset_random()
+				env.reset(True)
 				test_r = 0.
 				while not env.is_terminal:
 					env.current_state = env.next_state.copy()

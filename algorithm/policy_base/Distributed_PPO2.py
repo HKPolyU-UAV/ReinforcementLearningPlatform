@@ -166,7 +166,7 @@ class Worker(mp.Process):
 				self.global_training_num.value += 1
 			self.queue.put(round(sumr, 2))
 			# print('~~~~~~~~~~  Training End ~~~~~~~~~~')
-		self.queue.put(None)  # 这个进程结束了，就把None放进去，用于global判断
+		# self.queue.put(None)  # 这个进程结束了，就把None放进去，用于global判断
 
 
 class Distributed_PPO2:
