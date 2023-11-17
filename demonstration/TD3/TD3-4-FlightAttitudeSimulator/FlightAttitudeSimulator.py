@@ -82,7 +82,7 @@ class FlightAttitudeSimulator(rl_base):
         self.base_ver_w = 0.02
         self.base_ver_h = 0.8
 
-        self.draw_base()
+        self.draw_init_image()
         '''visualization_opencv'''
 
     def draw_base(self):
@@ -96,7 +96,6 @@ class FlightAttitudeSimulator(rl_base):
         pt1 = (int(self.width / 2 - self.base_ver_w * self.scale / 2), pt2[1])
         pt2 = (int(pt1[0] + self.base_ver_w * self.scale), int(pt2[1] - self.base_ver_h * self.scale))
         cv.rectangle(self.image, pt1=pt1, pt2=pt2, color=Color().Blue, thickness=-1)
-        self.image_copy = self.image.copy()
 
     def draw_pendulum(self):
         """
@@ -145,6 +144,10 @@ class FlightAttitudeSimulator(rl_base):
                              int(cy - l1 * np.sin(theta4 + self.theta) * self.scale)])
 
         cv.fillPoly(img=self.image, pts=np.array([[pt1, pt2, pt3, pt4]]), color=Color().Black)
+
+    def draw_init_image(self):
+        self.draw_base()
+        self.image_copy = self.image.copy()
 
     def visualization(self):
         self.image = self.image_copy.copy()
@@ -229,55 +232,30 @@ class FlightAttitudeSimulator(rl_base):
         self.current_action = action.copy()
         self.current_state = self.get_state()
         self.rk44(action=action[0])
-
         self.is_Terminal()
         self.thetaError = self.setTheta - self.theta
         self.next_state = self.get_state()
         self.get_reward()
 
-    def reset(self):
+    def reset(self, random: bool = True):
         """
         :brief:     reset
         :return:    None
         """
         '''physical parameters'''
+        if random:
+            self.initTheta = np.random.uniform(-self.maxTheta, self.maxTheta)
         self.theta = self.initTheta
         self.dTheta = 0.0
         self.time = 0.0
         self.thetaError = self.setTheta - self.theta
         self.sum_thetaError = 0.0
         self.image = np.ones([self.width, self.height, 3], np.uint8) * 255
-        self.draw_base()
+        self.draw_init_image()
         '''physical parameters'''
 
         '''RL_BASE'''
         self.current_state = self.get_state()
-        self.next_state = self.initial_state.copy()
-        self.current_action = np.array([0.])
-        self.reward = 0.0
-        self.is_terminal = False
-        '''RL_BASE'''
-
-    def reset_random(self):
-        """
-        :brief:
-        :return:
-        """
-        '''physical parameters'''
-        self.initTheta = np.random.uniform(-self.maxTheta, self.maxTheta)
-        self.theta = self.initTheta
-        self.dTheta = 0.0
-        self.time = 0.0
-        self.thetaError = self.setTheta - self.theta
-        self.sum_thetaError = 0.0
-        self.image = np.ones([self.width, self.height, 3], np.uint8) * 255
-        self.draw_base()
-        '''physical parameters'''
-
-        '''RL_BASE'''
-        # 这个状态与控制系统的状态不一样
-        self.initial_state = self.get_state()
-        self.current_state = self.initial_state.copy()
         self.next_state = self.initial_state.copy()
         self.current_action = np.array([0.])
         self.reward = 0.0

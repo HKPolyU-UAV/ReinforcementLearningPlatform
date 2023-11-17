@@ -42,6 +42,7 @@ class SecondOrderIntegration(rl_base):
         self.time_max = 5.0  # 每回合最大时间
 
         '''rl_base'''
+        self.use_norm = True
         self.static_gain = 2
         self.state_dim = 4  # ex, ey, e_dx, e_dy
         self.state_num = [np.inf for _ in range(self.state_dim)]
@@ -51,8 +52,8 @@ class SecondOrderIntegration(rl_base):
         self.state_range = np.array(
             [[-self.map_size[0], self.map_size[0]],
              [-self.map_size[1], self.map_size[1]],
-             [-self.vMax , self.vMax ],
-             [-self.vMax , self.vMax ]])
+             [-self.vMax, self.vMax],
+             [-self.vMax, self.vMax]])
 
         self.initial_state = self.get_state()
         self.current_state = self.get_state()
@@ -60,7 +61,7 @@ class SecondOrderIntegration(rl_base):
 
         self.action_dim = 2
         self.action_step = [None, None]
-        self.action_range = [[self.fMin, self.fMax], [self.fMin, self.fMax]]
+        self.action_range = np.array([[self.fMin, self.fMax], [self.fMin, self.fMax]])
 
         self.action_num = [np.inf, np.inf]
         self.action_space = [None, None]
@@ -71,9 +72,6 @@ class SecondOrderIntegration(rl_base):
         self.is_terminal = False
         self.terminal_flag = 0  # 0-正常 1-出界 2-超时 3-成功
         '''rl_base'''
-
-        self.current_state_norm = Normalization(self.state_dim)
-        self.next_state_norm = Normalization(self.state_dim)
 
         '''visualization'''
         self.x_offset = 20
@@ -207,12 +205,12 @@ class SecondOrderIntegration(rl_base):
         cv.imshow(self.name, self.image)
         cv.waitKey(1)
 
-    def get_state(self, use_norm: bool = False):
+    def get_state(self):
         self.error = self.target - self.pos
-        if use_norm:
+        if self.use_norm:
             _norm_e = self.error / self.map_size
             _norm_v = -self.vel / self.vMax
-            state = np.hstack((_norm_e, _norm_v))
+            state = np.hstack((_norm_e, _norm_v)) * self.static_gain
         else:
             state = np.hstack((self.error, -self.vel))
         return state
@@ -259,8 +257,8 @@ class SecondOrderIntegration(rl_base):
         # u_vel = -np.dot(e_vel ** 2, Q_vel)
         # u_acc = -np.dot(self.acc ** 2, Q_acc)
         Q_pos = 1
-        Q_vel = 0.1
-        Q_acc = 0.05
+        Q_vel = 0.0
+        Q_acc = 0.0
 
         e_pos = np.linalg.norm(self.target - self.pos)
         e_vel = np.linalg.norm(-self.vel)
@@ -275,7 +273,7 @@ class SecondOrderIntegration(rl_base):
         # u_vel = 0.
         # u_acc = 0.
 
-        u_extra= 0.
+        u_extra = 0.
         if self.terminal_flag == 1:  # position out
             _n = (self.time_max - self.time) / self.dt
             u_extra = _n * (u_pos + u_vel + u_acc)
@@ -318,10 +316,10 @@ class SecondOrderIntegration(rl_base):
 		@return:
 		"""
         self.current_action = action.copy()
-        self.current_state = self.get_state(use_norm=True)
+        self.current_state = self.get_state()
         self.rk44(action=action)
         self.is_Terminal()
-        self.next_state = self.get_state(use_norm=True)
+        self.next_state = self.get_state()
         self.get_reward()
 
     def reset(self, random: bool = False):
@@ -349,30 +347,3 @@ class SecondOrderIntegration(rl_base):
         self.image = 255 * np.ones([self.image_size[1], self.image_size[0], 3], np.uint8)
         self.image_white = self.image.copy()  # 纯白图
         self.draw_init_image()
-
-    def save_state_norm(self, path, msg=None):
-        data = {
-            'cur_n': self.current_state_norm.running_ms.n * np.ones(self.state_dim),
-            'cur_mean': self.current_state_norm.running_ms.mean,
-            'cur_std': self.current_state_norm.running_ms.std,
-            'cur_S': self.current_state_norm.running_ms.S,
-            'next_n': self.next_state_norm.running_ms.n * np.ones(self.state_dim),
-            'next_mean': self.next_state_norm.running_ms.mean,
-            'next_std': self.next_state_norm.running_ms.std,
-            'next_S': self.next_state_norm.running_ms.S,
-        }
-        if msg is None:
-            pd.DataFrame(data).to_csv(path + 'state_norm.csv', index=False)
-        else:
-            pd.DataFrame(data).to_csv(path + 'state_norm_' + msg + '.csv', index=False)
-
-    def load_norm_normalizer_from_file(self, path, file):
-        data = pd.read_csv(path + file, header=0).to_numpy()
-        self.current_state_norm.running_ms.n = data[0, 0]
-        self.current_state_norm.running_ms.mean = data[:, 1]
-        self.current_state_norm.running_ms.std = data[:, 2]
-        self.current_state_norm.running_ms.S = data[:, 3]
-        self.next_state_norm.running_ms.n = data[0, 4]
-        self.next_state_norm.running_ms.mean = data[:, 5]
-        self.next_state_norm.running_ms.std = data[:, 6]
-        self.next_state_norm.running_ms.S = data[:, 7]
