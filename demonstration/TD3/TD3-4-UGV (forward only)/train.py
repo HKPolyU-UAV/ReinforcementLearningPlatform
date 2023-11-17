@@ -28,7 +28,8 @@ r_norm = Normalization(shape=1)
 class TD3Critic(nn.Module):
 	def __init__(self, state_dim: int = 3, action_dim: int = 3, lr: float = 1e-4):
 		super(TD3Critic, self).__init__()
-		self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+		# self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+		self.device = 'cpu'
 		self.state_dim = state_dim
 		self.action_dim = action_dim
 		self.fc_q1_1 = nn.Linear(state_dim + action_dim, 256)
@@ -71,8 +72,8 @@ class TD3Critic(nn.Module):
 class Actor(nn.Module):
 	def __init__(self, alpha, state_dim, action_dim, a_min, a_max):
 		super(Actor, self).__init__()
-		self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-		# self.device = 'cpu'
+		# self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+		self.device = 'cpu'
 		self.state_dim = state_dim
 		self.action_dim = action_dim
 		self.a_min = torch.tensor(a_min, dtype=torch.float).to(self.device)
@@ -174,17 +175,17 @@ if __name__ == '__main__':
 	env = env()
 	reward_norm = Normalization(shape=1)
 
-	actor = Actor(1e-4, env.state_dim, env.action_dim, env.action_range[:, 0], env.action_range[:, 1])
-	target_actor = Actor(1e-4, env.state_dim, env.action_dim, env.action_range[:, 0], env.action_range[:, 1])
-	critic = TD3Critic(env.state_dim, env.action_dim, lr=3e-4)
-	target_critic = TD3Critic(env.state_dim, env.action_dim, lr=3e-4)
+	actor = Actor(3e-4, env.state_dim, env.action_dim, env.action_range[:, 0], env.action_range[:, 1])
+	target_actor = Actor(3e-4, env.state_dim, env.action_dim, env.action_range[:, 0], env.action_range[:, 1])
+	critic = TD3Critic(env.state_dim, env.action_dim, lr=1e-3)
+	target_critic = TD3Critic(env.state_dim, env.action_dim, lr=1e-3)
 	env_msg = {'state_dim': env.state_dim, 'action_dim': env.action_dim, 'action_range': env.action_range, 'name': ENV}
 	agent = TD3(env_msg=env_msg,
-				gamma=0.99,
+				gamma=0.95,
 				noise_clip=0.5, noise_policy=0.2, policy_delay=2,
 				actor_tau=0.005, td3critic_tau=0.005,
-				memory_capacity=40000,
-				batch_size=512,
+				memory_capacity=20000,
+				batch_size=256,
 				actor=actor,
 				target_actor=target_actor,
 				td3critic=critic,
@@ -203,7 +204,7 @@ if __name__ == '__main__':
 		fullFillReplayMemory_with_Optimal(randomEnv=True, fullFillRatio=0.5, is_only_success=False)
 	else:
 		'''fullFillReplayMemory_Random'''
-		fullFillReplayMemory_Random(randomEnv=True, fullFillRatio=0.8)
+		fullFillReplayMemory_Random(randomEnv=True, fullFillRatio=0.5)
 		'''fullFillReplayMemory_Random'''
 
 	print('Start to train...')

@@ -45,7 +45,7 @@ class UGV(rl_base):
 		'''hyper-parameters'''
 		self.dt = 0.02  # 50Hz
 		self.time = 0.  # time
-		self.time_max = 10.0  # 每回合最大时间
+		self.time_max = 6.0  # 每回合最大时间
 		self.a_linear = 0.  # 等效线加速度
 		self.a_angular = 0.  # 等效角加速度
 		self.kf = 0.1  # 等效线阻力系数
@@ -271,8 +271,8 @@ class UGV(rl_base):
 	def get_reward(self, param=None):
 		Q_pos = 2.
 		Q_vel = 0.0
-		Q_phi = 2.
-		Q_omega = 1.0
+		Q_phi = 0.5
+		Q_omega = 0.5
 
 		u_pos = -self.error * Q_pos
 		u_vel = -np.fabs(self.vel) * Q_vel
