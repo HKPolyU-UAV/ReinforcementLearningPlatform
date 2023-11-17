@@ -149,8 +149,9 @@ if __name__ == '__main__':
     env = env()
     eval_net = DQNNet(state_dim=env.state_dim, action_dim=env.action_num[0])
     target_net = DQNNet(state_dim=env.state_dim, action_dim=env.action_num[0])
-
-    agent = Double_DQN(env=env,
+    env_msg = {'name': env.name, 'state_dim': env.state_dim, 'action_dim': env.action_dim, 'action_num': env.action_num,
+               'action_space': env.action_space}
+    agent = Double_DQN(env_msg=env_msg,
                        gamma=0.99,
                        epsilon=0.95,
                        learning_rate=1e-4,
@@ -189,7 +190,6 @@ if __name__ == '__main__':
     new_done = []
 
     while agent.episode <= MAX_EPISODE:
-        # env.reset()
         env.reset(random=True)
         sumr = 0
         new_state.clear()

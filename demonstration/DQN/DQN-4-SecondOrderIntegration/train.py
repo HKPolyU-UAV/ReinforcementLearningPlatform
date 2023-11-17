@@ -8,7 +8,6 @@ import torch.nn as nn
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../../")
 
-from utils.classes import Normalization
 from SecondOrderIntegration import SecondOrderIntegration as env
 from algorithm.value_base.DQN import DQN
 
@@ -146,8 +145,9 @@ if __name__ == '__main__':
     env = env()
     eval_net = DQNNet(state_dim=env.state_dim, action_dim=env.action_num[0])
     target_net = DQNNet(state_dim=env.state_dim, action_dim=env.action_num[0])
-
-    agent = DQN(env=env,
+    env_msg = {'name': env.name, 'state_dim': env.state_dim, 'action_dim': env.action_dim, 'action_num': env.action_num,
+               'action_space': env.action_space}
+    agent = DQN(env_msg=env_msg,
                 gamma=0.99,
                 epsilon=0.95,
                 learning_rate=1e-4,

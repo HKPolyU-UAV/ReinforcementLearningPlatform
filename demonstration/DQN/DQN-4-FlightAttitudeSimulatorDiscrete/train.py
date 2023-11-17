@@ -8,7 +8,6 @@ import torch.nn as nn
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../../")
 
-from utils.classes import Normalization
 from FlightAttitudeSimulatorDiscrete import FlightAttitudeSimulatorDiscrete as env
 from algorithm.value_base.DQN import DQN
 
@@ -58,7 +57,7 @@ class DQNNet(nn.Module):
 def fullFillReplayMemory_with_Optimal_Exploration(torch_pkl_file: str, randomEnv: bool, fullFillRatio: float, epsilon: float, is_only_success: bool):
     agent.target_net.load_state_dict(torch.load(torch_pkl_file))
     agent.eval_net.load_state_dict(torch.load(torch_pkl_file))
-    env.reset_random() if randomEnv else env.reset()
+    env.reset(random=randomEnv)
     print('Collecting...')
     fullFillCount = int(fullFillRatio * agent.memory_capacity)
     fullFillCount = max(min(fullFillCount, agent.memory_capacity), agent.batch_size)
@@ -68,7 +67,7 @@ def fullFillReplayMemory_with_Optimal_Exploration(torch_pkl_file: str, randomEnv
     _new_state_ = []
     _new_done = []
     while agent.memory.mem_counter < fullFillCount:
-        env.reset_random() if randomEnv else env.reset()
+        env.reset(random=randomEnv)
         _new_state.clear()
         _new_action.clear()
         _new_reward.clear()
@@ -101,7 +100,7 @@ def fullFillReplayMemory_Random(randomEnv: bool, fullFillRatio: float):
     fullFillCount = max(min(fullFillCount, agent.memory_capacity), agent.batch_size)
     while agent.memory.mem_counter < fullFillCount:
         if env.is_terminal:
-            env.reset_random() if randomEnv else env.reset()
+            env.reset(random=randomEnv)
         else:
             if agent.memory.mem_counter % 1000 == 0:
                 print('replay_count = ', agent.memory.mem_counter)
@@ -146,8 +145,9 @@ if __name__ == '__main__':
     env = env()
     eval_net = DQNNet(state_dim=env.state_dim, action_dim=env.action_num[0])
     target_net = DQNNet(state_dim=env.state_dim, action_dim=env.action_num[0])
-
-    agent = DQN(env=env,
+    env_msg = {'name': env.name, 'state_dim': env.state_dim, 'action_dim': env.action_dim, 'action_num': env.action_num,
+               'action_space': env.action_space}
+    agent = DQN(env_msg=env_msg,
                 gamma=0.99,
                 epsilon=0.95,
                 learning_rate=1e-4,
@@ -186,8 +186,7 @@ if __name__ == '__main__':
     new_done = []
 
     while agent.episode <= MAX_EPISODE:
-        # env.reset()
-        env.reset_random()
+        env.reset(random=True)
         sumr = 0
         new_state.clear()
         new_action.clear()

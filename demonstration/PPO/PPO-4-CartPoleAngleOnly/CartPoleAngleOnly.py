@@ -48,22 +48,24 @@ class CartPoleAngleOnly(rl_base):
         self.state_num = [np.inf for _ in range(self.state_dim)]
         self.state_step = [None for _ in range(self.state_dim)]
         self.state_space = [None for _ in range(self.state_dim)]
-        self.state_range = [[-self.staticGain, self.staticGain],
-                            [-np.inf, np.inf]]
+        self.use_norm = True
+        if self.use_norm:
+            self.state_range = [[-self.staticGain, self.staticGain],
+                                [-self.staticGain, self.staticGain]]
+        else:
+            self.state_range = [[-self.thetaMax, self.thetaMax],
+                                [-self.norm_4_boundless_state, self.norm_4_boundless_state]]
         self.isStateContinuous = [True for _ in range(self.state_dim)]
-        self.initial_state = np.array([self.theta / self.thetaMax * self.staticGain,
-                                       self.dtheta / self.norm_4_boundless_state * self.staticGain])
-        self.current_state = self.initial_state.copy()
-        self.next_state = self.initial_state.copy()
+        self.current_state = self.get_state()
+        self.next_state = self.current_state.copy()
 
         self.action_dim = 1
         self.action_step = [None]
-        self.action_range = [[-self.fm, self.fm]]
+        self.action_range = np.array([[-self.fm, self.fm]])
         self.action_num = [np.inf]
         self.action_space = [None]
         self.isActionContinuous = True
-        self.initial_action = [self.force]
-        self.current_action = self.initial_action.copy()
+        self.current_action = np.zeros(self.action_dim)
 
         self.reward = 0.0
         self.Q_theta = 3.5  # cost for angular error
@@ -85,7 +87,6 @@ class CartPoleAngleOnly(rl_base):
         self.pole_ell_pixel = 50
         self.image = np.ones([self.height, self.width, 3], np.uint8) * 255
         self.image_copy = self.image.copy()
-        self.draw_slide()
         '''visualization_opencv'''
 
     def draw_slide(self):
@@ -125,6 +126,9 @@ class CartPoleAngleOnly(rl_base):
         cv.putText(self.image, "  x  : %.3f m" % self.x, (20, 60), cv.FONT_HERSHEY_COMPLEX, 0.5, Color().Black, 2)
         cv.putText(self.image, "force: %.3f N" % self.force, (20, 80), cv.FONT_HERSHEY_COMPLEX, 0.5, Color().Black, 2)
 
+    def draw_init_image(self):
+        self.draw_slide()
+
     def visualization(self):
         self.image = self.image_copy.copy()
         self.draw_cartpole_force()
@@ -132,6 +136,15 @@ class CartPoleAngleOnly(rl_base):
         self.draw_center()
         cv.imshow(self.name4image, self.image)
         cv.waitKey(1)
+
+    def get_state(self):
+        if self.use_norm:
+            theta = self.theta / self.thetaMax * self.staticGain
+            dtheta = self.dtheta / self.norm_4_boundless_state * self.staticGain
+            state = np.array([theta, dtheta])
+        else:
+            state = np.array([self.theta, self.dtheta])
+        return state
 
     def is_success(self):
         if np.linalg.norm([self.etheta, self.dtheta]) < 1e-2:
@@ -245,8 +258,7 @@ class CartPoleAngleOnly(rl_base):
         self.current_action = action.copy()
         self.etheta = 0. - self.theta
         self.ex = 0. - self.x
-        self.current_state = np.array([self.theta / self.thetaMax * self.staticGain,
-                                       self.dtheta / self.norm_4_boundless_state * self.staticGain])
+        self.current_state = self.get_state()
         '''RK-44'''
         self.rk44(np.array([self.force]))
         '''RK-44'''
@@ -255,8 +267,7 @@ class CartPoleAngleOnly(rl_base):
         self.etheta = 0. - self.theta
         self.ex = 0. - self.x
         self.is_terminal = self.is_Terminal()
-        self.next_state = np.array([self.theta / self.thetaMax * self.staticGain,
-                                    self.dtheta / self.norm_4_boundless_state * self.staticGain])
+        self.next_state = self.get_state()
         '''角度，位置误差更新'''
         self.get_reward()
 
@@ -279,13 +290,10 @@ class CartPoleAngleOnly(rl_base):
         '''physical parameters'''
 
         '''RL_BASE'''
-        self.initial_state = np.array([self.theta / self.thetaMax * self.staticGain,
-                                       self.dtheta / self.norm_4_boundless_state * self.staticGain])
-        self.current_state = self.initial_state.copy()
-        self.next_state = self.initial_state.copy()
+        self.current_state = self.get_state()
+        self.next_state = self.current_state.copy()
 
-        self.initial_action = [self.force]
-        self.current_action = self.initial_action.copy()
+        self.current_action = np.zeros(self.action_dim)
 
         self.reward = 0.0
         self.is_terminal = False
@@ -294,4 +302,4 @@ class CartPoleAngleOnly(rl_base):
 
         self.image = np.ones([self.height, self.width, 3], np.uint8) * 255
         self.image_copy = self.image.copy()
-        self.draw_slide()
+        self.draw_init_image()

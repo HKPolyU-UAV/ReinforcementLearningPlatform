@@ -4,14 +4,14 @@ import sys
 from numpy import deg2rad
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../")
+sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../")
+sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../../")
 
 from UavInnerLoop import uav_inner_loop as env
-from environment.uav_robust.uav import uav_param
-from environment.uav_robust.FNTSMC import fntsmc_param
-from algorithm.policy_base.Distributed_PPO import Distributed_PPO as DPPO
-from algorithm.policy_base.Distributed_PPO import Worker
+from environment.UavRobust.uav import uav_param
+from environment.UavRobust.FNTSMC import fntsmc_param
 from utils.classes import *
-import torch.multiprocessing as mp
+
 
 optPath = './datasave/net/'
 show_per = 1
@@ -51,14 +51,11 @@ uav_param.att_zone = np.atleast_2d(
 
 
 class PPOActorCritic(nn.Module):
-    def __init__(self, _state_dim, _action_dim, _action_std_init, name='PPOActorCritic', chkpt_dir=''):
+    def __init__(self, _state_dim, _action_dim, _action_range):
         super(PPOActorCritic, self).__init__()
-        self.checkpoint_file = chkpt_dir + name + '_ppo'
-        self.checkpoint_file_whole_net = chkpt_dir + name + '_ppoALL'
         self.state_dim = _state_dim
         self.action_dim = _action_dim
-        self.action_std_init = _action_std_init
-        self.action_var = torch.full((self.action_dim,), self.action_std_init * self.action_std_init)
+        self.action_range = _action_range
 
         self.actor = nn.Sequential(
             nn.Linear(self.state_dim, 128),
@@ -73,7 +70,7 @@ class PPOActorCritic(nn.Module):
             nn.Tanh(),
             nn.Linear(128, 64),
             nn.Tanh(),
-            nn.Linear(64, 1),
+            nn.Linear(64, 1)
         )
         self.actor_reset_orthogonal()
         self.critic_reset_orthogonal()
@@ -96,59 +93,26 @@ class PPOActorCritic(nn.Module):
         nn.init.orthogonal_(self.critic[4].weight, gain=1.0)
         nn.init.constant_(self.critic[4].bias, val=1e-3)
 
-    def set_action_std(self, new_action_std):
-        """手动设置动作方差"""
-        self.action_var = torch.full((self.action_dim,), new_action_std * new_action_std).to(self.device)
-
     def forward(self):
         raise NotImplementedError
 
-    def act(self, s):
-        """选取动作"""
-        action_mean = self.actor(s)
-        cov_mat = torch.diag(self.action_var).unsqueeze(dim=0)
-        dist = MultivariateNormal(action_mean, cov_mat)
+    def evaluate(self, state):
+        with torch.no_grad():
+            t_state = torch.FloatTensor(state).to(self.device)
+            action_mean = self.actor(t_state)
+        return action_mean.detach()
 
-        _a = dist.sample()
-        action_logprob = dist.log_prob(_a)
-        state_val = self.critic(s)
-
-        return _a.detach(), action_logprob.detach(), state_val.detach()
-
-    def evaluate(self, s, a):
-        """评估状态动作价值"""
-        action_mean = self.actor(s)
-        action_var = self.action_var.expand_as(action_mean)
-        cov_mat = torch.diag_embed(action_var).to(self.device)
-        dist = MultivariateNormal(action_mean, cov_mat)
-
-        # 一维动作单独处理
-        if self.action_dim == 1:
-            a = a.reshape(-1, self.action_dim)
-
-        action_logprobs = dist.log_prob(a)
-        dist_entropy = dist.entropy()
-        state_values = self.critic(s)
-
-        return action_logprobs, state_values, dist_entropy
-
-    def save_checkpoint(self, name=None, path='', num=None):
-        print('...saving checkpoint...')
-        if name is None:
-            torch.save(self.state_dict(), self.checkpoint_file)
-        else:
-            if num is None:
-                torch.save(self.state_dict(), path + name)
-            else:
-                torch.save(self.state_dict(), path + name + str(num))
-
-    def save_all_net(self):
-        print('...saving all net...')
-        torch.save(self, self.checkpoint_file_whole_net)
-
-    def load_checkpoint(self):
-        print('...loading checkpoint...')
-        self.load_state_dict(torch.load(self.checkpoint_file))
+    def action_linear_trans(self, action):
+        # the action output
+        linear_action = []
+        for i in range(self.action_dim):
+            a = min(max(action[i], -1), 1)
+            maxa = self.action_range[i][1]
+            mina = self.action_range[i][0]
+            k = (maxa - mina) / 2
+            b = (maxa + mina) / 2
+            linear_action.append(k * a + b)
+        return np.array(linear_action)
 
 
 if __name__ == '__main__':
@@ -165,25 +129,19 @@ if __name__ == '__main__':
     ref_bias_phase = np.array([0., np.pi / 2, np.pi / 3])
     env = env(uav_param, fntsmc_param(), ref_amplitude, ref_period, ref_bias_a, ref_bias_phase)
 
-    agent = DPPO(env=env, actor_lr=3e-4, critic_lr=1e-3, num_of_pro=0, path=simulation_path)
-    agent.global_policy = PPOActorCritic(agent.env.state_dim, agent.env.action_dim, 0.1,
-                                         'GlobalPolicy_ppo', simulation_path)
-    agent.eval_policy = PPOActorCritic(agent.env.state_dim, agent.env.action_dim, 0.1,
-                                       'EvalPolicy_ppo', simulation_path)
+    eval_policy = PPOActorCritic(env.state_dim, env.action_dim, env.action_range)
     # 加载模型参数文件
-    agent.load_models(optPath + 'actor-critic')
-    # agent.load_models('')
-    agent.eval_policy.load_state_dict(agent.global_policy.state_dict())
+    eval_policy.load_state_dict(torch.load(optPath + 'actor-critic'))
     env.msg_print_flag = True
     test_num = 5
     average_r = 0
     for _ in range(test_num):
-        env.reset_random()
+        env.reset(random=True)
         r = 0
         while not env.is_terminal:
             env.current_state = env.next_state.copy()
-            action_from_actor = agent.evaluate(env.current_state).numpy()
-            action = agent.action_linear_trans(action_from_actor.flatten())  # 将actor输出动作转换到实际动作范围
+            action_from_actor = eval_policy.evaluate(env.current_state).numpy()
+            action = eval_policy.action_linear_trans(action_from_actor.flatten())  # 将actor输出动作转换到实际动作范围
             env.step_update(action)  # 环境更新的动作必须是实际物理动作
             r += env.reward
             env.visualization()

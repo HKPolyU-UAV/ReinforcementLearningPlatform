@@ -1,16 +1,14 @@
 import math
 import os
 import sys
-
-import numpy as np
 from numpy import deg2rad
 from algorithm.rl_base import rl_base
-from environment.uav_robust.Color import Color
-from environment.uav_robust.FNTSMC import fntsmc_att, fntsmc_param
-from environment.uav_robust.collector import data_collector
-from environment.uav_robust.ref_cmd import *
-from environment.uav_robust.uav import UAV, uav_param
-from environment.uav_robust.uav_pos_ctrl import uav_pos_ctrl
+from environment.color import Color
+from FNTSMC import fntsmc_param
+from collector import data_collector
+from ref_cmd import *
+from uav import uav_param
+from uav_pos_ctrl import uav_pos_ctrl
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__) + '/../'))
 
@@ -34,7 +32,6 @@ class uav_tracking_outer_loop(rl_base, uav_pos_ctrl):
         self.ref_bias_phase = ref_bias_phase
         self.trajectory = self.generate_ref_pos_trajectory(self.ref_amplitude, self.ref_period,
                                                            self.ref_bias_a, self.ref_bias_phase)
-        self.init_image()
         '''Define parameters for signal generator'''
 
         self.pos_ref, self.dot_pos_ref, _, _ = ref_uav(self.time, self.ref_amplitude, self.ref_period, self.ref_bias_a,
@@ -60,12 +57,20 @@ class uav_tracking_outer_loop(rl_base, uav_pos_ctrl):
         self.state_num = [math.inf for _ in range(self.state_dim)]
         self.state_step = [None for _ in range(self.state_dim)]
         self.state_space = [None for _ in range(self.state_dim)]
-        self.state_range = [[-self.static_gain, self.static_gain] for _ in range(self.state_dim)]
+        self.use_norm = True
+        if self.use_norm:
+            self.state_range = [[-self.static_gain, self.static_gain] for _ in range(self.state_dim)]
+        else:
+            self.state_range = [[self.e_pos_min[0], self.e_pos_max[0]],
+                                [self.e_pos_min[1], self.e_pos_max[1]],
+                                [self.e_pos_min[2], self.e_pos_max[2]],
+                                [self.e_vel_min[0], self.e_vel_max[0]],
+                                [self.e_vel_min[1], self.e_vel_max[1]],
+                                [self.e_vel_min[2], self.e_vel_max[2]]]
         self.is_state_continuous = [True for _ in range(self.state_dim)]
 
-        self.initial_state = self.state_norm()
-        self.current_state = self.initial_state.copy()
-        self.next_state = self.initial_state.copy()
+        self.current_state = self.get_state()
+        self.next_state = self.current_state.copy()
 
         self.action_dim = 3  # ux uy uz
         self.action_num = [math.inf for _ in range(self.action_dim)]
@@ -75,24 +80,24 @@ class uav_tracking_outer_loop(rl_base, uav_pos_ctrl):
                              [self.u_min, self.u_max],
                              [self.u_min, self.u_max]]
         self.is_action_continuous = [True for _ in range(self.action_dim)]
-
-        self.initial_action = [0.0 for _ in range(self.action_dim)]
-        self.current_action = self.initial_action.copy()
+        self.current_action = np.zeros(self.action_dim)
 
         self.reward = 0.
         self.is_terminal = False
         self.terminal_flag = 0  # 0-正常 1-出界 2-超时 3-成功 4-碰撞
         '''rl_base'''
 
-    def state_norm(self) -> np.ndarray:
+    def get_state(self) -> np.ndarray:
         """
         RL状态归一化
         """
-        norm_error = self.error / (self.e_pos_max - self.e_pos_min) * self.static_gain
-        norm_dot_error = self.dot_error / (self.e_vel_max - self.e_vel_min) * self.static_gain
-        norm_state = np.concatenate((norm_error, norm_dot_error))
-
-        return norm_state
+        if self.use_norm:
+            norm_error = self.error / (self.e_pos_max - self.e_pos_min) * self.static_gain
+            norm_dot_error = self.dot_error / (self.e_vel_max - self.e_vel_min) * self.static_gain
+            state = np.concatenate((norm_error, norm_dot_error))
+        else:
+            state = np.concatenate((self.error, self.dot_error))
+        return state
 
     def get_reward(self, param=None):
         """
@@ -121,7 +126,7 @@ class uav_tracking_outer_loop(rl_base, uav_pos_ctrl):
         @return:
         """
         self.current_action = action.copy()
-        self.current_state = self.state_norm()
+        self.current_state = self.get_state()
 
         # 外环由RL控制给出
         self.pos_ctrl.control = action.copy()
@@ -149,11 +154,11 @@ class uav_tracking_outer_loop(rl_base, uav_pos_ctrl):
         self.dot_error = self.uav_vel() - self.dot_pos_ref
 
         self.is_Terminal()
-        self.next_state = self.state_norm()
+        self.next_state = self.get_state()
 
         self.get_reward()
 
-    def reset(self):
+    def reset(self, random: bool = False):
         self.m = self.param.m
         self.g = self.param.g
         self.J = self.param.J
@@ -198,37 +203,23 @@ class uav_tracking_outer_loop(rl_base, uav_pos_ctrl):
         self.image = np.ones([self.height, self.width, 3], np.uint8) * 255
         self.image_copy = self.image.copy()
 
+        self.generate_random_trajectory(is_random=random, outer_param=None)
+        if random:
+            self.x, self.y, self.z = \
+                self.set_random_init_pos(pos0=self.trajectory[0][0:3], r=0.3 * np.ones(3))  # 设置初始位置在轨迹第一个点附近
+        self.draw_init_image()
         self.pos_ref, self.dot_pos_ref, _, _ = ref_uav(self.time, self.ref_amplitude, self.ref_period, self.ref_bias_a,
                                                        self.ref_bias_phase)
         self.error = self.uav_pos() - self.pos_ref
         self.dot_error = self.uav_vel() - self.dot_pos_ref
-        self.initial_state = self.state_norm()
-        self.current_state = self.initial_state.copy()
-        self.next_state = self.initial_state.copy()
+        self.current_state = self.get_state()
+        self.next_state = self.current_state.copy()
 
-        self.initial_action = [0.0 for _ in range(self.action_dim)]
-        self.current_action = self.initial_action.copy()
+        self.current_action = np.zeros(self.action_dim)
 
         self.collector.reset(round(self.time_max / self.dt))
         self.reward = 0.0
         self.is_terminal = False
-
-    def reset_random(self):
-        """
-        随机生成正弦位置轨迹
-        """
-        self.reset()
-        self.generate_random_trajectory(is_random=True, outer_param=None)
-        self.x, self.y, self.z = \
-            self.set_random_init_pos(pos0=self.trajectory[0][0:3], r=0.3 * np.ones(3))  # 设置初始位置在轨迹第一个点附近
-        self.pos_ref, self.dot_pos_ref, _, _ = ref_uav(self.time, self.ref_amplitude, self.ref_period, self.ref_bias_a,
-                                                       self.ref_bias_phase)
-        self.init_image()
-        self.error = self.uav_pos() - self.pos_ref
-        self.dot_error = self.uav_vel() - self.dot_pos_ref
-        self.initial_state = self.state_norm()
-        self.current_state = self.initial_state.copy()
-        self.next_state = self.initial_state.copy()
 
     def generate_random_trajectory(self, is_random: bool = False, outer_param: list = None):
         """
@@ -263,9 +254,13 @@ class uav_tracking_outer_loop(rl_base, uav_pos_ctrl):
         self.trajectory = self.generate_ref_pos_trajectory(self.ref_amplitude, self.ref_period,
                                                            self.ref_bias_a, self.ref_bias_phase)
 
-    def init_image(self):
+    def draw_init_image(self):
         self.draw_3d_trajectory_projection(self.trajectory)
-        self.draw_init_image()
+        self.draw_boundary()
+        self.draw_label()
+        self.draw_region_grid(6, 6, 6)
+        self.draw_axis(6, 6, 6)
+        self.image_copy = self.image.copy()
 
     def visualization(self):
         self.image = self.image_copy.copy()

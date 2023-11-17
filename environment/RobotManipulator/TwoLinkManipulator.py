@@ -1,5 +1,7 @@
 import math
 import cv2 as cv
+import numpy as np
+
 from environment.color import Color
 from utils.functions import *
 from algorithm.rl_base import rl_base
@@ -59,18 +61,20 @@ class TwoLinkManipulator(rl_base):
         self.state_step = [None for _ in range(self.state_dim)]
         self.state_space = [None for _ in range(self.state_dim)]
         self.isStateContinuous = [True for _ in range(self.state_dim)]
-        self.state_range = np.array(
-            [[-4 * self.l, 4 * self.l],
-             [-4 * self.l, 4 * self.l],
-             [self.thetaMin, self.thetaMax],
-             [self.thetaMin, self.thetaMax],
-             [self.omega1Min, self.omega1Max],
-             [self.omega2Min, self.omega2Max]]
-        )
-
-        self.initial_state = self.state_norm()
-        self.current_state = self.initial_state.copy()
-        self.next_state = self.initial_state.copy()
+        self.use_norm = True
+        if self.use_norm:
+            self.state_range = np.array([[-self.static_gain, self.static_gain] for _ in range(self.state_dim)])
+        else:
+            self.state_range = np.array(
+                [[-4 * self.l, 4 * self.l],
+                 [-4 * self.l, 4 * self.l],
+                 [self.thetaMin, self.thetaMax],
+                 [self.thetaMin, self.thetaMax],
+                 [self.omega1Min, self.omega1Max],
+                 [self.omega2Min, self.omega2Max]]
+            )
+        self.current_state = self.get_state()
+        self.next_state = self.current_state.copy()
 
         self.action_dim = 2  # 两个转轴转矩
         self.action_step = [None, None]
@@ -81,8 +85,7 @@ class TwoLinkManipulator(rl_base):
         self.action_num = [math.inf, math.inf]
         self.action_space = [None, None]
         self.isActionContinuous = [True, True]
-        self.initial_action = self.t.copy()
-        self.current_action = self.initial_action.copy()
+        self.current_action = np.zeros(self.action_dim)
 
         self.reward = 0.0
         self.is_terminal = False
@@ -97,10 +100,7 @@ class TwoLinkManipulator(rl_base):
         self.image_size = (np.array(self.pixel_per_meter * self.map_size) + 2 * np.array(
             [self.x_offset, self.y_offset])).astype(int)
         self.image_size[0] += self.board
-        self.image = np.zeros([self.image_size[1], self.image_size[0], 3], np.uint8)
-        self.image[:, :, 0] = np.ones([self.image_size[1], self.image_size[0]]) * 255
-        self.image[:, :, 1] = np.ones([self.image_size[1], self.image_size[0]]) * 255
-        self.image[:, :, 2] = np.ones([self.image_size[1], self.image_size[0]]) * 255
+        self.image = np.ones([self.image_size[1], self.image_size[0], 3], np.uint8) * 255
         self.image_white = self.image.copy()  # 纯白图
         self.base_x_pixel = 50
         self.base_y_pixel = 20
@@ -125,6 +125,10 @@ class TwoLinkManipulator(rl_base):
         :return:        length in image
         """
         return int(_l * self.pixel_per_meter)
+
+    def draw_init_image(self):
+        self.draw_grid()
+        self.draw_boundary()
 
     def visualization(self):
         self.image = self.image_white.copy()
@@ -211,19 +215,13 @@ class TwoLinkManipulator(rl_base):
                         self.dis2pixel([0 + (i + 1) * step[0], self.map_size[1]]),
                         Color().Black, 1)
 
-    def state_norm(self):
+    def get_state(self):
         state = np.concatenate((self.error, self.theta, self.omega), axis=0)
-        norm_min = self.state_range[:, 0]
-        norm_max = self.state_range[:, 1]
-        norm_s = (2 * state - (norm_min + norm_max)) / (norm_max - norm_min) * self.static_gain
-        return norm_s
-
-    def inverse_state_norm(self, s: np.ndarray):
-        norm_min = self.state_range[:, 0]
-        norm_max = self.state_range[:, 1]
-
-        inverse_norm_s = (s * (norm_max - norm_min) / self.static_gain + (norm_min + norm_max)) / 2
-        return inverse_norm_s
+        if self.use_norm:
+            norm_min = self.state_range[:, 0]
+            norm_max = self.state_range[:, 1]
+            state = (2 * state - (norm_min + norm_max)) / (norm_max - norm_min) * self.static_gain
+        return state
 
     def is_success(self):
         b1 = np.linalg.norm(self.error) <= self.miss
@@ -243,13 +241,10 @@ class TwoLinkManipulator(rl_base):
         return False
 
     def get_reward(self, param=None):
-        cur_s = self.inverse_state_norm(self.current_state)
-        nex_s = self.inverse_state_norm(self.next_state)
+        nex_s = np.concatenate((self.error, self.theta, self.omega), axis=0)
 
-        cur_error = np.linalg.norm(cur_s[0: 2])
         nex_error = np.linalg.norm(nex_s[0: 2])
 
-        cur_norm_error = cur_error / np.linalg.norm([4 * self.l, 4 * self.l])
         nex_norm_error = nex_error / np.linalg.norm([4 * self.l, 4 * self.l])
 
         cur_norm_action = np.linalg.norm(self.t) / np.linalg.norm([self.tMax, self.tMax])
@@ -324,14 +319,14 @@ class TwoLinkManipulator(rl_base):
 
     def step_update(self, action: np.ndarray):
         self.current_action = action.copy()
-        self.current_state = self.state_norm()
+        self.current_state = self.get_state()
 
         '''rk44'''
         self.rk44(action=action)
         '''rk44'''
 
         self.is_terminal = self.is_Terminal()
-        self.next_state = self.state_norm()
+        self.next_state = self.get_state()
         self.get_reward()
 
     def reset(self, random: bool = False):
@@ -354,12 +349,12 @@ class TwoLinkManipulator(rl_base):
         self.time = 0.
         self.sum_d_theta = np.zeros(2)
 
-        self.initial_state = self.state_norm()
-        self.current_state = self.initial_state.copy()
-        self.next_state = self.initial_state.copy()
-        self.initial_action = self.t.copy()
-        self.current_action = self.initial_action.copy()
+        self.current_state = self.get_state()
+        self.next_state = self.current_state.copy()
+        self.current_action = np.zeros(self.action_dim)
         self.reward = 0.0
         self.is_terminal = False
         self.terminal_flag = 0  # 0-正常 1-出界 2-超时 3-成功
+
+        self.draw_init_image()
 

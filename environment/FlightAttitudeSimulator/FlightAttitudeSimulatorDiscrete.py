@@ -1,5 +1,5 @@
-import numpy as np
 import cv2 as cv
+import numpy as np
 
 from utils.functions import *
 from algorithm.rl_base import rl_base
@@ -49,9 +49,8 @@ class FlightAttitudeSimulatorDiscrete(rl_base):
             self.state_range = [[-self.theta_max, self.theta_max],
                                 [-self.dtheta_max, self.dtheta_max]]
         self.isStateContinuous = [True for _ in range(self.state_dim)]
-        self.initial_state = self.get_state()
-        self.current_state = self.initial_state.copy()
-        self.next_state = self.initial_state.copy()
+        self.current_state = self.get_state()
+        self.next_state = self.current_state.copy()
 
         self.action_dim = 1
         self.action_step = [self.f_step]
@@ -59,8 +58,7 @@ class FlightAttitudeSimulatorDiscrete(rl_base):
         self.action_num = [int((self.f_max - self.f_min) / self.f_step + 1)]
         self.action_space = [[self.f_min + i * self.f_step for i in range(self.action_num[0])]]
         self.isActionContinuous = False
-        self.initial_action = [0.0]
-        self.current_action = self.initial_action.copy()
+        self.current_action = np.zeros(self.action_dim)
 
         self.reward = 0.0
         self.is_terminal = False
@@ -83,7 +81,6 @@ class FlightAttitudeSimulatorDiscrete(rl_base):
         self.copperw = 0.03  # 铜块宽度
         self.Lw = 0.02  # 杆宽度
         self.L = 0.362  # 杆半长
-        self.draw_base()
         '''visualization_opencv'''
 
     def draw_base(self):
@@ -147,8 +144,12 @@ class FlightAttitudeSimulatorDiscrete(rl_base):
 
         cv.fillPoly(img=self.image, pts=np.array([[pt1, pt2, pt3, pt4]]), color=Color().Black)
 
+    def draw_init_image(self):
+        pass
+
     def visualization(self):
         self.image = self.image_copy.copy()
+        self.draw_base()
         self.draw_pendulum()
         self.draw_copper()
         cv.imshow(self.name4image, self.image)
@@ -230,7 +231,7 @@ class FlightAttitudeSimulatorDiscrete(rl_base):
         self.next_state = self.get_state()
         '''differential equation'''
 
-        self.is_Terminal()
+        self.is_terminal = self.is_Terminal()
         self.get_reward()
 
     def get_reward(self, param=None):
@@ -248,11 +249,13 @@ class FlightAttitudeSimulatorDiscrete(rl_base):
             r3 = 0.
         self.reward = r1 + r2 + r3
 
-    def reset(self):
+    def reset(self, random: bool = False):
         """
         :brief:     reset
         :return:    None
         """
+        if random:
+            self.initTheta = np.random.uniform(-self.theta_max, self.theta_max)
         '''physical parameters'''
         self.theta = self.initTheta
         self.dTheta = 0.0
@@ -261,32 +264,10 @@ class FlightAttitudeSimulatorDiscrete(rl_base):
         '''physical parameters'''
 
         '''RL_BASE'''
-        self.current_state = self.initial_state.copy()
-        self.next_state = self.initial_state.copy()
-        self.current_action = self.initial_action.copy()
+        self.current_state = self.get_state()
+        self.next_state = self.current_state.copy()
+        self.current_action = np.zeros(self.action_dim)
         self.reward = 0.0
         self.is_terminal = False
-        '''RL_BASE'''
-
-    def reset_random(self):
-        """
-        :brief:
-        :return:
-        """
-        '''physical parameters'''
-        self.initTheta = np.random.uniform(-self.theta_max, self.theta_max)
-        self.theta = self.initTheta
-        self.dTheta = 0.0
-        self.time = 0.0
-        self.error = -self.theta
-        '''physical parameters'''
-
-        '''RL_BASE'''
-        # 这个状态与控制系统的状态不一样
-        self.initial_state = self.get_state()
-        self.current_state = self.initial_state.copy()
-        self.next_state = self.initial_state.copy()
-        self.current_action = self.initial_action.copy()
-        self.reward = 0.0
-        self.is_terminal = False
+        self.draw_init_image()
         '''RL_BASE'''

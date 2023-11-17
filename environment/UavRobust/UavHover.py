@@ -1,16 +1,14 @@
 import math
 import os
 import sys
-
-import numpy as np
 from numpy import deg2rad
 from algorithm.rl_base import rl_base
-from environment.uav_robust.Color import Color
-from environment.uav_robust.FNTSMC import fntsmc_att, fntsmc_param
-from environment.uav_robust.collector import data_collector
-from environment.uav_robust.ref_cmd import *
-from environment.uav_robust.uav import UAV, uav_param
-from environment.uav_robust.uav_pos_ctrl import uav_pos_ctrl
+from environment.UavRobust.Color import Color
+from environment.UavRobust.FNTSMC import fntsmc_param
+from environment.UavRobust.collector import data_collector
+from environment.UavRobust.ref_cmd import *
+from environment.UavRobust.uav import uav_param
+from environment.UavRobust.uav_pos_ctrl import uav_pos_ctrl
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__) + '/../'))
 
@@ -28,7 +26,6 @@ class uav_hover(rl_base, uav_pos_ctrl):
         self.name = 'uav_hover'
 
         self.collector = data_collector(round(self.time_max / self.dt))
-        self.init_image()
 
         self.pos_ref = target0
         self.pos_error = self.uav_pos() - self.pos_ref
@@ -61,12 +58,26 @@ class uav_hover(rl_base, uav_pos_ctrl):
         self.state_num = [math.inf for _ in range(self.state_dim)]
         self.state_step = [None for _ in range(self.state_dim)]
         self.state_space = [None for _ in range(self.state_dim)]
-        self.state_range = [[-self.static_gain, self.static_gain] for _ in range(self.state_dim)]
+        self.use_norm = True
+        if self.use_norm:
+            self.state_range = [[-self.static_gain, self.static_gain] for _ in range(self.state_dim)]
+        else:
+            self.state_range = [[self.e_pos_min[0], self.e_pos_max[0]],
+                                [self.e_pos_min[1], self.e_pos_max[1]],
+                                [self.e_pos_min[2], self.e_pos_max[2]],
+                                [self.vel_min[0], self.vel_max[0]],
+                                [self.vel_min[1], self.vel_max[1]],
+                                [self.vel_min[2], self.vel_max[2]],
+                                [self.e_att_min[0], self.e_att_max[0]],
+                                [self.e_att_min[1], self.e_att_max[1]],
+                                [self.e_att_min[2], self.e_att_max[2]],
+                                [self.e_dot_att_min[0], self.e_dot_att_max[0]],
+                                [self.e_dot_att_min[1], self.e_dot_att_max[1]],
+                                [self.e_dot_att_min[2], self.e_dot_att_max[2]]]
         self.is_state_continuous = [True for _ in range(self.state_dim)]
 
-        self.initial_state = self.state_norm()
-        self.current_state = self.initial_state.copy()
-        self.next_state = self.initial_state.copy()
+        self.current_state = self.get_state()
+        self.next_state = self.current_state.copy()
 
         self.action_dim = 6  # ux uy uz Tx Ty Tz
         self.action_num = [math.inf for _ in range(self.action_dim)]
@@ -80,25 +91,26 @@ class uav_hover(rl_base, uav_pos_ctrl):
                              [self.torque_min, self.torque_max]]
         self.is_action_continuous = [True for _ in range(self.action_dim)]
 
-        self.initial_action = [0.0 for _ in range(self.action_dim)]
-        self.current_action = self.initial_action.copy()
+        self.current_action = np.zeros(self.action_dim)
 
         self.reward = 0.
         self.is_terminal = False
         self.terminal_flag = 0  # 0-正常 1-出界 2-超时 3-成功 4-碰撞
         '''rl_base'''
 
-    def state_norm(self) -> np.ndarray:
+    def get_state(self) -> np.ndarray:
         """
         RL状态归一化
         """
-        norm_pos_error = self.pos_error / (self.e_pos_max - self.e_pos_min) * self.static_gain
-        norm_vel = 2 * self.uav_vel() / (self.vel_max - self.vel_min) * self.static_gain
-        norm_att_error = self.att_error / (self.e_att_max - self.e_att_min) * self.static_gain
-        norm_dot_att_error = self.dot_att_error / (self.e_dot_att_min - self.e_dot_att_max) * self.static_gain
-        norm_state = np.concatenate((norm_pos_error, norm_vel, norm_att_error, norm_dot_att_error))
-
-        return norm_state
+        if self.use_norm:
+            norm_pos_error = self.pos_error / (self.e_pos_max - self.e_pos_min) * self.static_gain
+            norm_vel = 2 * self.uav_vel() / (self.vel_max - self.vel_min) * self.static_gain
+            norm_att_error = self.att_error / (self.e_att_max - self.e_att_min) * self.static_gain
+            norm_dot_att_error = self.dot_att_error / (self.e_dot_att_min - self.e_dot_att_max) * self.static_gain
+            state = np.concatenate((norm_pos_error, norm_vel, norm_att_error, norm_dot_att_error))
+        else:
+            state = np.concatenate((self.pos_error, self.uav_vel(), self.att_error, self.dot_att_error))
+        return state
 
     def get_reward(self, param=None):
         """
@@ -128,7 +140,7 @@ class uav_hover(rl_base, uav_pos_ctrl):
         @return:
         """
         self.current_action = action.copy()
-        self.current_state = self.state_norm()
+        self.current_state = self.get_state()
 
         # 外环RL给出虚拟加速度
         self.pos_ctrl.control = action[:3].copy()
@@ -155,11 +167,11 @@ class uav_hover(rl_base, uav_pos_ctrl):
         self.dot_att_error = self.dot_rho1() - self.dot_att_ref
 
         self.is_Terminal()
-        self.next_state = self.state_norm()
+        self.next_state = self.get_state()
 
         self.get_reward()
 
-    def reset(self):
+    def reset(self, random: bool = False):
         self.m = self.param.m
         self.g = self.param.g
         self.J = self.param.J
@@ -203,31 +215,23 @@ class uav_hover(rl_base, uav_pos_ctrl):
 
         self.image = np.ones([self.height, self.width, 3], np.uint8) * 255
         self.image_copy = self.image.copy()
-        self.init_image()
+        self.draw_init_image()
 
+        if random:
+            self.pos_ref = self.generate_random_point(offset=1.0)  # 随即目标点
         self.pos_error = self.uav_pos() - self.pos_ref
         self.att_ref = np.zeros(3)
         self.att_error = self.uav_att() - self.att_ref
         self.dot_att_error = self.dot_rho1() - self.dot_att_ref
 
-        self.initial_state = self.state_norm()
-        self.current_state = self.initial_state.copy()
-        self.next_state = self.initial_state.copy()
+        self.current_state = self.get_state()
+        self.next_state = self.current_state.copy()
 
-        self.initial_action = [0.0 for _ in range(self.action_dim)]
-        self.current_action = self.initial_action.copy()
+        self.current_action = np.zeros(self.action_dim)
 
         self.collector.reset(round(self.time_max / self.dt))
         self.reward = 0.0
         self.is_terminal = False
-
-    def reset_random(self):
-        """
-        定点控制可以选择起始点和目标点随机
-        """
-        self.reset()
-        self.pos_ref = self.generate_random_point(offset=1.0)  # 随即目标点
-        # self.x, self.y, self.z = self.generate_random_point(offset=1.0)  # 随即初始位置
 
     def generate_random_point(self, offset: float):
         """
@@ -235,8 +239,12 @@ class uav_hover(rl_base, uav_pos_ctrl):
         """
         return np.random.uniform(low=self.pos_zone[:, 0] + offset, high=self.pos_zone[:, 1] - offset)
 
-    def init_image(self):
-        self.draw_init_image()
+    def draw_init_image(self):
+        self.draw_boundary()
+        self.draw_label()
+        self.draw_region_grid(6, 6, 6)
+        self.draw_axis(6, 6, 6)
+        self.image_copy = self.image.copy()
 
     def visualization(self):
         self.image = self.image_copy.copy()

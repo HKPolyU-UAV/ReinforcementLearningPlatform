@@ -1,19 +1,16 @@
 import math
 import os
 import sys
-
-import sys, os
-sys.path.append(os.path.dirname(os.path.abspath(__file__) + '/../'))
-sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../../")
-
 from numpy import deg2rad
 
 from algorithm.rl_base import rl_base
-from environment.uav_robust.FNTSMC import fntsmc_att, fntsmc_param
-from environment.uav_robust.collector import data_collector
-from environment.uav_robust.ref_cmd import *
-from environment.uav_robust.uav import UAV, uav_param
-from environment.uav_robust.uav_att_ctrl import uav_att_ctrl
+from environment.UavRobust.FNTSMC import fntsmc_param
+from environment.UavRobust.collector import data_collector
+from environment.UavRobust.ref_cmd import *
+from environment.UavRobust.uav import uav_param
+from environment.UavRobust.uav_att_ctrl import uav_att_ctrl
+
+sys.path.append(os.path.dirname(os.path.abspath(__file__) + '/../'))
 
 
 class uav_inner_loop(rl_base, uav_att_ctrl):
@@ -38,7 +35,6 @@ class uav_inner_loop(rl_base, uav_att_ctrl):
                                                  self.ref_bias_phase)
         self.error = self.uav_att() - self.ref
         self.dot_error = self.dot_rho1() - self.dot_ref
-        self.init_image()
 
         '''state action limitation'''
         self.static_gain = 1.0
@@ -56,39 +52,48 @@ class uav_inner_loop(rl_base, uav_att_ctrl):
         self.state_num = [math.inf for _ in range(self.state_dim)]
         self.state_step = [None for _ in range(self.state_dim)]
         self.state_space = [None for _ in range(self.state_dim)]
-        self.state_range = [[-self.static_gain, self.static_gain] for _ in range(self.state_dim)]
+        self.use_norm = True
+        if self.use_norm:
+            self.state_range = [[-self.static_gain, self.static_gain] for _ in range(self.state_dim)]
+        else:
+            self.state_range = [[self.e_att_min[0], self.e_att_max[0]],
+                                [self.e_att_min[1], self.e_att_max[1]],
+                                [self.e_att_min[2], self.e_att_max[2]],
+                                [self.e_dot_att_min[0], self.e_dot_att_max[0]],
+                                [self.e_dot_att_min[1], self.e_dot_att_max[1]],
+                                [self.e_dot_att_min[2], self.e_dot_att_max[2]]]
         self.is_state_continuous = [True for _ in range(self.state_dim)]
 
-        self.initial_state = self.state_norm()
-        self.current_state = self.initial_state.copy()
-        self.next_state = self.initial_state.copy()
+        self.current_state = self.get_state()
+        self.next_state = self.current_state.copy()
 
         self.action_dim = 3  # Tx Ty Tz
         self.action_num = [math.inf for _ in range(self.action_dim)]
         self.action_step = [None for _ in range(self.action_dim)]
         self.action_space = [None for _ in range(self.action_dim)]
-        self.action_range = [[self.torque_min, self.torque_max],
-                             [self.torque_min, self.torque_max],
-                             [self.torque_min, self.torque_max]]
+        self.action_range = np.array([[self.torque_min, self.torque_max],
+                                      [self.torque_min, self.torque_max],
+                                      [self.torque_min, self.torque_max]])
         self.is_action_continuous = [True for _ in range(self.action_dim)]
 
-        self.initial_action = [0.0 for _ in range(self.action_dim)]
-        self.current_action = self.initial_action.copy()
+        self.current_action = np.zeros(self.action_dim)
 
         self.reward = 0.
         self.is_terminal = False
         self.terminal_flag = 0  # 0-正常 1-出界 2-超时 3-成功 4-碰撞
         '''rl_base'''
 
-    def state_norm(self) -> np.ndarray:
+    def get_state(self) -> np.ndarray:
         """
         RL状态归一化
         """
-        norm_error = self.error / (self.e_att_max - self.e_att_min) * self.static_gain
-        norm_dot_error = self.dot_error / (self.e_dot_att_min - self.e_dot_att_max) * self.static_gain
-        norm_state = np.concatenate((norm_error, norm_dot_error))
-
-        return norm_state
+        if self.use_norm:
+            norm_error = self.error / (self.e_att_max - self.e_att_min) * self.static_gain
+            norm_dot_error = self.dot_error / (self.e_dot_att_min - self.e_dot_att_max) * self.static_gain
+            state = np.concatenate((norm_error, norm_dot_error))
+        else:
+            state = np.concatenate((self.error, self.dot_error))
+        return state
 
     def get_reward(self, param=None):
         """
@@ -118,7 +123,7 @@ class uav_inner_loop(rl_base, uav_att_ctrl):
         @return:
         """
         self.current_action = action.copy()
-        self.current_state = self.state_norm()
+        self.current_state = self.get_state()
 
         # 内环由RL给出
         self.torque = action.copy()
@@ -130,11 +135,11 @@ class uav_inner_loop(rl_base, uav_att_ctrl):
         self.dot_error = self.dot_rho1() - self.dot_ref
 
         self.is_Terminal()
-        self.next_state = self.state_norm()
+        self.next_state = self.get_state()
 
         self.get_reward()
 
-    def reset(self):
+    def reset(self, random: bool = False):
         self.m = self.param.m
         self.g = self.param.g
         self.J = self.param.J
@@ -180,34 +185,20 @@ class uav_inner_loop(rl_base, uav_att_ctrl):
         self.att_image_copy = self.image.copy()
         self.init_image()
 
+        if random:
+            self.ref_amplitude, self.ref_period, self.ref_bias_a, self.ref_bias_phase = self.generate_random_signal()
         self.ref, self.dot_ref, _, _ = ref_inner(self.time, self.ref_amplitude, self.ref_period, self.ref_bias_a,
                                                  self.ref_bias_phase)
         self.error = self.uav_att() - self.ref
         self.dot_error = self.dot_rho1() - self.dot_ref
-        self.initial_state = self.state_norm()
-        self.current_state = self.initial_state.copy()
-        self.next_state = self.initial_state.copy()
+        self.current_state = self.get_state()
+        self.next_state = self.current_state.copy()
 
-        self.initial_action = [0.0 for _ in range(self.action_dim)]
-        self.current_action = self.initial_action.copy()
+        self.current_action = np.zeros(self.action_dim)
 
         self.collector.reset(round(self.time_max / self.dt))
         self.reward = 0.0
         self.is_terminal = False
-
-    def reset_random(self):
-        """
-        随机生成姿态跟踪参考信号并重置环境
-        """
-        self.reset()
-        self.ref_amplitude, self.ref_period, self.ref_bias_a, self.ref_bias_phase = self.generate_random_signal()
-        self.ref, self.dot_ref, _, _ = ref_inner(self.time, self.ref_amplitude, self.ref_period, self.ref_bias_a,
-                                                 self.ref_bias_phase)
-        self.error = self.uav_att() - self.ref
-        self.dot_error = self.dot_rho1() - self.dot_ref
-        self.initial_state = self.state_norm()
-        self.current_state = self.initial_state.copy()
-        self.next_state = self.initial_state.copy()
 
     def generate_random_signal(self):
         """

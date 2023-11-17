@@ -154,7 +154,8 @@ class Worker(mp.Process):
                     index += 1
                     timestep += 1
                     if timestep % action_std_decay_freq == 0:
-                        self.decay_action_std(action_std_decay_rate, min_action_std)
+                        ratio = max(1 - timestep / action_std_decay_freq * action_std_decay_rate, min_action_std)
+                        self.set_action_std(ratio * self.action_std)
                     if index == self.buffer.batch_size:
                         break
             '''收集数据'''

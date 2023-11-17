@@ -5,6 +5,8 @@ import time
 import pandas as pd
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../")
+sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../")
+sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../../")
 
 from FlightAttitudeSimulator import Flight_Attitude_Simulator as env
 from algorithm.policy_base.Proximal_Policy_Optimization import Proximal_Policy_Optimization as PPO
@@ -17,14 +19,12 @@ ENV = 'PPO-FlightAttitudeSimulator'
 
 
 class PPOActorCritic(nn.Module):
-    def __init__(self, _state_dim, _action_dim, _action_std_init, name='PPOActorCritic', chkpt_dir=''):
+    def __init__(self, _state_dim, _action_dim, _action_std_init):
         super(PPOActorCritic, self).__init__()
-        self.checkpoint_file = chkpt_dir + name + '_ppo'
-        self.checkpoint_file_whole_net = chkpt_dir + name + '_ppoALL'
         self.state_dim = _state_dim
         self.action_dim = _action_dim
         self.action_std_init = _action_std_init
-        self.action_var = torch.full((self.action_dim,), self.action_std_init * self.action_std_init)
+        self.action_var = torch.Tensor(self.action_std_init ** 2)
 
         self.actor = nn.Sequential(
             nn.Linear(self.state_dim, 64),
@@ -64,7 +64,7 @@ class PPOActorCritic(nn.Module):
 
     def set_action_std(self, new_action_std):
         """手动设置动作方差"""
-        self.action_var = torch.full((self.action_dim,), new_action_std * new_action_std).to(self.device)
+        self.action_var = torch.Tensor(new_action_std ** 2)
 
     def forward(self):
         raise NotImplementedError
@@ -77,9 +77,8 @@ class PPOActorCritic(nn.Module):
 
         _a = dist.sample()
         action_logprob = dist.log_prob(_a)
-        # state_val = self.critic(s)
 
-        return _a.detach(), action_logprob.detach()  #, state_val.detach()
+        return _a.detach(), action_logprob.detach()
 
     def evaluate(self, s, a):
         """评估状态动作价值"""
@@ -100,21 +99,7 @@ class PPOActorCritic(nn.Module):
 
     def save_checkpoint(self, name=None, path='', num=None):
         print('...saving checkpoint...')
-        if name is None:
-            torch.save(self.state_dict(), self.checkpoint_file)
-        else:
-            if num is None:
-                torch.save(self.state_dict(), path + name)
-            else:
-                torch.save(self.state_dict(), path + name + str(num))
-
-    def save_all_net(self):
-        print('...saving all net...')
-        torch.save(self, self.checkpoint_file_whole_net)
-
-    def load_checkpoint(self):
-        print('...loading checkpoint...')
-        self.load_state_dict(torch.load(self.checkpoint_file))
+        torch.save(self.state_dict(), path + name + str(num))
 
 
 if __name__ == '__main__':
@@ -132,11 +117,13 @@ if __name__ == '__main__':
     reward_norm = Normalization(shape=1)
     RETRAIN = False
 
-    action_std_init = 0.8
+    action_std_init = (env.action_range[:, 1] - env.action_range[:, 0]) / 2 / 3
     '''重新加载Policy网络结构，这是必须的操作'''
-    policy = PPOActorCritic(env.state_dim, env.action_dim, action_std_init, 'Policy', simulation_path)
-    policy_old = PPOActorCritic(env.state_dim, env.action_dim, action_std_init, 'Policy_old', simulation_path)
-    agent = PPO(env=env,
+    policy = PPOActorCritic(env.state_dim, env.action_dim, action_std_init)
+    policy_old = PPOActorCritic(env.state_dim, env.action_dim, action_std_init)
+    env_msg = {'name': env.name, 'state_dim': env.state_dim, 'action_dim': env.action_dim, 'action_num': env.action_num,
+               'action_range': env.action_range}
+    agent = PPO(env_msg=env_msg,
                 actor_lr=3e-4,
                 critic_lr=1e-3,
                 gamma=0.99,
@@ -219,7 +206,8 @@ if __name__ == '__main__':
                     time.sleep(0.01)
                     agent.policy_old.save_checkpoint(name='Policy_PPO', path=temp, num=timestep)
             if timestep % action_std_decay_freq == 0:
-                agent.decay_action_std(action_std_decay_rate, min_action_std)
+                ratio = max(1 - timestep / action_std_decay_freq * action_std_decay_rate, min_action_std)
+                agent.set_action_std(ratio * action_std_init)
         if agent.episode % 5 == 0:
             print('Episode: ', agent.episode, ' Reward: ', sumr)
         agent.episode += 1

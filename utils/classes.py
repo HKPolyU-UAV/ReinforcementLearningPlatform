@@ -371,10 +371,8 @@ class RolloutBuffer2:
 
 
 class PPOActorCritic(nn.Module):
-    def __init__(self, _state_dim, _action_dim, _action_std_init, name='PPOActorCritic', chkpt_dir=''):
+    def __init__(self, _state_dim, _action_dim, _action_std_init):
         super(PPOActorCritic, self).__init__()
-        self.checkpoint_file = chkpt_dir + name + '_ppo'
-        self.checkpoint_file_whole_net = chkpt_dir + name + '_ppoALL'
         self.action_dim = _action_dim
         # 初始化方差，一个动作就一个方差，两个动作就两个方差，std 是标准差
         self.action_var = torch.full((_action_dim,), _action_std_init * _action_std_init)
