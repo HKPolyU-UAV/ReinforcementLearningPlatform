@@ -13,7 +13,8 @@ class UGV(rl_base):
 				 phi0: float = 0.,
 				 omega0: float = 0.,
 				 map_size: np.ndarray = np.array([5.0, 5.0]),
-				 target: np.ndarray = np.array([2.5, 2.5])):
+				 target: np.ndarray = np.array([2.5, 2.5]),
+				 forward_only: bool = True):
 		"""
 		:param pos0:
 		:param vel0:
@@ -39,10 +40,12 @@ class UGV(rl_base):
 		self.error = np.linalg.norm(self.target - self.pos)  # 位置误差
 		self.e_phi = self.get_e_phi()
 
+		self.forward_only = forward_only
+
 		'''hyper-parameters'''
 		self.dt = 0.02  # 50Hz
 		self.time = 0.  # time
-		self.time_max = 6.0  # 每回合最大时间
+		self.time_max = 10.0  # 每回合最大时间
 		self.a_linear = 0.  # 等效线加速度
 		self.a_angular = 0.  # 等效角加速度
 		self.kf = 0.1  # 等效线阻力系数
@@ -50,30 +53,40 @@ class UGV(rl_base):
 		'''hyper-parameters'''
 
 		'''state limitation'''
+		# 有一些所谓的 limitation 仅仅是为了参数归一化设计的，实际不在这个范围也没事
+		# 比如速度，角度误差，角速度
 		self.e_max = np.linalg.norm(self.map_size)
-		self.v_max = 2
-		self.e_phi_max = np.pi
+		self.v_max = 3
+		self.e_phi_max = np.pi / 2
 		self.omega_max = 2 * np.pi
 		self.a_linear_max = 3
-		self.a_angular_max = 2 * np.pi
+		self.a_angular_max = 4 * np.pi
 		'''state limitation'''
 
 		self.name = 'UGV'
 
 		'''rl_base'''
 		self.use_norm = True
-		self.static_gain = 2
+		self.static_gain = 1.
 		self.state_dim = 4  # e, v, e_theta, omega 位置误差，线速度，角度误差，角速度
 		self.state_num = [np.inf for _ in range(self.state_dim)]
 		self.state_step = [None for _ in range(self.state_dim)]
 		self.state_space = [None for _ in range(self.state_dim)]
 		self.isStateContinuous = [True for _ in range(self.state_dim)]
-		self.state_range = np.array(
-			[[0, self.e_max],
-			 [-self.v_max, self.v_max],
-			 [0, self.e_phi_max],
-			 [-self.omega_max, self.omega_max]]
-		)
+		if self.forward_only:
+			self.state_range = np.array(
+				[[0, self.e_max],
+				 [0, self.v_max],
+				 [0, self.e_phi_max],
+				 [-self.omega_max, self.omega_max]]
+			)
+		else:
+			self.state_range = np.array(
+				[[0, self.e_max],
+				 [-self.v_max, self.v_max],
+				 [0, self.e_phi_max],
+				 [-self.omega_max, self.omega_max]]
+			)
 		self.initial_state = self.get_state()
 		self.current_state = self.initial_state.copy()
 		self.next_state = self.initial_state.copy()
@@ -214,7 +227,7 @@ class UGV(rl_base):
 		self.e_phi = self.get_e_phi()
 		if self.use_norm:
 			_s = 2 / self.e_max * self.error - 1
-			_vel = self.vel / self.v_max
+			_vel = 2 / self.v_max * self.vel - 1 if self.forward_only else self.vel / self.v_max
 			_e_phi = 2 / self.e_phi_max * self.e_phi - 1
 			_omega = self.omega / self.omega_max
 			return np.array([_s, _vel, _e_phi, _omega]) * self.static_gain
@@ -232,9 +245,11 @@ class UGV(rl_base):
 		return right_out or left_out or up_out or down_out
 
 	def is_success(self):
-		b1 = self.error <= 0.01
-		b2 = np.fabs(self.omega) < 0.01
+		b1 = self.error <= 0.05
+		# b2 = np.fabs(self.omega) < 0.01
+		b2 = True
 		b3 = np.linalg.norm(self.vel) < 0.01
+
 		return b1 and b2 and b3
 
 	def is_Terminal(self, param=None):
@@ -254,15 +269,16 @@ class UGV(rl_base):
 			self.is_terminal = True
 
 	def get_reward(self, param=None):
-		Q_pos = 1.
-		Q_vel = 0.05
+		Q_pos = 2.
+		Q_vel = 0.0
 		Q_phi = 2.
-		Q_omega = 2.
+		Q_omega = 1.0
 
 		u_pos = -self.error * Q_pos
 		u_vel = -np.fabs(self.vel) * Q_vel
-		u_phi = -self.e_phi * Q_phi
+		u_phi = -self.e_phi * Q_phi if self.error > 0.1 else 0.0
 		u_omega = -np.fabs(self.omega) * Q_omega
+
 		u_psi = 0.
 		if self.terminal_flag == 1:  # 出界
 			_n = (self.time_max - self.time) / self.dt
@@ -292,6 +308,8 @@ class UGV(rl_base):
 		K4 = self.dt * self.ode(xx + K3)
 		xx = xx + (K1 + 2 * K2 + 2 * K3 + K4) / 6
 		[self.pos[0], self.pos[1], self.vel, self.phi, self.omega] = xx[:]
+		if 	self.vel < 0. and self.forward_only:
+			self.vel = 0.
 		self.time += self.dt
 
 		if self.phi > np.pi:
@@ -307,7 +325,7 @@ class UGV(rl_base):
 		vec2 = np.array([C(self.phi), S(self.phi)])
 
 		_th = np.arccos(np.dot(vec1, vec2))
-		if _th > np.pi / 2:
+		if _th > np.pi / 2 and (not self.forward_only):
 			_th = np.pi - _th
 		return _th
 
@@ -325,11 +343,13 @@ class UGV(rl_base):
 
 	def reset(self, random: bool = True):
 		if random:
-			d0 = 0.2
+			d0 = 0.5
 			self.init_pos = np.array([np.random.uniform(d0, self.map_size[0] - d0),
 									  np.random.uniform(d0, self.map_size[1] - d0)])
 			self.init_phi = np.random.uniform(-np.pi, np.pi)
-			self.init_vel = np.random.uniform(-self.v_max, self.v_max)
+			# self.init_vel = np.random.uniform(-self.v_max, self.v_max)
+			# self.init_phi = 0.
+			self.init_vel = 0.
 			self.init_omega = 0.
 		self.pos = self.init_pos.copy()
 		self.vel = self.init_vel

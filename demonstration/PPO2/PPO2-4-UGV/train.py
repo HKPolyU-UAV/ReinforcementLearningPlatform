@@ -142,13 +142,13 @@ if __name__ == '__main__':
     test_num = 0
     sumr = 0.
     buffer_index = 0
-    ppo_msg = {'gamma': 0.999,
-               'K_epochs': 30,
+    ppo_msg = {'gamma': 0.99,
+               'K_epochs': 25,
                'eps_clip': 0.2,
                'buffer_size': int(env.time_max / env.dt) * 4,
                'state_dim': env.state_dim,
                'action_dim': env.action_dim,
-               'a_lr': 3e-4,
+               'a_lr': 1e-4,
                'c_lr': 1e-3,
                'set_adam_eps': True,
                'lmd': 0.95,
@@ -251,8 +251,8 @@ if __name__ == '__main__':
 
         '''4. 每学习 50 次，减小一次探索概率'''
         STD_DELAY_PER = 0.05
-        if t_epoch % 100 == 0 and t_epoch > 0:
-            _ratio = max(1 - t_epoch / 100 * STD_DELAY_PER, 0.05)
+        if t_epoch % 200 == 0 and t_epoch > 0:
+            _ratio = max(1 - t_epoch / 200 * STD_DELAY_PER, 0.05)
             agent.actor.std  = torch.tensor(std0 * _ratio, dtype=torch.float)
         '''4. 每学习 50 次，减小一次探索概率'''
 
