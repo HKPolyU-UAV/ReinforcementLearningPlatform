@@ -1,9 +1,9 @@
-from environment.uav_fntsmc_param.uav import uav_param
+from environment.UavFntsmcParam.uav import uav_param
 from algorithm.rl_base import rl_base
-from environment.uav_fntsmc_param.uav_att_ctrl import uav_att_ctrl, fntsmc_param
+from environment.UavFntsmcParam.uav_att_ctrl import uav_att_ctrl, fntsmc_param
 import math
 import numpy as np
-from environment.uav_fntsmc_param.ref_cmd import *
+from environment.UavFntsmcParam.ref_cmd import *
 from environment.color import Color
 from utils.classes import Normalization
 import pandas as pd
@@ -17,6 +17,7 @@ class uav_att_ctrl_RL(rl_base, uav_att_ctrl):
 		self.staticGain = 2.0
 
 		'''rl_base'''
+		self.use_norm = False	# Regularization is used
 		self.name = 'uav_pos_ctrl_RL'
 		self.state_dim = 3 + 3  # phi theta psi p q r
 		self.state_num = [math.inf for _ in range(self.state_dim)]
@@ -47,6 +48,11 @@ class uav_att_ctrl_RL(rl_base, uav_att_ctrl):
 		self.terminal_flag = 0
 		'''rl_base'''
 
+		self.draw_init_image()
+
+	def draw_init_image(self):
+		pass
+
 	def visualization(self):
 		self.att_image = self.att_image_copy.copy()
 		self.draw_att()
@@ -55,7 +61,12 @@ class uav_att_ctrl_RL(rl_base, uav_att_ctrl):
 	def get_state(self) -> np.ndarray:
 		e_att_ = self.uav_att() - self.ref
 		e_pqr_ = self.uav_dot_att() - self.dot_ref
-		state = np.concatenate((e_att_, e_pqr_))
+		if self.use_norm:
+			e_att_ = e_att_ / np.array([np.pi / 2, np.pi / 2, np.pi])
+			e_pqr_ = e_pqr_ / np.array([np.pi, np.pi, 2 * np.pi])
+			state = np.concatenate((e_att_, e_pqr_)) * self.staticGain
+		else:
+			state = np.concatenate((e_att_, e_pqr_))
 		return state
 
 	def get_reward(self, param=None):

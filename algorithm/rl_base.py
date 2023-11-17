@@ -1,3 +1,6 @@
+import numpy as np
+
+
 class rl_base:
     def __init__(self):
         self.state_dim = 0
@@ -112,6 +115,8 @@ class rl_base:
         Generally speaking, the range should not be infinite although it is mathematical-reasonable.
         """
 
+        self.use_norm = True    # use state normalization
+
         self.current_state = []
         self.next_state = []
         self.current_action = []
@@ -119,7 +124,7 @@ class rl_base:
         self.is_terminal = False
 
     def step_update(self, action):
-        return self.current_state, action, self.reward, self.next_state, self.is_terminal
+        pass
 
     def get_reward(self, param):
         """
@@ -137,9 +142,21 @@ class rl_base:
         '''To judge if an episode terminates.'''
         return False
 
+    def draw_init_image(self):
+        """
+        :return:
+        """
+        pass
+
     def visualization(self):
         """
         @return:
         """
         '''Graphical display'''
+        pass
+
+    def get_state(self) -> np.ndarray:
+        return np.array([])
+
+    def reset(self, random: bool = True):
         pass

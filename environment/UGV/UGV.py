@@ -13,7 +13,8 @@ class UGV(rl_base):
 				 phi0: float = 0.,
 				 omega0: float = 0.,
 				 map_size: np.ndarray = np.array([5.0, 5.0]),
-				 target: np.ndarray = np.array([2.5, 2.5])):
+				 target: np.ndarray = np.array([2.5, 2.5]),
+				 forward_only: bool = True):
 		"""
 		:param pos0:
 		:param vel0:
@@ -39,6 +40,8 @@ class UGV(rl_base):
 		self.error = np.linalg.norm(self.target - self.pos)  # 位置误差
 		self.e_phi = self.get_e_phi()
 
+		self.forward_only = forward_only
+
 		'''hyper-parameters'''
 		self.dt = 0.02  # 50Hz
 		self.time = 0.  # time
@@ -50,6 +53,8 @@ class UGV(rl_base):
 		'''hyper-parameters'''
 
 		'''state limitation'''
+		# 有一些所谓的 limitation 仅仅是为了参数归一化设计的，实际不在这个范围也没事
+		# 比如速度，角度误差，角速度
 		self.e_max = np.linalg.norm(self.map_size)
 		self.v_max = 3
 		self.e_phi_max = np.pi / 2
@@ -68,12 +73,20 @@ class UGV(rl_base):
 		self.state_step = [None for _ in range(self.state_dim)]
 		self.state_space = [None for _ in range(self.state_dim)]
 		self.isStateContinuous = [True for _ in range(self.state_dim)]
-		self.state_range = np.array(
-			[[0, self.e_max],
-			 [0, self.v_max],
-			 [0, self.e_phi_max],
-			 [-self.omega_max, self.omega_max]]
-		)
+		if self.forward_only:
+			self.state_range = np.array(
+				[[0, self.e_max],
+				 [0, self.v_max],
+				 [0, self.e_phi_max],
+				 [-self.omega_max, self.omega_max]]
+			)
+		else:
+			self.state_range = np.array(
+				[[0, self.e_max],
+				 [-self.v_max, self.v_max],
+				 [0, self.e_phi_max],
+				 [-self.omega_max, self.omega_max]]
+			)
 		self.initial_state = self.get_state()
 		self.current_state = self.initial_state.copy()
 		self.next_state = self.initial_state.copy()
@@ -214,7 +227,7 @@ class UGV(rl_base):
 		self.e_phi = self.get_e_phi()
 		if self.use_norm:
 			_s = 2 / self.e_max * self.error - 1
-			_vel = 2 / self.v_max * self.vel - 1
+			_vel = 2 / self.v_max * self.vel - 1 if self.forward_only else self.vel / self.v_max
 			_e_phi = 2 / self.e_phi_max * self.e_phi - 1
 			_omega = self.omega / self.omega_max
 			return np.array([_s, _vel, _e_phi, _omega]) * self.static_gain
@@ -295,7 +308,7 @@ class UGV(rl_base):
 		K4 = self.dt * self.ode(xx + K3)
 		xx = xx + (K1 + 2 * K2 + 2 * K3 + K4) / 6
 		[self.pos[0], self.pos[1], self.vel, self.phi, self.omega] = xx[:]
-		if 	self.vel < 0.:
+		if 	self.vel < 0. and self.forward_only:
 			self.vel = 0.
 		self.time += self.dt
 
@@ -312,8 +325,8 @@ class UGV(rl_base):
 		vec2 = np.array([C(self.phi), S(self.phi)])
 
 		_th = np.arccos(np.dot(vec1, vec2))
-		# if _th > np.pi / 2:
-		# 	_th = np.pi - _th
+		if _th > np.pi / 2 and (not self.forward_only):
+			_th = np.pi - _th
 		return _th
 
 	def step_update(self, action: np.ndarray):
@@ -357,5 +370,4 @@ class UGV(rl_base):
 		self.terminal_flag = 0  # 0-正常 1-出界 2-超时 3-成功
 
 		self.image = np.ones([self.image_size[1], self.image_size[0], 3], np.uint8) * 255
-		self.image_copy = self.image.copy()
 		self.draw_init_image()

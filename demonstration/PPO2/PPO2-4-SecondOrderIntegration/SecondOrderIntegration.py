@@ -42,6 +42,7 @@ class SecondOrderIntegration(rl_base):
         self.time_max = 5.0  # 每回合最大时间
 
         '''rl_base'''
+        self.use_norm = True
         self.static_gain = 2
         self.state_dim = 4  # ex, ey, e_dx, e_dy
         self.state_num = [np.inf for _ in range(self.state_dim)]
@@ -207,9 +208,9 @@ class SecondOrderIntegration(rl_base):
         cv.imshow(self.name, self.image)
         cv.waitKey(1)
 
-    def get_state(self, use_norm: bool = False):
+    def get_state(self):
         self.error = self.target - self.pos
-        if use_norm:
+        if self.use_norm:
             _norm_e = self.error / self.map_size
             _norm_v = -self.vel / self.vMax
             state = np.hstack((_norm_e, _norm_v))
@@ -318,10 +319,10 @@ class SecondOrderIntegration(rl_base):
 		@return:
 		"""
         self.current_action = action.copy()
-        self.current_state = self.get_state(use_norm=True)
+        self.current_state = self.get_state()
         self.rk44(action=action)
         self.is_Terminal()
-        self.next_state = self.get_state(use_norm=True)
+        self.next_state = self.get_state()
         self.get_reward()
 
     def reset(self, random: bool = False):
