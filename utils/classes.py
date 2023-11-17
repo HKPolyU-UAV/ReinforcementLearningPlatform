@@ -1,6 +1,5 @@
 # import math
 import random
-# import re
 import numpy as np
 # from numpy import linalg
 import torch.nn as nn
@@ -430,24 +429,6 @@ class PPOActorCritic(nn.Module):
         state_values = self.critic(s)
 
         return action_logprobs, state_values, dist_entropy
-
-    def save_checkpoint(self, name=None, path='', num=None):
-        print('...saving checkpoint...')
-        if name is None:
-            torch.save(self.state_dict(), self.checkpoint_file)
-        else:
-            if num is None:
-                torch.save(self.state_dict(), path + name)
-            else:
-                torch.save(self.state_dict(), path + name + str(num))
-
-    def save_all_net(self):
-        print('...saving all net...')
-        torch.save(self, self.checkpoint_file_whole_net)
-
-    def load_checkpoint(self):
-        print('...loading checkpoint...')
-        self.load_state_dict(torch.load(self.checkpoint_file))
 
 
 class PPOActor_Gaussian(nn.Module):
