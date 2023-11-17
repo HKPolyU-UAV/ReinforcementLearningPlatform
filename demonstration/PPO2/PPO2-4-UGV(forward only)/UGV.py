@@ -370,5 +370,4 @@ class UGV(rl_base):
 		self.terminal_flag = 0  # 0-正常 1-出界 2-超时 3-成功
 
 		self.image = np.ones([self.image_size[1], self.image_size[0], 3], np.uint8) * 255
-		self.image_copy = self.image.copy()
 		self.draw_init_image()

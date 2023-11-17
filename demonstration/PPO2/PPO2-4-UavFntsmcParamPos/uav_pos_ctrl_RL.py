@@ -1,9 +1,9 @@
-from environment.uav_fntsmc_param.uav import uav_param
+from environment.UavFntsmcParam.uav import uav_param
 from algorithm.rl_base import rl_base
-from environment.uav_fntsmc_param.uav_pos_ctrl import uav_pos_ctrl, fntsmc_param
+from environment.UavFntsmcParam.uav_pos_ctrl import uav_pos_ctrl, fntsmc_param
 import math
 import numpy as np
-from environment.uav_fntsmc_param.ref_cmd import *
+from environment.UavFntsmcParam.ref_cmd import *
 from environment.color import Color
 from utils.classes import Normalization
 import pandas as pd
@@ -20,12 +20,11 @@ class uav_pos_ctrl_RL(rl_base, uav_pos_ctrl):
         # 并非要求数据一定在这个区间内，只是给一个归一化的系数而已，让 NN 不同维度的数据不要相差太大
         # 不要出现：某些维度的数据在 [-3, 3]，另外维度在 [0.05, 0.9] 这种情况即可
         self.e_pos_max = np.array([3., 3., 3.])
-        self.e_pos_min = np.array([-3., -3., -3.])
         self.e_vel_max = np.array([3., 3., 3.])
-        self.e_vel_min = np.array([-3., -3., -3.])
         '''state limitation'''
 
         '''rl_base'''
+        self.use_norm = False   # Regularization is used
         self.name = 'uav_pos_ctrl_RL'
         self.state_dim = 3 + 3  # e_pos e_vel
         self.state_num = [math.inf for _ in range(self.state_dim)]
@@ -55,12 +54,21 @@ class uav_pos_ctrl_RL(rl_base, uav_pos_ctrl):
         self.is_terminal = False
         self.terminal_flag = 0
         '''rl_base'''
+        self.draw_init_image()
 
     def get_state(self) -> np.ndarray:
         e_pos_ = self.uav_pos() - self.pos_ref
         e_vel_ = self.uav_vel() - self.dot_pos_ref
-        norm_state = np.concatenate((e_pos_, e_vel_))
-        return norm_state
+        if self.use_norm:
+            e_pos_ = e_pos_ / self.e_pos_max
+            e_vel_ = e_vel_ / self.e_vel_max
+            state = np.concatenate((e_pos_, e_vel_)) * self.staticGain
+        else:
+            state = np.concatenate((e_pos_, e_vel_))
+        return state
+
+    def draw_init_image(self):
+        pass
 
     def visualization(self):
         self.image = self.image_copy.copy()

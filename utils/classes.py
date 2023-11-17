@@ -1,6 +1,5 @@
 # import math
 import random
-# import re
 import numpy as np
 # from numpy import linalg
 import torch.nn as nn
@@ -443,8 +442,6 @@ class PPOActor_Gaussian(nn.Module):
         self.fc2 = nn.Linear(64, 64)
         self.fc3 = nn.Linear(64, 32)
         self.mean_layer = nn.Linear(32, action_dim)
-        # self.log_std = nn.Parameter(torch.zeros(1, action_dim))  # We use 'nn.Parameter' to train log_std automatically
-        # self.log_std = nn.Parameter(np.log(init_std) * torch.ones(action_dim))  # We use 'nn.Parameter' to train log_std automatically
         self.activate_func = nn.Tanh()
         self.a_min = torch.tensor(a_min, dtype=torch.float)
         self.a_max = torch.tensor(a_max, dtype=torch.float)

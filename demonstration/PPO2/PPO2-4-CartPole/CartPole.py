@@ -52,22 +52,21 @@ class CartPole(rl_base):
 		self.state_num = [math.inf for _ in range(self.state_dim)]
 		self.state_step = [None for _ in range(self.state_dim)]
 		self.state_space = [None for _ in range(self.state_dim)]
-		self.state_range = [[-self.staticGain, self.staticGain],
-							[-math.inf, math.inf],
-							[-self.staticGain, self.staticGain],
-							[-math.inf, math.inf]]
+		self.state_range = [[-self.theta_max, self.theta_max],
+							[-self.dtheta_max, self.dtheta_max],
+							[-self.x_max, self.x_max],
+							[-self.dx_max, self.dx_max]]
 		self.isStateContinuous = [True for _ in range(self.state_dim)]
 		self.current_state = self.get_state()
 		self.next_state = self.current_state.copy()
 
 		self.action_dim = 1
 		self.action_step = [None]
-		self.action_range = [[-self.fm, self.fm]]
+		self.action_range = np.array([[-self.fm, self.fm]])
 		self.action_num = [math.inf]
 		self.action_space = [None]
 		self.isActionContinuous = True
-		self.initial_action = [self.force]
-		self.current_action = self.initial_action.copy()
+		self.current_action = [self.force]
 
 		self.reward = 0.0
 		self.Q_x = 100  # cost for position error
@@ -91,7 +90,7 @@ class CartPole(rl_base):
 		self.pixel_per_n = 20  # 每牛顿的长度
 		self.pole_ell_pixel = 50
 		self.image_copy = self.image.copy()
-		# self.draw_slide()
+		self.draw_init_image()
 		'''visualization_opencv'''
 
 	def draw_slide(self):
@@ -131,6 +130,9 @@ class CartPole(rl_base):
 		cv.putText(self.image, "theta: %.3f " % (rad2deg(self.theta)), (20, 40), cv.FONT_HERSHEY_COMPLEX, 0.5, Color().Black, 2)
 		cv.putText(self.image, "  x  : %.3f m" % self.x, (20, 60), cv.FONT_HERSHEY_COMPLEX, 0.5, Color().Black, 2)
 		cv.putText(self.image, "force: %.3f N" % self.force, (20, 80), cv.FONT_HERSHEY_COMPLEX, 0.5, Color().Black, 2)
+
+	def draw_init_image(self):
+		pass
 
 	def visualization(self):
 		self.image = self.image_copy.copy()
@@ -248,17 +250,15 @@ class CartPole(rl_base):
 			K4 = h * self.ode(xx + K3)
 			xx = xx + (K1 + 2 * K2 + 2 * K3 + K4) / 6
 			self.time += h
-		[self.theta, self.dtheta, self.x, self.dx] = xx.tolist()
+		[self.theta, self.dtheta, self.x, self.dx] = xx[:]
+		self.etheta = 0. - self.theta
+		self.ex = 0. - self.x
 
 	def step_update(self, action: list):
-		self.force = action[0]  # get the extra force
+		self.force = action[0]
 		self.current_action = action.copy()
 		self.current_state = self.get_state()
 		self.rk44(np.array([self.force]))
-
-		'''角度，位置误差更新'''
-		self.etheta = 0. - self.theta
-		self.ex = 0. - self.x
 		self.is_Terminal()
 		self.next_state = self.get_state()
 		self.get_reward()
@@ -271,7 +271,7 @@ class CartPole(rl_base):
 		'''physical parameters'''
 		if random:
 			self.initTheta = np.random.uniform(-self.theta_max * 0.5, self.theta_max * 0.5)
-			self.initX = np.random.uniform(-self.x_max / 2, self.x_max / 2)
+			self.initX = np.random.uniform(-self.x_max * 0.5, self.x_max * 0.5)
 		self.theta = self.initTheta
 		self.x = self.initX
 		self.dtheta = 0.  # 从左往右转为正
@@ -285,10 +285,11 @@ class CartPole(rl_base):
 		'''RL_BASE'''
 		self.current_state = self.get_state()
 		self.next_state = self.current_state.copy()
-
 		self.current_action = [0.]
-
 		self.reward = 0.0
 		self.is_terminal = False
 		self.terminal_flag = 0
 		'''RL_BASE'''
+
+		self.image = np.ones([self.height, self.width, 3], np.uint8) * 255
+		self.draw_init_image()

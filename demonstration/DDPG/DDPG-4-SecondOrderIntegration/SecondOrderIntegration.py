@@ -73,9 +73,6 @@ class SecondOrderIntegration(rl_base):
         self.terminal_flag = 0  # 0-正常 1-出界 2-超时 3-成功
         '''rl_base'''
 
-        self.current_state_norm = Normalization(self.state_dim)
-        self.next_state_norm = Normalization(self.state_dim)
-
         '''visualization'''
         self.x_offset = 20
         self.y_offset = 20
@@ -350,30 +347,3 @@ class SecondOrderIntegration(rl_base):
         self.image = 255 * np.ones([self.image_size[1], self.image_size[0], 3], np.uint8)
         self.image_white = self.image.copy()  # 纯白图
         self.draw_init_image()
-
-    def save_state_norm(self, path, msg=None):
-        data = {
-            'cur_n': self.current_state_norm.running_ms.n * np.ones(self.state_dim),
-            'cur_mean': self.current_state_norm.running_ms.mean,
-            'cur_std': self.current_state_norm.running_ms.std,
-            'cur_S': self.current_state_norm.running_ms.S,
-            'next_n': self.next_state_norm.running_ms.n * np.ones(self.state_dim),
-            'next_mean': self.next_state_norm.running_ms.mean,
-            'next_std': self.next_state_norm.running_ms.std,
-            'next_S': self.next_state_norm.running_ms.S,
-        }
-        if msg is None:
-            pd.DataFrame(data).to_csv(path + 'state_norm.csv', index=False)
-        else:
-            pd.DataFrame(data).to_csv(path + 'state_norm_' + msg + '.csv', index=False)
-
-    def load_norm_normalizer_from_file(self, path, file):
-        data = pd.read_csv(path + file, header=0).to_numpy()
-        self.current_state_norm.running_ms.n = data[0, 0]
-        self.current_state_norm.running_ms.mean = data[:, 1]
-        self.current_state_norm.running_ms.std = data[:, 2]
-        self.current_state_norm.running_ms.S = data[:, 3]
-        self.next_state_norm.running_ms.n = data[0, 4]
-        self.next_state_norm.running_ms.mean = data[:, 5]
-        self.next_state_norm.running_ms.std = data[:, 6]
-        self.next_state_norm.running_ms.S = data[:, 7]

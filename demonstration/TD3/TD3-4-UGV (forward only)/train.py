@@ -11,15 +11,17 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../")
 
-from cartpole_angleonly import CartPoleAngleOnly as env
+from UGV import UGV as env
 from algorithm.actor_critic.Twin_Delayed_DDPG import Twin_Delayed_DDPG as TD3
 from utils.functions import *
 from utils.classes import Normalization
 
 timestep = 0
-ENV = 'CartPoleAngleOnly'
+ENV = 'UGV'
 ALGORITHM = 'TD3'
-MAX_EPISODE = 3500
+MAX_EPISODE = 30000
+USE_R_NORM = False
+
 r_norm = Normalization(shape=1)
 
 
@@ -81,7 +83,7 @@ class Actor(nn.Module):
 		self.fc1 = nn.Linear(self.state_dim, 256)
 		self.fc2 = nn.Linear(256, 256)
 		self.mu = nn.Linear(256, self.action_dim)
-		self.initialization()
+		# self.initialization()
 		self.optimizer = torch.optim.Adam(self.parameters(), lr=alpha)
 		self.to(self.device)
 
@@ -126,14 +128,15 @@ def fullFillReplayMemory_with_Optimal(randomEnv: bool, fullFillRatio: float, is_
 			_action = agent.choose_action(env.current_state, is_optimal=True, sigma=np.zeros(env.action_dim))
 			env.step_update(_action)
 			# env.visualization()
+			r = r_norm(env.reward) if USE_R_NORM else env.reward
 			if is_only_success:
 				_new_state.append(env.current_state)
 				_new_action.append(env.current_action)
-				_new_reward.append(env.reward)
+				_new_reward.append(r)
 				_new_state_.append(env.next_state)
 				_new_done.append(1.0 if env.is_terminal else 0.0)
 			else:
-				agent.memory.store_transition(env.current_state, env.current_action, env.reward, env.next_state, 1 if env.is_terminal else 0)
+				agent.memory.store_transition(env.current_state, env.current_action, r, env.next_state, 1 if env.is_terminal else 0)
 		if is_only_success:
 			if env.terminal_flag == 3:
 				print('Update Replay Memory......')
@@ -154,7 +157,8 @@ def fullFillReplayMemory_Random(randomEnv: bool, fullFillRatio: float):
 			env.step_update(_action)
 			# env.visualization()
 			# if env.reward > 0:
-			agent.memory.store_transition(env.current_state, env.current_action, env.reward, env.next_state, 1 if env.is_terminal else 0)
+			r = r_norm(env.reward) if USE_R_NORM else env.reward
+			agent.memory.store_transition(env.current_state, env.current_action, r, env.next_state, 1 if env.is_terminal else 0)
 
 
 if __name__ == '__main__':
@@ -177,10 +181,10 @@ if __name__ == '__main__':
 	env_msg = {'state_dim': env.state_dim, 'action_dim': env.action_dim, 'action_range': env.action_range, 'name': ENV}
 	agent = TD3(env_msg=env_msg,
 				gamma=0.99,
-				noise_clip=1 / 2, noise_policy=1 / 4, policy_delay=3,
+				noise_clip=0.5, noise_policy=0.2, policy_delay=2,
 				actor_tau=0.005, td3critic_tau=0.005,
-				memory_capacity=10000,
-				batch_size=64,
+				memory_capacity=40000,
+				batch_size=512,
 				actor=actor,
 				target_actor=target_actor,
 				td3critic=critic,
@@ -199,7 +203,7 @@ if __name__ == '__main__':
 		fullFillReplayMemory_with_Optimal(randomEnv=True, fullFillRatio=0.5, is_only_success=False)
 	else:
 		'''fullFillReplayMemory_Random'''
-		fullFillReplayMemory_Random(randomEnv=True, fullFillRatio=0.1)
+		fullFillReplayMemory_Random(randomEnv=True, fullFillRatio=0.8)
 		'''fullFillReplayMemory_Random'''
 
 	print('Start to train...')
@@ -208,7 +212,8 @@ if __name__ == '__main__':
 	is_storage_only_success = False
 	sigma0 = (env.action_range[:, 1] - env.action_range[:, 0]) / 2 / 3
 	while agent.episode <= MAX_EPISODE:
-		env.reset(True)
+		# env.reset()
+		env.reset(random=True)
 		sumr = 0
 		new_state.clear()
 		new_action.clear()
@@ -220,23 +225,25 @@ if __name__ == '__main__':
 			if np.random.uniform(0, 1) < 0.00:
 				action = agent.choose_action_random()  # 有一定探索概率完全随机探索
 			else:
-				sigma = sigma0 - agent.episode * (sigma0 - 0.1) / MAX_EPISODE
+				# sigma = sigma0 - agent.episode * (sigma0 - 0.1) / MAX_EPISODE
+				sigma = sigma0
 				action = agent.choose_action(env.current_state, is_optimal=False, sigma=sigma)
 			env.step_update(action)
 			step += 1
 			if agent.episode % 10 == 0:
 				env.visualization()
 			sumr = sumr + env.reward
+			r = r_norm(env.reward) if USE_R_NORM else env.reward
 			if is_storage_only_success:
 				new_state.append(env.current_state)
 				new_action.append(env.current_action)
-				new_reward.append(env.reward)
+				new_reward.append(r)
 				new_state_.append(env.next_state)
 				new_done.append(1.0 if env.is_terminal else 0.0)
 			else:
 				# if env.reward > 0:
-				agent.memory.store_transition(env.current_state, env.current_action, env.reward, env.next_state, 1 if env.is_terminal else 0)
-			agent.learn(is_reward_ascent=False, critic_random=False, iter=2)
+				agent.memory.store_transition(env.current_state, env.current_action, r, env.next_state, 1 if env.is_terminal else 0)
+			agent.learn(is_reward_ascent=False, critic_random=False, iter=1)
 		'''跳出循环代表回合结束'''
 		if is_storage_only_success:
 			if env.terminal_flag == 3:
@@ -245,7 +252,7 @@ if __name__ == '__main__':
 		'''跳出循环代表回合结束'''
 		print('Episode:', agent.episode, 'Cumulative reward:', round(sumr, 3))
 		agent.episode += 1
-		if agent.episode % 30 == 0:
+		if agent.episode % 10 == 0:
 			temp = simulationPath + 'trainNum_{}/'.format(agent.episode)
 			os.mkdir(temp)
 			time.sleep(0.01)

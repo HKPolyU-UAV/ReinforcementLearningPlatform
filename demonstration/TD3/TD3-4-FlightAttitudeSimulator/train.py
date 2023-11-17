@@ -113,7 +113,7 @@ def fullFillReplayMemory_with_Optimal(randomEnv: bool, fullFillRatio: float, is_
 	fullFillCount = max(min(fullFillCount, agent.memory.mem_size), agent.memory.batch_size)
 	_new_state, _new_action, _new_reward, _new_state_, _new_done = [], [], [], [], []
 	while agent.memory.mem_counter < fullFillCount:
-		env.reset_random() if randomEnv else env.reset()
+		env.reset(randomEnv)
 		_new_state.clear()
 		_new_action.clear()
 		_new_reward.clear()
@@ -123,7 +123,7 @@ def fullFillReplayMemory_with_Optimal(randomEnv: bool, fullFillRatio: float, is_
 			if agent.memory.mem_counter % 100 == 0:
 				print('replay_count = ', agent.memory.mem_counter)
 			env.current_state = env.next_state.copy()  # 状态更新
-			_action = agent.choose_action(env.current_state, is_optimal=True)
+			_action = agent.choose_action(env.current_state, is_optimal=True, sigma=np.zeros(1))
 			env.step_update(_action)
 			# env.visualization()
 			if is_only_success:
@@ -145,7 +145,7 @@ def fullFillReplayMemory_Random(randomEnv: bool, fullFillRatio: float):
 	fullFillCount = int(fullFillRatio * agent.memory.mem_size)
 	fullFillCount = max(min(fullFillCount, agent.memory.mem_size), agent.memory.batch_size)
 	while agent.memory.mem_counter < fullFillCount:
-		env.reset_random() if randomEnv else env.reset()
+		env.reset(randomEnv)
 		while not env.is_terminal:
 			if agent.memory.mem_counter % 1000 == 0:
 				print('replay_count = ', agent.memory.mem_counter)
@@ -208,8 +208,7 @@ if __name__ == '__main__':
 	is_storage_only_success = False
 	sigma0 = (env.action_range[:, 1] - env.action_range[:, 0]) / 2 / 3
 	while agent.episode <= MAX_EPISODE:
-		# env.reset()
-		env.reset_random()
+		env.reset(True)
 		sumr = 0
 		new_state.clear()
 		new_action.clear()

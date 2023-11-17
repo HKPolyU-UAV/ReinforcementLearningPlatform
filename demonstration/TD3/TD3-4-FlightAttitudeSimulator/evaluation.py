@@ -64,7 +64,7 @@ if __name__ == '__main__':
 
 	n = 10
 	for _ in range(n):
-		env.reset_random()
+		env.reset(True)
 		sumr = 0
 
 		while not env.is_terminal:

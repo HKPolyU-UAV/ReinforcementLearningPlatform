@@ -24,7 +24,6 @@ class CartPoleAngleOnly(rl_base):
         self.force = 0.  # 外力，水平向左为正
 
         self.thetaMax = deg2rad(45)  # maximum angle
-        # self.dthetaMax = deg2rad(720)   # maximum angular rate
 
         self.staticGain = 2.0
         self.norm_4_boundless_state = 4
@@ -48,8 +47,8 @@ class CartPoleAngleOnly(rl_base):
         self.state_num = [np.inf for _ in range(self.state_dim)]
         self.state_step = [None for _ in range(self.state_dim)]
         self.state_space = [None for _ in range(self.state_dim)]
-        self.state_range = [[-self.staticGain, self.staticGain],
-                            [-np.inf, np.inf]]
+        self.state_range = [[-self.thetaMax, self.thetaMax],
+                            [-self.norm_4_boundless_state, self.norm_4_boundless_state]]
         self.isStateContinuous = [True for _ in range(self.state_dim)]
         self.initial_state = np.array([self.theta / self.thetaMax * self.staticGain,
                                        self.dtheta / self.norm_4_boundless_state * self.staticGain])
@@ -85,7 +84,7 @@ class CartPoleAngleOnly(rl_base):
         self.pole_ell_pixel = 50
         self.image = np.ones([self.height, self.width, 3], np.uint8) * 255
         self.image_copy = self.image.copy()
-        self.draw_slide()
+        self.draw_init_image()
         '''visualization_opencv'''
 
     def draw_slide(self):
@@ -116,6 +115,10 @@ class CartPoleAngleOnly(rl_base):
 
     def draw_center(self):
         cv.circle(self.image, (int(self.xoffset + 1.5 * self.scale), int(self.height / 2)), 4, Color().Black, -1)
+
+    def draw_init_image(self):
+        self.draw_slide()
+        self.image_copy = self.image.copy()
 
     def make_text(self):
         # self.image = self.show.copy()
@@ -209,7 +212,7 @@ class CartPoleAngleOnly(rl_base):
         :param xx:  微分方程的状态，不是强化学习的状态。
         :return:
         """
-        '''微分方程里面的状态：[theta, dtheta, x, dx]'''
+        '''微分方程里面的状态: [theta, dtheta, x, dx]'''
         _theta = xx[0]
         _dtheta = xx[1]
         _x = xx[2]

@@ -48,8 +48,8 @@ class Twin_Delayed_DDPG:
 
 		self.a_min = torch.FloatTensor(env_msg['action_range'][:, 0])
 		self.a_max = torch.FloatTensor(env_msg['action_range'][:, 1])
-		self.noise_clip = torch.FloatTensor(noise_clip * (self.a_max - self.a_min))
-		self.noise_policy = torch.FloatTensor(noise_policy * (self.a_max - self.a_min))
+		self.noise_clip = torch.FloatTensor(noise_clip * (self.a_max - self.a_min) / 2)
+		self.noise_policy = torch.FloatTensor(noise_policy * (self.a_max - self.a_min) / 2)
 
 		self.episode = 0
 		self.reward = 0
