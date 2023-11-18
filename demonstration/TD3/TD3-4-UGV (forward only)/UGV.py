@@ -25,6 +25,8 @@ class UGV(rl_base):
 		"""
 		super(UGV, self).__init__()
 
+		self.forward_only = forward_only
+
 		self.init_pos = pos0  # 初始位置
 		self.init_vel = vel0  # 初始线速度
 		self.init_phi = phi0  # 初始角度
@@ -40,8 +42,6 @@ class UGV(rl_base):
 		self.error = np.linalg.norm(self.target - self.pos)  # 位置误差
 		self.e_phi = self.get_e_phi()
 
-		self.forward_only = forward_only
-
 		'''hyper-parameters'''
 		self.dt = 0.02  # 50Hz
 		self.time = 0.  # time
@@ -55,9 +55,9 @@ class UGV(rl_base):
 		'''state limitation'''
 		# 有一些所谓的 limitation 仅仅是为了参数归一化设计的，实际不在这个范围也没事
 		# 比如速度，角度误差，角速度
-		self.e_max = np.linalg.norm(self.map_size)
+		self.e_max = np.linalg.norm(self.map_size) / 2
 		self.v_max = 3
-		self.e_phi_max = np.pi / 2
+		self.e_phi_max = np.pi if self.forward_only else np.pi / 2
 		self.omega_max = 2 * np.pi
 		self.a_linear_max = 3
 		self.a_angular_max = 4 * np.pi
@@ -67,7 +67,7 @@ class UGV(rl_base):
 
 		'''rl_base'''
 		self.use_norm = True
-		self.static_gain = 1.
+		self.static_gain = 2.
 		self.state_dim = 4  # e, v, e_theta, omega 位置误差，线速度，角度误差，角速度
 		self.state_num = [np.inf for _ in range(self.state_dim)]
 		self.state_step = [None for _ in range(self.state_dim)]
@@ -227,7 +227,10 @@ class UGV(rl_base):
 		self.e_phi = self.get_e_phi()
 		if self.use_norm:
 			_s = 2 / self.e_max * self.error - 1
-			_vel = 2 / self.v_max * self.vel - 1 if self.forward_only else self.vel / self.v_max
+			if self.forward_only:
+				_vel = 2 / self.v_max * self.vel - 1
+			else:
+				_vel = self.vel / self.v_max
 			_e_phi = 2 / self.e_phi_max * self.e_phi - 1
 			_omega = self.omega / self.omega_max
 			return np.array([_s, _vel, _e_phi, _omega]) * self.static_gain
@@ -253,30 +256,33 @@ class UGV(rl_base):
 		return b1 and b2 and b3
 
 	def is_Terminal(self, param=None):
-		self.terminal_flag = 0
+		self.terminal_flag = 0		# 运行中
 		self.is_terminal = False
-		if self.is_out():
-			# print('...out...')
-			self.terminal_flag = 1
-			self.is_terminal = True
-		if self.time > self.time_max:
+		# if self.is_out():			# 出界
+		# 	# print('...out...')
+		# 	self.terminal_flag = 1
+		# 	self.is_terminal = True
+		if self.time > self.time_max:	# 超时
 			# print('...time out...')
 			self.terminal_flag = 2
 			self.is_terminal = True
-		if self.is_success():
-			print('...success...')
-			self.terminal_flag = 3
-			self.is_terminal = True
+		# if self.is_success():			# 成功
+		# 	print('...success...')
+		# 	self.terminal_flag = 3
+		# 	self.is_terminal = True
 
 	def get_reward(self, param=None):
 		Q_pos = 2.
 		Q_vel = 0.0
-		Q_phi = 0.5
+		Q_phi = 1.
 		Q_omega = 0.5
 
 		u_pos = -self.error * Q_pos
 		u_vel = -np.fabs(self.vel) * Q_vel
-		u_phi = -self.e_phi * Q_phi if self.error > 0.1 else 0.0
+		if self.error > 0.1:		# 如果误差比较大，就存在角度惩罚
+			u_phi = -self.e_phi * Q_phi
+		else:
+			u_phi = 0.
 		u_omega = -np.fabs(self.omega) * Q_omega
 
 		u_psi = 0.

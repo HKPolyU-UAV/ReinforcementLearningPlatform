@@ -19,7 +19,7 @@ from utils.classes import Normalization
 timestep = 0
 ENV = 'UGV'
 ALGORITHM = 'TD3'
-MAX_EPISODE = 30000
+MAX_EPISODE = 5000
 USE_R_NORM = False
 
 r_norm = Normalization(shape=1)
@@ -182,7 +182,7 @@ if __name__ == '__main__':
 	env_msg = {'state_dim': env.state_dim, 'action_dim': env.action_dim, 'action_range': env.action_range, 'name': ENV}
 	agent = TD3(env_msg=env_msg,
 				gamma=0.95,
-				noise_clip=0.5, noise_policy=0.2, policy_delay=2,
+				noise_clip=0.5, noise_policy=0.25, policy_delay=2,
 				actor_tau=0.005, td3critic_tau=0.005,
 				memory_capacity=20000,
 				batch_size=256,
@@ -211,7 +211,8 @@ if __name__ == '__main__':
 	new_state, new_action, new_reward, new_state_, new_done = [], [], [], [], []
 	step = 0
 	is_storage_only_success = False
-	sigma0 = (env.action_range[:, 1] - env.action_range[:, 0]) / 2 / 3
+	three_sigma = (env.action_range[:, 1] - env.action_range[:, 0]) / 2		# 高斯分布 3sigma
+	# sigma0 =  three_sigma / 3
 	while agent.episode <= MAX_EPISODE:
 		# env.reset()
 		env.reset(random=True)
@@ -226,8 +227,7 @@ if __name__ == '__main__':
 			if np.random.uniform(0, 1) < 0.00:
 				action = agent.choose_action_random()  # 有一定探索概率完全随机探索
 			else:
-				# sigma = sigma0 - agent.episode * (sigma0 - 0.1) / MAX_EPISODE
-				sigma = sigma0
+				sigma = -0.3 * three_sigma * agent.episode / MAX_EPISODE + 0.35 * three_sigma
 				action = agent.choose_action(env.current_state, is_optimal=False, sigma=sigma)
 			env.step_update(action)
 			step += 1
