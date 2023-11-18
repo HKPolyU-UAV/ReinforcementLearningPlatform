@@ -45,7 +45,7 @@ class UGV(rl_base):
 		'''hyper-parameters'''
 		self.dt = 0.02  # 50Hz
 		self.time = 0.  # time
-		self.time_max = 6.0  # 每回合最大时间
+		self.time_max = 10.0  # 每回合最大时间
 		self.a_linear = 0.  # 等效线加速度
 		self.a_angular = 0.  # 等效角加速度
 		self.kf = 0.1  # 等效线阻力系数
@@ -59,7 +59,7 @@ class UGV(rl_base):
 		self.v_max = 3
 		self.e_phi_max = np.pi if self.forward_only else np.pi / 2
 		self.omega_max = 2 * np.pi
-		self.a_linear_max = 3
+		self.a_linear_max = 6
 		self.a_angular_max = 4 * np.pi
 		'''state limitation'''
 
@@ -258,10 +258,10 @@ class UGV(rl_base):
 	def is_Terminal(self, param=None):
 		self.terminal_flag = 0		# 运行中
 		self.is_terminal = False
-		# if self.is_out():			# 出界
-		# 	# print('...out...')
-		# 	self.terminal_flag = 1
-		# 	self.is_terminal = True
+		if self.is_out():			# 出界
+			# print('...out...')
+			self.terminal_flag = 1
+			self.is_terminal = True
 		if self.time > self.time_max:	# 超时
 			# print('...time out...')
 			self.terminal_flag = 2
@@ -274,8 +274,8 @@ class UGV(rl_base):
 	def get_reward(self, param=None):
 		Q_pos = 2.
 		Q_vel = 0.0
-		Q_phi = 1.
-		Q_omega = 0.5
+		Q_phi = 2.
+		Q_omega = 1.
 
 		u_pos = -self.error * Q_pos
 		u_vel = -np.fabs(self.vel) * Q_vel
