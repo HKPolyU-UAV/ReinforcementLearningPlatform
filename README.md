@@ -52,35 +52,55 @@ All RL algorithms we implemented for now.
 ### 1. BallBalancer
 
 A ball is put on a beam, and the beam is controlled by a two-link manipulator. The objective is to make the ball hold at the center of the beam by adjusting the joints' angle of the of manipulator.
-![image](https://github.com/ZhengYaWei1992/ZWProgressView/blob/master/Untitled3.gif)
+![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/envs/BallBalancer1D.gif)
 
 ### 2. CartPole
 
 A cartpole, nothing special. Two environments are integrated. The first is angluar only, the objectove is to balance the pole by adjusting the force added on the cart. The objective of the second is to control both the angle of the cart and the position of the pole.
 
+CartPole with both **angle** and **position**
+![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/envs/CartPole.gif)
+
+CartPole with **angle** only
+![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/envs/CartPoleAngleOnly.gif)
+
 ### 3. FlightAttitudeSimulator
 
 This is an intermediate fixed rod with free rotational capability. We need to keep the rod in a horizontal position by adjusting the force added at the end of the rod.
+![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/envs/Flight_Attitude_Simulator.gif)
 
 ### 4. RobotManipulator
 
 A two-link manipulator. The objective is to control the position of the end of the manipulator.
+![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/envs/TwoLinkManipulator.gif)
 
 ### 5. SecondOrderIntegration
 
 A mass point, the control input is the two-dimensional accelection, we need to control its position.
+![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/envs/SecondOrderIntegration.gif)
 
 ### 6. UavFntsmcParam
 
 A quadrotor has already controlled by fast nonsingular terminal sliding mode controller (FNTSMC). We use RL to automatically tune the hyper-parameters of the FNTSMC to achieve a better tracking performance. Also, we have position tracking mode and attitude tracking mode.
 
+**Attitude tracking controller**
+![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/envs/UavFntsmcAtt.gif)
+
+**Position tracking controller**
+![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/envs/UavFntsmcPos.gif)
+
 ### 7. UavRobust
 
 Just quadrotor fixed-point control. The difference between **UavFntsmcParam** and **UavRobust** is that **UavRobust** directly use RL to control the quadrotor while **UavFntsmcParam** utilizes RL to optimize the hyper-parameters of FNTSMC.
 
+Graphical demonstration is identical to **UavFntsmcParam**.
+
+
 ### 8. UGV
 
 A ground vehicle, the control outputs are the expected linear and angular accelections. The objective is to control the position of the UGV.
+
+![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/envs/UGV.gif)
 
 
 
