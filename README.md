@@ -139,8 +139,15 @@ All demos are classified by Rl algorithms. For example, in folder SAC, all envir
 We put each demo a gif here:
 
 ## DDPG
-
+[DDPG-CPAO](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/demonstration/DDPG/DDPG-4-CartPoleAngleOnly.gif)
 
 | CartPoleAngleOnly                                                                                                                                    | FlightAttitudeSimulator                                                                                                                                      | SecondOrderIntegration                                                                                                                                    |
 | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| ![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/demonstration/DDPG/DDPG-4-CartPoleAngleOnly.gif) | ![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/demonstration/DDPG/DDPG-4-Flight_Attitude_Simulator.gif) | ![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/demonstrarion/DDPG/DDPG-4-SecondOrderIntegration.gif) |
+| ![image](DDPG-CPAO) | ![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/demonstration/DDPG/DDPG-4-Flight_Attitude_Simulator.gif) | ![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/demonstrarion/DDPG/DDPG-4-SecondOrderIntegration.gif) |
+
+## DoubleDQN
+
+
+| FlightAttitudeSimulator                                                                                                                                      | SecondOrderIntegration |
+|--------------------------------------------------------------------------------------------------------------------------------------------------------------| ------------------|
+| ![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/demonstration/DDPG/DDPG-4-Flight_Attitude_Simulator.gif) | ![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/demonstrarion/DDPG/DDPG-4-SecondOrderIntegration.gif) |
