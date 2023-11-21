@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + '/../../')
 
 from utils.functions import *
+import cv2 as cv
 
 '''Parameter list of the quadrotor'''
 DT = 0.02
@@ -63,23 +64,23 @@ pos_ctrl_param.saturation = np.array([np.inf, np.inf, np.inf])
 
 
 if __name__ == '__main__':
-    pos_ctrl_rl = uav_pos_ctrl_RL(uav_param, att_ctrl_param, pos_ctrl_param)
+    env = uav_pos_ctrl_RL(uav_param, att_ctrl_param, pos_ctrl_param)
 
-    NUM_OF_SIMULATION = 2
+    NUM_OF_SIMULATION = 1
     cnt = 0
-
+    video = cv.VideoWriter(env.name + '.mp4', cv.VideoWriter_fourcc(*"mp4v"), 60, (env.width, env.height))
     while cnt < NUM_OF_SIMULATION:
         '''生成新的参考轨迹的信息'''
-        pos_ctrl_rl.reset_uav_pos_ctrl(random_trajectory=True, random_pos0=True, yaw_fixed=False, new_att_ctrl_param=None, new_pos_ctrl_parma=None)
+        env.reset_uav_pos_ctrl(random_trajectory=True, random_pos0=True, yaw_fixed=False, new_att_ctrl_param=None, new_pos_ctrl_parma=None)
 
         if cnt % 1 == 0:
             print('Current:', cnt)
 
-        while pos_ctrl_rl.time < pos_ctrl_rl.time_max - DT / 2:
-            action_4_uav = pos_ctrl_rl.generate_action_4_uav()
-            pos_ctrl_rl.update(action=np.array(action_4_uav))
-
-            pos_ctrl_rl.visualization()
+        while env.time < env.time_max - DT / 2:
+            action_4_uav = env.generate_action_4_uav()
+            env.update(action=np.array(action_4_uav))
+            env.visualization()
+            video.write(env.image)
 
         cnt += 1
         SAVE = False
@@ -88,13 +89,14 @@ if __name__ == '__main__':
                         '/../../datasave/' +
                         datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d-%H-%M-%S') + '/')
             os.mkdir(new_path)
-            pos_ctrl_rl.collector.package2file(path=new_path)
-        # pos_ctrl.collector.plot_att()
-        # pos_ctrl.collector.plot_pqr()
-        # pos_ctrl.collector.plot_dot_att()
-        # # pos_ctrl.collector.plot_torque()
-        pos_ctrl_rl.collector.plot_pos()
-        pos_ctrl_rl.collector.plot_vel()
-        # # pos_ctrl.collector.plot_throttle()
-        # # pos_ctrl.collector.plot_outer_obs()
+            env.collector.package2file(path=new_path)
+        # env.collector.plot_att()
+        # env.collector.plot_pqr()
+        # env.collector.plot_dot_att()
+        # # env.collector.plot_torque()
+        env.collector.plot_pos()
+        env.collector.plot_vel()
+        # # env.collector.plot_throttle()
+        # # env.collector.plot_outer_obs()
         plt.show()
+    video.release()

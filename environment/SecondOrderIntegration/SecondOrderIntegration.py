@@ -61,7 +61,7 @@ class SecondOrderIntegration(rl_base):
 
         self.action_dim = 2
         self.action_step = [None, None]
-        self.action_range = [[self.fMin, self.fMax], [self.fMin, self.fMax]]
+        self.action_range = np.array([[self.fMin, self.fMax], [self.fMin, self.fMax]])
 
         self.action_num = [np.inf, np.inf]
         self.action_space = [None, None]

@@ -6,7 +6,7 @@ from environment.color import Color
 
 
 class Flight_Attitude_Simulator(rl_base):
-    def __init__(self, initTheta: float):
+    def __init__(self, initTheta: float = 0.):
         """
         @note:                  initialization, 这个环境只有两个状态，角度和角速度，默认设定点为零度，并且取消初始角度，此时角度误差默认为负角度
         @param initTheta:       initial theta
@@ -70,7 +70,7 @@ class Flight_Attitude_Simulator(rl_base):
 
         self.action_dim = 1
         self.action_step = [None]
-        self.action_range = [[self.f_min, self.f_max]]
+        self.action_range = np.array([[self.f_min, self.f_max]])
         self.action_num = [np.inf]
         self.action_space = [None]
         self.isActionContinuous = True

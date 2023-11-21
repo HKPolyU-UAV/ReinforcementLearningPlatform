@@ -4,6 +4,7 @@ from ref_cmd import *
 from uav import uav_param
 from uav_att_ctrl_RL import uav_att_ctrl_RL
 from utils.functions import *
+import cv2 as cv
 
 '''Parameter list of the quadrotor'''
 DT = 0.02
@@ -42,45 +43,38 @@ att_ctrl_param.saturation = np.array([0.3, 0.3, 0.3])  # max torque
 '''Parameter list of the attitude controller'''
 
 if __name__ == '__main__':
-	'''1. Define a controller'''
-	att_ctrl_rl = uav_att_ctrl_RL(uav_param, att_ctrl_param)
+    '''1. Define a controller'''
+    env = uav_att_ctrl_RL(uav_param, att_ctrl_param)
 
-	NUM_OF_SIMULATION = 5
-	cnt = 0
+    NUM_OF_SIMULATION = 1
+    cnt = 0
+    video = cv.VideoWriter(env.name + '.mp4', cv.VideoWriter_fourcc(*"mp4v"), 60, (env.att_w, env.att_h))
+    while cnt < NUM_OF_SIMULATION:
+        env.reset_uav_att_ctrl(random_att_trajectory=False, yaw_fixed=False, new_att_ctrl_param=None)
+        if cnt % 1 == 0:
+            print('Current:', cnt)
 
-	while cnt < NUM_OF_SIMULATION:
-		att_ctrl_rl.reset_uav_att_ctrl(random_att_trajectory=False, yaw_fixed=False, new_att_ctrl_param=None)
-		if cnt % 1 == 0:
-			print('Current:', cnt)
+        '''3. Control'''
+        while env.time < env.time_max - DT / 2:
+            '''3.1. generate reference signal'''
+            rhod, dot_rhod, dot2_rhod, _ = ref_inner(env.time,
+                                                     env.ref_att_amplitude,
+                                                     env.ref_att_period,
+                                                     env.ref_att_bias_a,
+                                                     env.ref_att_bias_phase)
 
-		'''3. Control'''
-		while att_ctrl_rl.time < att_ctrl_rl.time_max - DT / 2:
-			'''3.1. generate reference signal'''
-			rhod, dot_rhod, dot2_rhod, _ = ref_inner(att_ctrl_rl.time,
-													 att_ctrl_rl.ref_att_amplitude,
-													 att_ctrl_rl.ref_att_period,
-													 att_ctrl_rl.ref_att_bias_a,
-													 att_ctrl_rl.ref_att_bias_phase)
+            '''3.2. control'''
+            # torque = env.att_control(ref=rhod, dot_ref=dot_rhod, dot2_ref=dot2_rhod)
+            torque = env.att_control(ref=rhod, dot_ref=dot_rhod, dot2_ref=None)
+            env.update(action=torque)
 
-			'''3.2. control'''
-			# torque = att_ctrl.att_control(ref=rhod, dot_ref=dot_rhod, dot2_ref=dot2_rhod)
-			torque = att_ctrl_rl.att_control(ref=rhod, dot_ref=dot_rhod, dot2_ref=None)
-			att_ctrl_rl.update(action=torque)
+            env.visualization()
+            video.write(env.att_image)
+        cnt += 1
 
-			att_ctrl_rl.visualization()
-
-		cnt += 1
-		# print('Finish...')
-		# SAVE = False
-		# if SAVE:
-		# 	new_path = (os.path.dirname(os.path.abspath(__file__)) +
-		# 				'/../../datasave/' +
-		# 				datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d-%H-%M-%S') + '/')
-		# 	os.mkdir(new_path)
-		# 	att_ctrl.collector.package2file(path=new_path)
-
-		att_ctrl_rl.collector.plot_att()
-		att_ctrl_rl.collector.plot_dot_att()
-		att_ctrl_rl.collector.plot_pqr()
-		att_ctrl_rl.collector.plot_torque()
-		plt.show()
+        env.collector.plot_att()
+        env.collector.plot_dot_att()
+        env.collector.plot_pqr()
+        env.collector.plot_torque()
+        plt.show()
+    video.release()

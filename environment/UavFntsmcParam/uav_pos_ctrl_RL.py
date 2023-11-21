@@ -68,7 +68,10 @@ class uav_pos_ctrl_RL(rl_base, uav_pos_ctrl):
         return state
 
     def draw_init_image(self):
-        pass
+        self.draw_boundary()
+        self.draw_label()
+        self.draw_region_grid(5, 5, 5)
+        self.image_copy = self.image.copy()
 
     def visualization(self):
         self.image = self.image_copy.copy()
