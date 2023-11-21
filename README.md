@@ -49,6 +49,10 @@ All RL algorithms we implemented for now.
 
 ## environment
 
+### Noting!!
+
+Noting that the code runs actually pretty fast. We might don't choose a proper mp4-2-gif tool, and that is why the gifs shown below are all low frame rate.
+
 ### 1. BallBalancer
 
 A ball is put on a beam, and the beam is controlled by a two-link manipulator. The objective is to make the ball hold at the center of the beam by adjusting the joints' angle of the of manipulator.
