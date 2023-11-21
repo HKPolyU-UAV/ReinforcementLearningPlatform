@@ -34,6 +34,7 @@ Nothing special, just some commonly used classes and functions.
 
 All RL algorithms we implemented for now.
 
+
 | Algorithm   | classification | Description                  |
 | ----------- | -------------- | ---------------------------- |
 | DQN         | value based    | None                         |
@@ -139,7 +140,7 @@ We put each demo a gif here:
 
 ## DDPG
 
-| CartPoleAngleOnly                                                                                                                                    | FlightAttitudeSimulator                                                                                           | SecondOrderIntegration                                                                                            |
-| ---------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| ![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/demonstrarion/DDPG/DDPG-4-CartPoleAngleOnly.gif) | ![image](https://github.com/ReinfLorcementearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/demonstrarion/DDPG/DDPG-4-Flight_Attitude_Simulator.gif) | ![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/demonstrarion/DDPG/DDPG-4-SecondOrderIntegration.gif) |
 
+| CartPoleAngleOnly                                                                                                                                    | FlightAttitudeSimulator                                                                                                                                      | SecondOrderIntegration                                                                                                                                    |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/demonstration/DDPG/DDPG-4-CartPoleAngleOnly.gif) | ![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/demonstration/DDPG/DDPG-4-Flight_Attitude_Simulator.gif) | ![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/demonstrarion/DDPG/DDPG-4-SecondOrderIntegration.gif) |
