@@ -34,18 +34,18 @@ Nothing special, just some commonly used classes and functions.
 
 All RL algorithms we implemented for now.
 
-|  Algorithm  |  classification |         Description          |
-| ----------- | --------------- | ---------------------------- |
-|     DQN     |   value based   |              None            |
-| Dueling DQN |   value based   |              None            |
-| Double DQN  |   value based   |              None            |
-|     DDPG    |   actor-critic  |              None            |
-|     TD3     |   actor-critic  |        update of DDPG        |
-|     SAC     |   actor-critic  |              None            |
-|     PPO     |   policy based  |              None            |
-|     DPPO    |   policy based  |      multi process PPO       |
-|     PPO2    |   policy based  | PPO with gae and some tricks |
-|    DPPO2    |   policy based  |      multi process PPO2      |
+| Algorithm   | classification | Description                  |
+| ----------- | -------------- | ---------------------------- |
+| DQN         | value based    | None                         |
+| Dueling DQN | value based    | None                         |
+| Double DQN  | value based    | None                         |
+| DDPG        | actor-critic   | None                         |
+| TD3         | actor-critic   | update of DDPG               |
+| SAC         | actor-critic   | None                         |
+| PPO         | policy based   | None                         |
+| DPPO        | policy based   | multi process PPO            |
+| PPO2        | policy based   | PPO with gae and some tricks |
+| DPPO2       | policy based   | multi process PPO2           |
 
 ## environment
 
@@ -123,7 +123,6 @@ Just quadrotor fixed-point control. The difference between **UavFntsmcParam** an
 
 Graphical demonstration is identical to **UavFntsmcParam**.
 
-
 ### 8. UGV
 
 A ground vehicle, the control outputs are the expected linear and angular accelections. The objective is to control the position of the UGV.
@@ -140,9 +139,7 @@ We put each demo a gif here:
 
 ## DDPG
 
-|  CartPoleAngleOnly|  FlightAttitudeSimulator|         SecondOrderIntegration|
-| ----------- | --------------- | ---------------------------- |
-|     ![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/envs/UGV.gif) | ![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/envs/UGV.gif) | ![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/envs/UGV.gif) |
-
-
+| CartPoleAngleOnly                                                                                                                                    | FlightAttitudeSimulator                                                                                           | SecondOrderIntegration                                                                                            |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| ![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/demonstrarion/DDPG/DDPG-4-CartPoleAngleOnly.gif) | ![image](https://github.com/ReinfLorcementearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/demonstrarion/DDPG/DDPG-4-Flight_Attitude_Simulator.gif) | ![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/demonstrarion/DDPG/DDPG-4-SecondOrderIntegration.gif) |
 
