@@ -132,11 +132,11 @@ if __name__ == '__main__':
 
 	mp.set_start_method('spawn', force=True)
 
-	process_num = 10
-	actor_lr = 1e-4  # / min(process_num, 5)
-	critic_lr = 1e-4  # / min(process_num, 5)  # 一直都是 1e-3
+	process_num = 20
+	actor_lr = 1e-4  / min(process_num, 5)
+	critic_lr = 1e-3  / min(process_num, 5)  # 一直都是 1e-3
 	# k_epo = int(100 / process_num * 1)  # int(100 / process_num * 1.1)
-	k_epo = 30 # / min(process_num, 5)
+	k_epo = 30 / min(process_num, 5)
 	agent = DPPO2(env=env, actor_lr=actor_lr, critic_lr=critic_lr, num_of_pro=process_num, path=simulationPath)
 
 	'''3. 重新加载全局网络和优化器，这是必须的操作'''
