@@ -81,8 +81,8 @@ class BallBalancer1D(rl_base):
 
         self.action_dim = 1
         self.action_step = [None]
-        self.action_range = [[self.omegaMin, self.omegaMax]]
-        self.action_num = [math.inf]
+        self.action_range = np.array([[self.omegaMin, self.omegaMax]])
+        self.action_num = [np.inf]
         self.action_space = [None]
         self.isActionContinuous = True
         self.current_action = np.zeros(self.action_dim)

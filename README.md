@@ -55,7 +55,7 @@ A ball is put on a beam, and the beam is controlled by a two-link manipulator. T
 
 ### 2. CartPole
 
-A cartpole, nothing special. Two environments are integrated. The first is angluar only, the objectove is to balance the pole by adjusting the force added on the cart. The objective of the second is to control both the angle of the pole and the position of the pole.
+A cartpole, nothing special. Two environments are integrated. The first is angluar only, the objectove is to balance the pole by adjusting the force added on the cart. The objective of the second is to control both the angle of the cart and the position of the pole.
 
 ### 3. FlightAttitudeSimulator
 

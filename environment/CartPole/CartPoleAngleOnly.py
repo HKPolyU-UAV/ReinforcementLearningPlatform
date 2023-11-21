@@ -8,7 +8,7 @@ import pandas as pd
 
 
 class CartPoleAngleOnly(rl_base):
-    def __init__(self, initTheta: float):
+    def __init__(self, initTheta: float = 0.):
         """
         :param initTheta:       initial angle, which should be less than 30 degree
         :param save_cfg:        save the model config file or not
@@ -57,7 +57,7 @@ class CartPoleAngleOnly(rl_base):
 
         self.action_dim = 1
         self.action_step = [None]
-        self.action_range = [[-self.fm, self.fm]]
+        self.action_range = np.array([[-self.fm, self.fm]])
         self.action_num = [np.inf]
         self.action_space = [None]
         self.isActionContinuous = True
@@ -117,7 +117,7 @@ class CartPoleAngleOnly(rl_base):
         cv.circle(self.image, (int(self.xoffset + 1.5 * self.scale), int(self.height / 2)), 4, Color().Black, -1)
 
     def draw_init_image(self):
-        self.draw_slide()
+        # self.draw_slide()
         self.image_copy = self.image.copy()
 
     def make_text(self):
@@ -297,4 +297,4 @@ class CartPoleAngleOnly(rl_base):
 
         self.image = np.ones([self.height, self.width, 3], np.uint8) * 255
         self.image_copy = self.image.copy()
-        self.draw_slide()
+        # self.draw_slide()

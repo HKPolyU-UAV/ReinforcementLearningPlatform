@@ -9,7 +9,7 @@ from environment.color import Color
 
 
 class CartPole(rl_base):
-	def __init__(self, initTheta: float, initX: float):
+	def __init__(self, initTheta: float = 0., initX: float = 0.):
 		"""
 		:param initTheta:       initial angle, which should be less than 30 degree
 		:param initX:           initial position
