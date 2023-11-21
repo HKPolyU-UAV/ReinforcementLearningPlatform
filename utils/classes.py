@@ -375,7 +375,7 @@ class PPOActorCritic(nn.Module):
         super(PPOActorCritic, self).__init__()
         self.action_dim = _action_dim
         # 初始化方差，一个动作就一个方差，两个动作就两个方差，std 是标准差
-        self.action_var = torch.full((_action_dim,), _action_std_init * _action_std_init)
+        self.action_var = torch.Tensor(_action_std_init ** 2)
         self.actor = nn.Sequential(
             nn.Linear(_state_dim, 64),
             nn.Tanh(),
@@ -396,7 +396,7 @@ class PPOActorCritic(nn.Module):
         self.to(self.device)
 
     def set_action_std(self, new_action_std):
-        self.action_var = torch.full((self.action_dim,), new_action_std * new_action_std).to(self.device)
+        self.action_var = torch.Tensor(new_action_std ** 2).to(self.device)
 
     def forward(self):
         raise NotImplementedError
