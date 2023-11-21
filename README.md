@@ -52,7 +52,10 @@ All RL algorithms we implemented for now.
 ### 1. BallBalancer
 
 A ball is put on a beam, and the beam is controlled by a two-link manipulator. The objective is to make the ball hold at the center of the beam by adjusting the joints' angle of the of manipulator.
-![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/envs/BallBalancer1D.gif)
+
+<div align=center>
+    <img src="https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/envs/BallBalancer1D.gif" width="400px">
+</div>
 
 ### 2. CartPole
 
