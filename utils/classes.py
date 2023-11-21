@@ -200,7 +200,8 @@ class ReplayBuffer:
         self.sorted_index = []
         self.resort_count = 0
 
-    def store_transition(self, state: np.ndarray, action: np.ndarray, reward: float, state_: np.ndarray, done: float, log_p: float = 0., has_log_prob: bool = False):
+    def store_transition(self, state: np.ndarray, action: np.ndarray, reward: float, state_: np.ndarray, done: float,
+                         log_p: float = 0., has_log_prob: bool = False):
         index = self.mem_counter % self.mem_size
         self.s_mem[index] = state
         self.a_mem[index] = action
@@ -216,9 +217,11 @@ class ReplayBuffer:
         :return:        根据奖励大小得到所有数据的索引值，升序，即从小到大
         """
         print('...sorting...')
-        self.sorted_index = sorted(range(min(self.mem_counter, self.mem_size)), key=lambda k: self.r_mem[k], reverse=False)
+        self.sorted_index = sorted(range(min(self.mem_counter, self.mem_size)), key=lambda k: self.r_mem[k],
+                                   reverse=False)
 
-    def store_transition_per_episode(self, states, actions, rewards, states_, dones, log_ps=None, has_log_prob: bool = False):
+    def store_transition_per_episode(self, states, actions, rewards, states_, dones, log_ps=None,
+                                     has_log_prob: bool = False):
         self.resort_count += 1
         num = len(states)
         for i in range(num):
@@ -249,16 +252,17 @@ class RolloutBuffer:
         self.batch_size = batch_size
         self.state_dim = state_dim
         self.action_dim = action_dim
-        self.s = np.zeros((batch_size, state_dim))              # s
-        self.a = np.zeros((batch_size, action_dim))             # a
-        self.a_lp = np.zeros((batch_size, action_dim))                   # a_lp
-        self.r = np.zeros((batch_size, 1))                           # r
-        self.s_ = np.zeros((batch_size, state_dim))             # s'
-        self.done = np.zeros((batch_size, 1))      # done
-        self.success = np.zeros((batch_size, 1))      # success
+        self.s = np.zeros((batch_size, state_dim))  # s
+        self.a = np.zeros((batch_size, action_dim))  # a
+        self.a_lp = np.zeros((batch_size, action_dim))  # a_lp
+        self.r = np.zeros((batch_size, 1))  # r
+        self.s_ = np.zeros((batch_size, state_dim))  # s'
+        self.done = np.zeros((batch_size, 1))  # done
+        self.success = np.zeros((batch_size, 1))  # success
         self.index = 0
 
-    def append(self, s: np.ndarray, a: np.ndarray, log_prob: np.ndarray, r: float, s_: np.ndarray, done: float, success: float, index: int):
+    def append(self, s: np.ndarray, a: np.ndarray, log_prob: np.ndarray, r: float, s_: np.ndarray, done: float,
+               success: float, index: int):
         self.s[index] = s
         self.a[index] = a
         self.a_lp[index] = log_prob
@@ -267,7 +271,8 @@ class RolloutBuffer:
         self.done[index] = done
         self.success[index] = success
 
-    def append_traj(self, s: np.ndarray, a: np.ndarray, log_prob: np.ndarray, r: np.ndarray, s_: np.ndarray, done: np.ndarray, success: np.ndarray):
+    def append_traj(self, s: np.ndarray, a: np.ndarray, log_prob: np.ndarray, r: np.ndarray, s_: np.ndarray,
+                    done: np.ndarray, success: np.ndarray):
         _l = len(done)
         for i in range(_l):
             if self.index == self.batch_size:
@@ -318,7 +323,8 @@ class RolloutBuffer2:
         self.success = np.atleast_2d([]).astype(np.float32)
         self.index = 0
 
-    def append_traj(self, s: np.ndarray, a: np.ndarray, log_prob: np.ndarray, r: np.ndarray, s_: np.ndarray, done: np.ndarray, success: np.ndarray):
+    def append_traj(self, s: np.ndarray, a: np.ndarray, log_prob: np.ndarray, r: np.ndarray, s_: np.ndarray,
+                    done: np.ndarray, success: np.ndarray):
         if self.index == 0:
             self.s = np.atleast_2d(s).astype(np.float32)
             self.a = np.atleast_2d(a).astype(np.float32)
@@ -404,13 +410,13 @@ class PPOActorCritic(nn.Module):
     def act(self, s: torch.Tensor) -> tuple:
         action_mean = self.actor(s)
         cov_mat = torch.diag(self.action_var).unsqueeze(dim=0)
-        dist = MultivariateNormal(action_mean, cov_mat)     # 多变量高斯分布，均值，方差
+        dist = MultivariateNormal(action_mean, cov_mat)  # 多变量高斯分布，均值，方差
 
         _a = dist.sample()
         action_log_prob = dist.log_prob(_a)
         # state_val = self.critic(s)
 
-        return _a.detach(), action_log_prob.detach()  #, state_val.detach()
+        return _a.detach(), action_log_prob.detach()  # , state_val.detach()
 
     def evaluate(self, s, a):
         action_mean = self.actor(s)
@@ -427,6 +433,97 @@ class PPOActorCritic(nn.Module):
         state_values = self.critic(s)
 
         return action_logprobs, state_values, dist_entropy
+
+
+class SACActor(nn.Module):
+    def __init__(self, state_dim: int = 3, action_dim: int = 3, a_min: np.ndarray = np.zeros(3),
+                 a_max: np.ndarray = np.ones(3), use_orthogonal_init: bool = True):
+        super(SACActor, self).__init__()
+        self.fc1 = nn.Linear(state_dim, 128)
+        self.fc2 = nn.Linear(128, 64)
+        self.mean_layer = nn.Linear(64, action_dim)
+        self.log_std_layer = nn.Linear(64, action_dim)
+        self.a_min = torch.tensor(a_min, dtype=torch.float)
+        self.a_max = torch.tensor(a_max, dtype=torch.float)
+        self.off = (self.a_min + self.a_max) / 2.0
+        self.gain = self.a_max - self.off
+        if use_orthogonal_init:
+            self.orthogonal_init_all()
+
+    @staticmethod
+    def orthogonal_init(layer, gain=1.0):
+        nn.init.orthogonal_(layer.weight, gain=gain)
+        nn.init.constant_(layer.bias, 0)
+
+    def orthogonal_init_all(self):
+        self.orthogonal_init(self.fc1)
+        self.orthogonal_init(self.fc2)
+        self.orthogonal_init(self.mean_layer, gain=0.01)
+        self.orthogonal_init(self.log_std_layer, gain=0.01)
+
+    def forward(self, x, deterministic=False, with_logprob=True):
+        x = torch.relu(self.fc1(x))
+        x = torch.relu(self.fc2(x))
+        mean = self.mean_layer(x)
+        log_std = self.log_std_layer(x)  # We output the log_std to ensure that std=exp(log_std)>0
+        log_std = torch.clamp(log_std, -20, 2)
+        std = torch.exp(log_std)
+
+        dist = Normal(mean, std)  # Generate a Gaussian distribution
+        if deterministic:  # When evaluating，we use the deterministic policy
+            a = mean
+        else:
+            a = dist.rsample()  # reparameterization trick: mean+std*N(0,1)
+
+        if with_logprob:  # The method refers to Open AI Spinning up, which is more stable.
+            log_pi = dist.log_prob(a).sum(dim=1, keepdim=True)
+            log_pi -= (2 * (np.log(2) - a - func.softplus(-2 * a))).sum(dim=1, keepdim=True)
+        else:
+            log_pi = None
+
+        a = torch.tanh(a) * self.gain + self.off
+
+        return a, log_pi
+
+
+class SACCritic(nn.Module):
+    def __init__(self, state_dim: int = 3, action_dim: int = 1, use_orthogonal_init: bool = True):
+        super(SACCritic, self).__init__()
+        # Q1
+        self.fc1 = nn.Linear(state_dim + action_dim, 128)
+        self.fc2 = nn.Linear(128, 64)
+        self.fc3 = nn.Linear(64, 1)
+        # Q2
+        self.fc4 = nn.Linear(state_dim + action_dim, 128)
+        self.fc5 = nn.Linear(128, 64)
+        self.fc6 = nn.Linear(64, 1)
+        if use_orthogonal_init:
+            self.orthogonal_init_all()
+
+    @staticmethod
+    def orthogonal_init(layer, gain=1.0):
+        nn.init.orthogonal_(layer.weight, gain=gain)
+        nn.init.constant_(layer.bias, 0)
+
+    def orthogonal_init_all(self):
+        self.orthogonal_init(self.fc1)
+        self.orthogonal_init(self.fc2)
+        self.orthogonal_init(self.fc3)
+        self.orthogonal_init(self.fc4)
+        self.orthogonal_init(self.fc5)
+        self.orthogonal_init(self.fc6)
+
+    def forward(self, s, a):
+        s_a = torch.cat([s, a], 1)
+        q1 = torch.relu(self.fc1(s_a))
+        q1 = torch.relu(self.fc2(q1))
+        q1 = self.fc3(q1)
+
+        q2 = torch.relu(self.fc4(s_a))
+        q2 = torch.relu(self.fc5(q2))
+        q2 = self.fc6(q2)
+
+        return q1, q2
 
 
 class PPOActor_Gaussian(nn.Module):
@@ -584,11 +681,11 @@ class SharedAdam(torch.optim.Adam):
         for group in self.param_groups:
             for p in group['params']:
                 state = self.state[p]
-                state['step'] = torch.zeros(1)                   # 原来就是0 照着另一个程序改的
+                state['step'] = torch.zeros(1)  # 原来就是0 照着另一个程序改的
                 state['exp_avg'] = torch.zeros_like(p.data)
                 state['exp_avg_sq'] = torch.zeros_like(p.data)
 
                 # share in memory
-                state['step'].share_memory_()       # 这句话是对照另一个程序加的
+                state['step'].share_memory_()  # 这句话是对照另一个程序加的
                 state['exp_avg'].share_memory_()
                 state['exp_avg_sq'].share_memory_()
