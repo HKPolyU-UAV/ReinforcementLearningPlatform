@@ -60,7 +60,7 @@ class UGV(rl_base):
 		self.e_phi_max = np.pi / 2
 		self.omega_max = 2 * np.pi
 		self.a_linear_max = 3
-		self.a_angular_max = 4 * np.pi
+		self.a_angular_max = 2 * np.pi
 		'''state limitation'''
 
 		self.name = 'UGV'
@@ -270,9 +270,9 @@ class UGV(rl_base):
 
 	def get_reward(self, param=None):
 		Q_pos = 2.
-		Q_vel = 0.0
-		Q_phi = 0.5
-		Q_omega = 0.5
+		Q_vel = 0.
+		Q_phi = 0.
+		Q_omega = 1.0
 
 		u_pos = -self.error * Q_pos
 		u_vel = -np.fabs(self.vel) * Q_vel

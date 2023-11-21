@@ -1,3 +1,5 @@
+import numpy as np
+
 from utils.classes import *
 import torch.multiprocessing as mp
 import pandas as pd
@@ -61,14 +63,14 @@ class Worker(mp.Process):
             discounted_reward = reward + (self.gamma * discounted_reward)
             rewards.insert(0, discounted_reward)
 
-        rewards = torch.tensor(np.array(rewards), dtype=torch.float32).to(self.device)
+        rewards = torch.tensor(np.array(rewards), dtype=torch.float32).squeeze(1).to(self.device)
         # rewards = (rewards - rewards.mean()) / (rewards.std() + 1e-7)
 
         with torch.no_grad():
             old_states = torch.FloatTensor(self.buffer.s).detach().to(self.device)
             old_actions = torch.FloatTensor(self.buffer.a).detach().to(self.device)
             old_log_probs = torch.FloatTensor(self.buffer.a_lp).detach().to(self.device)
-            old_state_values = torch.FloatTensor(self.g_pi.critic(torch.FloatTensor(self.buffer.s))).detach().to(self.device)
+            old_state_values = torch.FloatTensor(self.g_pi.critic(torch.FloatTensor(self.buffer.s))).squeeze(1).detach().to(self.device)
 
         advantages = rewards.detach() - old_state_values.detach()
 
@@ -91,7 +93,7 @@ class Worker(mp.Process):
     def choose_action(self, state):
         with torch.no_grad():
             t_state = torch.FloatTensor(state).to(self.device)
-            action, action_log_prob, state_val = self.l_pi.act(t_state)
+            action, action_log_prob = self.l_pi.act(t_state)
 
         return action, action_log_prob
 
@@ -209,10 +211,9 @@ class Distributed_PPO:
         '''DPPO'''
 
         '''global variable'''
-        self.global_policy = PPOActorCritic(self.state_dim_nn, self.action_dim_nn, 0.6, name='Policy_ppo',
+        self.global_policy = PPOActorCritic(self.state_dim_nn, self.action_dim_nn, np.ones(self.action_dim_nn),
                                             chkpt_dir=self.path)
-        self.eval_policy = PPOActorCritic(self.state_dim_nn, self.action_dim_nn, 0.6, name='eval_policy',
-                                          chkpt_dir=self.path)
+        self.eval_policy = PPOActorCritic(self.state_dim_nn, self.action_dim_nn, np.ones(self.action_dim_nn))
 
         self.optimizer = SharedAdam([
             {'params': self.global_policy.actor.parameters(), 'lr': self.actor_lr},
