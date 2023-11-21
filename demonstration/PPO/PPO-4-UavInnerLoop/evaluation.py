@@ -3,6 +3,7 @@ import os
 import sys
 from matplotlib import pyplot as plt
 from numpy import deg2rad
+import cv2 as cv
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../")
@@ -133,8 +134,10 @@ if __name__ == '__main__':
 
     policy = PPOActorCritic(env.state_dim, env.action_dim, env.action_range)
     policy.load_state_dict(torch.load(optPath + 'actor-critic'))
-    test_num = 3
+    test_num = 5
     r = 0
+    # video = cv.VideoWriter('../PPO-4-' + env.name + '.mp4', cv.VideoWriter_fourcc(*"mp4v"), 200,
+    #                        (env.att_w, env.att_h))
     for _ in range(test_num):
         env.reset(random=True)
         while not env.is_terminal:
@@ -145,7 +148,9 @@ if __name__ == '__main__':
             env.step_update(_action)  # 环境更新的动作必须是实际物理动作
             r += env.reward
             env.visualization()
+            # video.write(env.att_image)
         print(r)
         env.collector.plot_att()
         plt.legend()
         plt.show()
+    # video.release()
