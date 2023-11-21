@@ -62,10 +62,16 @@ A ball is put on a beam, and the beam is controlled by a two-link manipulator. T
 A cartpole, nothing special. Two environments are integrated. The first is angluar only, the objectove is to balance the pole by adjusting the force added on the cart. The objective of the second is to control both the angle of the cart and the position of the pole.
 
 CartPole with both **angle** and **position**
-![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/envs/CartPole.gif)
+
+<div align=center>
+    <img src="https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/envs/CartPole.gif" width="400px">
+</div>
 
 CartPole with **angle** only
-![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/envs/CartPoleAngleOnly.gif)
+
+<div align=center>
+    <img src="https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/envs/CartPoleAngleOnly.gif" width="400px">
+</div>
 
 ### 3. FlightAttitudeSimulator
 
