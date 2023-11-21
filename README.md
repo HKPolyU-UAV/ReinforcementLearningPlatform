@@ -104,13 +104,13 @@ A quadrotor has already controlled by fast nonsingular terminal sliding mode con
 **Attitude tracking controller**
 
 <div align=center>
-    <img src="https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/envs/UavFntsmcAtt.gif" width="400px">
+    <img src="https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/envs/UavFntsmcAtt.gif" width="600px">
 </div>
 
 **Position tracking controller**
 
 <div align=center>
-    <img src="https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/envs/UavFntsmcPos.gif" width="400px">
+    <img src="https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/envs/UavFntsmcPos.gif" width="600px">
 </div>
 
 ### 7. UavRobust
@@ -128,7 +128,7 @@ A ground vehicle, the control outputs are the expected linear and angular accele
     <img src="https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/envs/UGV.gif" width="400px">
 </div>
 
-
+# demonstration
 
 
 
