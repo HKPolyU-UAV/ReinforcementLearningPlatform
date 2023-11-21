@@ -12,13 +12,13 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../")
 
-from BallBalancer1D import BallBalancer1D as env
+from CartPole import CartPole as env
 from algorithm.actor_critic.Soft_Actor_Critic import SAC
 from utils.functions import *
 from utils.classes import Normalization
 
 timestep = 0
-ENV = 'BallBalancer1D'
+ENV = 'CartPole'
 ALGORITHM = 'SAC'
 MAX_EPISODE = 1500
 r_norm = Normalization(shape=1)
@@ -191,9 +191,9 @@ if __name__ == '__main__':
     os.mkdir(simulationPath)
     c = cv.waitKey(1)
 
-    RETRAIN = True
+    RETRAIN = False
 
-    env = env()
+    env = env(initTheta=0., initX=0.)
     reward_norm = Normalization(shape=1)
     actor = SACActor(env.state_dim, env.action_dim, env.action_range[:, 0], env.action_range[:, 1], std_scale=1.)
     critic = SACCritic(env.state_dim, env.action_dim)
@@ -204,7 +204,7 @@ if __name__ == '__main__':
                 gamma=0.99,
                 critic_tau=0.005,
                 memory_capacity=20000,
-                batch_size=64,
+                batch_size=128,
                 actor=actor,
                 critic=critic,
                 target_critic=target_critic,

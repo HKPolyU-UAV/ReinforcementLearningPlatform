@@ -115,7 +115,8 @@ if __name__ == '__main__':
     test_num = 10
     error = []
     terminal_list = []
-    # cap = cv.VideoWriter('record.mp4', cv.VideoWriter_fourcc(*'mp4v'), 120, (env.image_size[0]-env.board, env.image_size[1]))
+    # video = cv.VideoWriter('../DPPO-4-' + env.name + '.mp4', cv.VideoWriter_fourcc(*"mp4v"), 200,
+    #                        (env.image_size[0] - env.board, env.image_size[1]))
     for i in range(test_num):
         env.reset(random=True)
         if i % 100 == 0:
@@ -127,10 +128,10 @@ if __name__ == '__main__':
             action = eval_policy.action_linear_trans(action_from_actor.flatten())  # 将动作转换到实际范围上
             env.step_update(action)  # 环境更新的action需要是物理的action
             env.visualization()  # 画图
-        # cap.write(env.image[:, 0:env.image_size[0] - env.board])
+            # video.write(env.image[:, 0:env.image_size[0] - env.board])
         error.append(np.linalg.norm(env.error))
         terminal_list.append(env.init_target)
-    # cap.release()
+    # video.release()
     '''统计一下，没有什么特殊的'''
     error = np.array(error)
     terminal_list = np.array(terminal_list)

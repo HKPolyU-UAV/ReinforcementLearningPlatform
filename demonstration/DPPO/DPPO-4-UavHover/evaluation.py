@@ -2,8 +2,7 @@ import datetime
 import os
 import sys
 import matplotlib.pyplot as plt
-import torch
-
+import cv2 as cv
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../../")
@@ -135,6 +134,8 @@ if __name__ == '__main__':
     '''3. 开始测试'''
     env.msg_print_flag = True
     test_num = 5
+    # video = cv.VideoWriter('../DPPO-4-' + env.name + '.mp4', cv.VideoWriter_fourcc(*"mp4v"), 200,
+    #                        (env.width, env.height))
     for _ in range(test_num):
         env.reset(random=True)
         while not env.is_terminal:
@@ -149,6 +150,7 @@ if __name__ == '__main__':
             action = np.concatenate((uf, torque))
             env.step_update(action)  # 环境更新的动作必须是实际物理动作
             env.visualization()
+            # video.write(env.image[:, :env.width])
         env.collector.plot_pos()
         env.collector.plot_vel()
         env.collector.plot_throttle()
@@ -156,3 +158,4 @@ if __name__ == '__main__':
         env.collector.plot_pqr()
         env.collector.plot_torque()
         plt.show()
+    # video.release()

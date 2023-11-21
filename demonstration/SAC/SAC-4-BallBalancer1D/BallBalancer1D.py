@@ -238,11 +238,11 @@ class BallBalancer1D(rl_base):
 
     def get_reward(self, param=None):
         # w = (2 * self.omega - self.omegaMax - self.omegaMin) / (self.omegaMax - self.omegaMin) * self.staticGain
-        e = self.error / self.L * self.staticGain
+        e = self.error / self.L * 2
         # 二次型奖励 由于theta与pos有比例关系，所以只对pos和v做要求
-        r1 = - e ** 2 - np.tanh(5 * e) + 0.5
+        r1 = - e ** 2
         # r2 = - 1 * self.next_state[1] ** 2
-        r2 = 0
+        r2 = - self.vel ** 2 * 0.1
         r3 = 1000 if self.is_success() else 0
         self.reward = r1 + r2 + r3
 

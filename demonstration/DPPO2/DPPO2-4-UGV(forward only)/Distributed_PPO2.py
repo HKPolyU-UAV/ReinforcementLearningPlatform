@@ -38,7 +38,7 @@ class Worker(mp.Process):
         self.env = _env
         self.queue = _queue
         self.lock = _lock
-        self.buffer = RolloutBuffer(int(self.env.time_max / self.env.dt * 2), self.env.state_dim, self.env.action_dim)
+        self.buffer = RolloutBuffer(int(self.env.time_max / self.env.dt * 4), self.env.state_dim, self.env.action_dim)
         self.gamma = _ppo_msg['gamma']
         self.k_epo = _ppo_msg['k_epo']
         self.device = _ppo_msg['device']
@@ -106,7 +106,6 @@ class Worker(mp.Process):
         with torch.no_grad():
             t_state = torch.unsqueeze(torch.tensor(state, dtype=torch.float), 0).to(self.device)
             dist = self.l_actor.get_dist(t_state)
-            # print(self.l_actor.std)
             a = dist.sample()
             a = torch.maximum(torch.minimum(a, self.l_actor.a_max), self.l_actor.a_min)  # TODO a_max a_min 正确
             a_logprob = dist.log_prob(a)
@@ -118,8 +117,6 @@ class Worker(mp.Process):
         t_epoch = 0
         timestep = 0
         reward_norm = Normalization(shape=1)
-        action_range = np.array(self.ppo_msg['action_range'])
-        std0 = (action_range[:, 1] - action_range[:, 0]) / 2 / 3
         while True:
             self.l_actor.load_state_dict(self.g_actor.state_dict())
             self.l_critic.load_state_dict(self.g_critic.state_dict())
@@ -135,7 +132,13 @@ class Worker(mp.Process):
                     self.env.step_update(a)
                     # env.visualization()
                     sumr += self.env.reward
-                    success = 0.0 if self.env.terminal_flag == 1 else 1.0  # 1 对应出界，固定时间内，不出界，就是 success
+                    if self.env.is_terminal:
+                        if self.env.terminal_flag == 2:
+                            success = 0
+                        else:  # 只有回合结束，并且过早结束的时候，才是 1
+                            success = 1
+                    else:
+                        success = 0
                     # success = 1.0
                     self.buffer.append(s=self.env.current_state,
                                        a=a,
@@ -157,12 +160,12 @@ class Worker(mp.Process):
             buffer_index = 0
             '''2. 学习'''
 
-            '''4. 每学习 250 次，减小一次探索概率'''
-            STD_DELAY_PER = 0.05
-            if t_epoch % 250 == 0 and t_epoch > 0:
-                _ratio = max(1 - t_epoch / 250 * STD_DELAY_PER, 0.05)
-                self.l_actor.std = torch.tensor(std0 * _ratio, dtype=torch.float)
-            '''4. 每学习 250 次，减小一次探索概率'''
+            '''4. 每学习 1000 次，减小一次探索概率'''
+            if t_epoch % 1000 == 0 and t_epoch > 0:
+                _ratio = max(1 - t_epoch / 1000 * 0.05, 0.2)
+                self.l_actor.std *= _ratio
+                print("setting actor output action_std to : ", self.l_actor.std)
+            '''4. 每学习 1000 次，减小一次探索概率'''
 
             t_epoch += 1
             with self.lock:
@@ -239,7 +242,7 @@ class Distributed_PPO2:
             if training_r is None:
                 break
             if self.global_training_num.value % 50 == 0:
-                print('Training count:, ', self.global_training_num.value)
+                print('Training count: ', self.global_training_num.value)
 
             if self.global_training_num.value % 500 == 0:
                 self.eval_actor.load_state_dict(self.global_actor.state_dict())  # 复制 global policy
@@ -251,10 +254,9 @@ class Distributed_PPO2:
                 time.sleep(0.01)
                 self.save_ac(msg='', path=temp)
 
-                eval_num = 10
+                eval_num = 5
                 for i in range(eval_num):
-                    if i % 100 == 0:
-                        print('测试: ', i)
+                    print('测试: ', i)
                     self.env.reset(True)
                     r = 0
                     while not self.env.is_terminal:
