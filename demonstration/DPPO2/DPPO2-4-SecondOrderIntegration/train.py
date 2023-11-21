@@ -38,14 +38,9 @@ class PPOActor_Gaussian(nn.Module):
 				 init_std: float = 0.5,
 				 use_orthogonal_init: bool = True):
 		super(PPOActor_Gaussian, self).__init__()
-		self.net = nn.Sequential(
-			nn.Linear(state_dim, 64),
-			nn.Tanh(),
-			nn.Linear(64, 32),
-			nn.Tanh(),
-			nn.Linear(32, action_dim),
-			nn.Tanh()
-		)
+		self.fc1 = nn.Linear(state_dim, 256)
+		self.fc2 = nn.Linear(256, 256)
+		self.fc3 = nn.Linear(256, action_dim)
 		self.a_min = torch.tensor(a_min, dtype=torch.float)
 		self.a_max = torch.tensor(a_max, dtype=torch.float)
 		self.off = (self.a_min + self.a_max) / 2.0
@@ -62,15 +57,19 @@ class PPOActor_Gaussian(nn.Module):
 		nn.init.constant_(layer.bias, 0)
 
 	def orthogonal_init_all(self):
-		self.orthogonal_init(self.net[0])
-		self.orthogonal_init(self.net[2])
-		self.orthogonal_init(self.net[4], gain=0.01)
+		self.orthogonal_init(self.fc1)
+		self.orthogonal_init(self.fc2)
+		self.orthogonal_init(self.fc3, gain=0.01)
 
-	def forward(self):
-		raise NotImplementedError
+	def forward(self, s):
+		s = torch.tanh(self.fc1(s))
+		s = torch.tanh(self.fc2(s))
+		s = torch.tanh(self.fc3(s))
+		s = s * self.gain + self.off
+		return s
 
 	def get_dist(self, s):
-		mean = self.net(s)
+		mean = self.forward(s)
 		std = self.std.expand_as(mean)
 		dist = Normal(mean, std)
 		return dist
@@ -78,7 +77,7 @@ class PPOActor_Gaussian(nn.Module):
 	def evaluate(self, state):
 		with torch.no_grad():
 			t_state = torch.unsqueeze(torch.tensor(state, dtype=torch.float), 0)
-			action_mean = self.net(t_state)
+			action_mean = self.forward(t_state)
 		return action_mean.detach().cpu().numpy().flatten()
 
 
@@ -133,11 +132,11 @@ if __name__ == '__main__':
 
 	mp.set_start_method('spawn', force=True)
 
-	process_num = 10
-	actor_lr = 1e-4  # / min(process_num, 5)
-	critic_lr = 1e-4  # / min(process_num, 5)  # 一直都是 1e-3
+	process_num = 20
+	actor_lr = 1e-4  / min(process_num, 5)
+	critic_lr = 1e-3  / min(process_num, 5)  # 一直都是 1e-3
 	# k_epo = int(100 / process_num * 1)  # int(100 / process_num * 1.1)
-	k_epo = 30 # / min(process_num, 5)
+	k_epo = 30 / min(process_num, 5)
 	agent = DPPO2(env=env, actor_lr=actor_lr, critic_lr=critic_lr, num_of_pro=process_num, path=simulationPath)
 
 	'''3. 重新加载全局网络和优化器，这是必须的操作'''
