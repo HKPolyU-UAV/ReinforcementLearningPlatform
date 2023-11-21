@@ -70,33 +70,48 @@ CartPole with both **angle** and **position**
 CartPole with **angle** only
 
 <div align=center>
-    <img src="https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/envs/CartPoleAngleOnly.gif" width="400px">
+    <img src="https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/envs/CartPole.gif" width="400px">
 </div>
 
 ### 3. FlightAttitudeSimulator
 
 This is an intermediate fixed rod with free rotational capability. We need to keep the rod in a horizontal position by adjusting the force added at the end of the rod.
-![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/envs/Flight_Attitude_Simulator.gif)
+
+<div align=center>
+    <img src="https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/envs/Flight_Attitude_Simulator.gif" width="400px">
+</div>
 
 ### 4. RobotManipulator
 
 A two-link manipulator. The objective is to control the position of the end of the manipulator.
-![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/envs/TwoLinkManipulator.gif)
+
+<div align=center>
+    <img src="https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/envs/TwoLinkManipulator.gif" width="400px">
+</div>
 
 ### 5. SecondOrderIntegration
 
 A mass point, the control input is the two-dimensional accelection, we need to control its position.
-![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/envs/SecondOrderIntegration.gif)
+
+<div align=center>
+    <img src="https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/envs/SecondOrderIntegration.gif" width="400px">
+</div>
 
 ### 6. UavFntsmcParam
 
 A quadrotor has already controlled by fast nonsingular terminal sliding mode controller (FNTSMC). We use RL to automatically tune the hyper-parameters of the FNTSMC to achieve a better tracking performance. Also, we have position tracking mode and attitude tracking mode.
 
 **Attitude tracking controller**
-![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/envs/UavFntsmcAtt.gif)
+
+<div align=center>
+    <img src="https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/envs/UavFntsmcAtt.gif" width="400px">
+</div>
 
 **Position tracking controller**
-![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/envs/UavFntsmcPos.gif)
+
+<div align=center>
+    <img src="https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/envs/UavFntsmcPos.gif" width="400px">
+</div>
 
 ### 7. UavRobust
 
@@ -109,7 +124,9 @@ Graphical demonstration is identical to **UavFntsmcParam**.
 
 A ground vehicle, the control outputs are the expected linear and angular accelections. The objective is to control the position of the UGV.
 
-![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/envs/UGV.gif)
+<div align=center>
+    <img src="https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/envs/UGV.gif" width="400px">
+</div>
 
 
 
