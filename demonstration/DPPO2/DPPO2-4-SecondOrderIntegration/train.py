@@ -136,7 +136,7 @@ if __name__ == '__main__':
 	actor_lr = 1e-4  / min(process_num, 5)
 	critic_lr = 1e-3  / min(process_num, 5)  # 一直都是 1e-3
 	# k_epo = int(100 / process_num * 1)  # int(100 / process_num * 1.1)
-	k_epo = 30 / min(process_num, 5)
+	k_epo = int(30 / min(process_num, 5))
 	agent = DPPO2(env=env, actor_lr=actor_lr, critic_lr=critic_lr, num_of_pro=process_num, path=simulationPath)
 
 	'''3. 重新加载全局网络和优化器，这是必须的操作'''
@@ -183,7 +183,8 @@ if __name__ == '__main__':
 			   'use_grad_clip': False,
 			   'use_lr_decay': True,
 			   'max_train_steps': int(5e6),
-			   'using_mini_batch': False}
+			   'using_mini_batch': False,
+			   'action_range': env.action_range}
 	for i in range(agent.num_of_pro):
 		w = Worker(g_actor=agent.global_actor,
 				   l_actor=PPOActor_Gaussian(state_dim=env.state_dim,
