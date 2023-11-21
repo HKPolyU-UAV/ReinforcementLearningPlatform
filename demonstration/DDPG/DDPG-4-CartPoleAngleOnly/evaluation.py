@@ -61,8 +61,8 @@ if __name__ == '__main__':
 	env = env(0.)
 	eval_net = Actor(state_dim=env.state_dim, action_dim=env.action_dim, a_min=env.action_range[:, 0], a_max=env.action_range[:, 1], alpha=1e-4)
 	eval_net.load_state_dict(torch.load(optPath + 'target_actor'))
-	video = cv.VideoWriter(env.name + '.mp4', cv.VideoWriter_fourcc(*"mp4v"), 60, (env.width, env.height))
-	n = 5
+	video = cv.VideoWriter('../DDPG-4-' + env.name + '.mp4', cv.VideoWriter_fourcc(*"mp4v"), 200, (env.width, env.height))
+	n = 2
 	for _ in range(n):
 		env.reset(random=True)
 		sumr = 0

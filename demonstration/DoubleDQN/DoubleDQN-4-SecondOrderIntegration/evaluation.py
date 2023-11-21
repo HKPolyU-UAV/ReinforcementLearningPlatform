@@ -63,8 +63,8 @@ if __name__ == '__main__':
 	env = env()
 	eval_net = DQNNet(state_dim=env.state_dim, action_dim=env.action_num[0])
 	eval_net.load_state_dict(torch.load(optPath + 'eval'))
-
-	n = 10
+	video = cv.VideoWriter('../DoubleDQN-4-' + env.name + '.mp4', cv.VideoWriter_fourcc(*"mp4v"), 200, (env.image_size[0], env.image_size[1]))
+	n = 2
 
 	for _ in range(n):
 		env.reset(random=True)
@@ -77,7 +77,8 @@ if __name__ == '__main__':
 			action = np.array([env.action_space[0][action_from_actor]])
 			env.step_update(action)
 			env.visualization()
-
+			video.write(env.image)
 			sumr += env.reward
 		print('Cumulative reward:', round(sumr, 3))
 		print()
+	video.release()

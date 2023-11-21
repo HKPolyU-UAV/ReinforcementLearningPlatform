@@ -1,4 +1,7 @@
 import math
+
+import numpy as np
+
 from utils.functions import *
 from algorithm.rl_base import rl_base
 import cv2 as cv
@@ -272,7 +275,7 @@ class CartPole(rl_base):
             self.time += h
         [self.theta, self.dtheta, self.x, self.dx] = xx.tolist()
 
-    def step_update(self, action: list):
+    def step_update(self, action: np.ndarray):
         self.force = action[0]  # get the extra force
         self.current_action = action.copy()
         self.etheta = 0. - self.theta

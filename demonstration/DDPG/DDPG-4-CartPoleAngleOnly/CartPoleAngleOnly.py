@@ -124,7 +124,7 @@ class CartPoleAngleOnly(rl_base):
         cv.putText(self.image, "force: %.3f N" % self.force, (20, 80), cv.FONT_HERSHEY_COMPLEX, 0.5, Color().Black, 2)
 
     def draw_init_image(self):
-        self.draw_slide()
+        # self.draw_slide()
         self.image_copy = self.image.copy()
 
     def visualization(self):
