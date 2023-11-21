@@ -51,7 +51,7 @@ All RL algorithms we implemented for now.
 
 ### Noting!!
 
-Noting that the code runs actually pretty fast. We might don't choose a proper mp4-2-gif tool, and that is why the gifs shown below are all low frame rate.
+Noting that the code runs actually pretty fast. We might don't choose a proper mp4-2-gif tool, and that is why the gifs shown below are all low frame rate. One can directly see gif files in the 'gifs' folder. Or one can run 'test.py' in each environment to generate a mp4 file (or jsut see the animation of the environment). Again, it is not responsible to say out platform is very very fast, but we can say it is not slow (or fast enough for us to use). ^_^
 
 ### 1. BallBalancer
 
@@ -133,6 +133,16 @@ A ground vehicle, the control outputs are the expected linear and angular accele
 </div>
 
 # demonstration
+
+All demos are classified by Rl algorithms. For example, in folder SAC, all environments are controled by a SAC-trained NN controller. Currently, we have: 3 for DDPG, 2 for DoubleDQN, 7 for DPPO, 1 for DPPO2, 2 for DQN, 2 for DuelingDQN, 10 for PPO, 7 for PPO2, 4 for SAC, 3 for TD3, which are 41 demonstrations in total.
+
+We put each demo a gif here:
+
+## DDPG
+
+|  CartPoleAngleOnly|  FlightAttitudeSimulator|         SecondOrderIntegration|
+| ----------- | --------------- | ---------------------------- |
+|     ![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/envs/UGV.gif)     |   ![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/envs/UGV.gif)   |              ![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/envs/UGV.gif)            |
 
 
 
