@@ -200,6 +200,20 @@ We put each demo a gif here:
 
 
 ## PPO2
+| CartPole               | CartPoleAngleOnly | FlightAttitudeSimulator |
+|------------------------|-------------------|-------------------------|
+| ![image]()             | ![image]()        | ![image]()              |
+| SecondOrderIntegration | UGV               |                         |
+| ![image]()             | ![image]()        | ![image]()              |
+
+| UavFntsmcParamAtt      |
+|------------------------|
+| ![image]()             |
+
+| UavFntsmcParamPos |
+|-------------------|
+| ![image]()        |
+
 
 
 ## SAC

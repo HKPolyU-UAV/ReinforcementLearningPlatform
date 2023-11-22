@@ -3,6 +3,7 @@ import sys
 import torch.nn as nn
 import torch
 from torch.distributions import Normal
+import cv2 as cv
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../")
@@ -77,12 +78,12 @@ if __name__ == '__main__':
                                   a_max=np.array(env.action_range)[:, 1],
                                   init_std=0.01,
                                   use_orthogonal_init=True)
-    optPath = os.path.dirname(os.path.abspath(__file__)) + '/datasave/trainNum_1650/'
+    optPath = os.path.dirname(os.path.abspath(__file__)) + '/datasave/net/'
     opt_actor.load_state_dict(torch.load(optPath + 'actor'))  # 测试时，填入测试actor网络
-
-    n = 10
-    for i in range(10):
-        env.reset_random()
+    video = cv.VideoWriter('../PPO-4-' + env.name + '.mp4', cv.VideoWriter_fourcc(*"mp4v"), 200, (env.width, env.height))
+    n = 2
+    for i in range(n):
+        env.reset(True)
         print(rad2deg(env.theta))
         test_r = 0.
         while not env.is_terminal:
@@ -90,4 +91,6 @@ if __name__ == '__main__':
             env.step_update(a)
             test_r += env.reward
             env.visualization()
+            video.write(env.image)
         print('   Evaluating %.0f | Reward: %.2f ' % (i, test_r))
+    video.release()

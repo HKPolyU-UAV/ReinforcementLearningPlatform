@@ -61,9 +61,8 @@ class Flight_Attitude_Simulator(rl_base):
         self.state_space = [None for _ in range(self.state_dim)]
         self.state_range = [[self.minTheta, self.maxTheta], [self.min_omega, self.max_omega]]
         self.isStateContinuous = [True for _ in range(self.state_dim)]
-        self.initial_state = self.state_norm()
-        self.current_state = self.initial_state.copy()
-        self.next_state = self.initial_state.copy()
+        self.current_state = self.get_state()
+        self.next_state = self.current_state.copy()
 
         self.action_dim = 1
         self.action_step = [None]
@@ -167,7 +166,7 @@ class Flight_Attitude_Simulator(rl_base):
         cv.imshow(self.name4image, self.image)
         cv.waitKey(1)
 
-    def use_norm(self) -> np.ndarray:
+    def get_state(self) -> np.ndarray:
         """
         @return:
         """

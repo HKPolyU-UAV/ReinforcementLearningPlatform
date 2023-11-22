@@ -53,7 +53,7 @@ class CartPoleAngleOnly(rl_base):
 							[-np.inf, np.inf]]
 		self.isStateContinuous = [True for _ in range(self.state_dim)]
 		self.current_state = self.get_state()
-		self.next_state = self.initial_state.copy()
+		self.next_state = self.current_state.copy()
 
 		self.action_dim = 1
 		self.action_step = [None]
@@ -61,8 +61,7 @@ class CartPoleAngleOnly(rl_base):
 		self.action_num = [np.inf]
 		self.action_space = [None]
 		self.isActionContinuous = True
-		self.initial_action = [self.force]
-		self.current_action = self.initial_action.copy()
+		self.current_action = [self.force]
 
 		self.reward = 0.0
 		self.Q_theta = 3.5  # cost for angular error
