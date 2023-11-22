@@ -154,10 +154,10 @@ We put each demo a gif here:
 
 
 ## DPPO
-| BallBalancer1D | CartPole          | TwoLinkManipulator |
-|----------------|-------------------|--------------------|
-| ![image]()     | ![image]()        | ![image]()         |
-| UavHover       | UavHoverOuterLoop | UavHoverInnerLoop  |
-| ![image]()     | ![image]()        | ![image]()         |
-| UGV            |                   |                    |
-| ![image]()     |                   |                    |
+| BallBalancer1D                                                                                                                                    | CartPole                                                                                                                                    | TwoLinkManipulator |
+|---------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------|--------------------|
+| ![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/demonstration/DPPO/DPPO-4-BallBalancer1D.gif) | ![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/demonstration/DPPO/DPPO-4-CartPole.gif) | ![image]()         |
+| UavHover                                                                                                                                          | UavHoverOuterLoop                                                                                                                           | UavHoverInnerLoop  |
+| ![image]()                                                                                                                                        | ![image]()                                                                                                                                  | ![image]()         |
+| UGV                                                                                                                                               |                                                                                                                                             |                    |
+| ![image]()                                                                                                                                        |                                                                                                                                             |                    |
