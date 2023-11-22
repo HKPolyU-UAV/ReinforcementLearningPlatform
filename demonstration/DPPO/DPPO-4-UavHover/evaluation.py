@@ -133,7 +133,7 @@ if __name__ == '__main__':
     att_policy.load_state_dict(torch.load(optPath + 'att-actor-critic'))
     '''3. 开始测试'''
     env.msg_print_flag = True
-    test_num = 5
+    test_num = 2
     # video = cv.VideoWriter('../DPPO-4-' + env.name + '.mp4', cv.VideoWriter_fourcc(*"mp4v"), 200,
     #                        (env.width, env.height))
     for _ in range(test_num):

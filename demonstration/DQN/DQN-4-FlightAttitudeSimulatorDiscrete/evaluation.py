@@ -66,7 +66,7 @@ if __name__ == '__main__':
     eval_net.load_state_dict(torch.load(optPath + 'eval'))
     # video = cv.VideoWriter('../DQN-4-' + env.name + '.mp4', cv.VideoWriter_fourcc(*"mp4v"), 200,
     #                        (env.width, env.height))
-    n = 10
+    n = 5
 
     for _ in range(n):
         env.reset(random=True)

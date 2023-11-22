@@ -142,7 +142,7 @@ if __name__ == '__main__':
 
     policy = PPOActorCritic(env.state_dim, env.action_dim, env.action_range)
     policy.load_state_dict(torch.load(optPath + 'actor-critic'))
-    test_num = 5
+    test_num = 2
     r = 0
     # video = cv.VideoWriter('../PPO-4-' + env.name + '.mp4', cv.VideoWriter_fourcc(*"mp4v"), 200,
     #                        (env.width, env.height))
@@ -160,10 +160,10 @@ if __name__ == '__main__':
             env.visualization()
             # video.write(env.image)
         print(r)
-    env.collector.plot_pos()
-    env.collector.plot_vel()
-    env.collector.plot_att()
-    env.collector.plot_throttle()
-    plt.legend()
-    plt.show()
+    # env.collector.plot_pos()
+    # env.collector.plot_vel()
+    # env.collector.plot_att()
+    # env.collector.plot_throttle()
+    # plt.legend()
+    # plt.show()
     # video.release()

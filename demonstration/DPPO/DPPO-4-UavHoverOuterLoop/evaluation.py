@@ -142,7 +142,7 @@ if __name__ == '__main__':
     # 加载模型参数文件
     eval_policy.load_state_dict(torch.load(optPath + 'actor-critic'))
     env.msg_print_flag = True
-    test_num = 5
+    test_num = 2
     average_r = 0
     # video = cv.VideoWriter('../DPPO-4-' + env.name + '.mp4', cv.VideoWriter_fourcc(*"mp4v"), 200,
     #                        (env.width, env.height))

@@ -134,7 +134,7 @@ if __name__ == '__main__':
     policy_att.load_state_dict(torch.load(optPath + 'att-actor-critic'))
     '''3. 开始测试'''
     env.msg_print_flag = True
-    test_num = 5
+    test_num = 2
     # video = cv.VideoWriter('../PPO-4-' + env.name + '.mp4', cv.VideoWriter_fourcc(*"mp4v"), 200,
     #                        (env.width, env.height))
     for _ in range(test_num):
@@ -152,11 +152,11 @@ if __name__ == '__main__':
             env.step_update(action)  # 环境更新的动作必须是实际物理动作
             env.visualization()
             # video.write(env.image)
-        env.collector.plot_pos()
-        env.collector.plot_vel()
-        env.collector.plot_throttle()
-        env.collector.plot_att()
-        env.collector.plot_pqr()
-        env.collector.plot_torque()
-        plt.show()
+        # env.collector.plot_pos()
+        # env.collector.plot_vel()
+        # env.collector.plot_throttle()
+        # env.collector.plot_att()
+        # env.collector.plot_pqr()
+        # env.collector.plot_torque()
+        # plt.show()
     # video.release()
