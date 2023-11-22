@@ -158,21 +158,35 @@ We put each demo a gif here:
 |---------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------|--------------------|
 | ![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/demonstration/DPPO/DPPO-4-BallBalancer1D.gif) | ![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/demonstration/DPPO/DPPO-4-CartPole.gif) | ![image]()         |
 | UavHover                                                                                                                                          | UavHoverOuterLoop                                                                                                                           | UavHoverInnerLoop  |
-| ![image]()                                                                                                                                        | ![image]()                                                                                                                                  | ![image]()         |
+| ![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/demonstration/DPPO/DPPO-4-uav_hover.gif)      | ![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/demonstration/DPPO/DPPO-4-uav_hover_outer_loop.gif)  | ![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/demonstration/DPPO/DPPO-4-uav_inner_loop.gif)         |
 | UGV                                                                                                                                               |                                                                                                                                             |                    |
-| ![image]()                                                                                                                                        |                                                                                                                                             |                    |
+| ![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/demonstration/DPPO/DPPO-4-UGV.gif)                                                                                                                                        |                                                                                                                                             |                    |
 
 
 ## DPPO2
 
 
 ## DQN
-
+| FlightAttitudeSimulator | SecondOrderIntegration |
+|-------------------------|------------------------|
+| ![iamge](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/demonstration/DQN/DQN-4-FlightAttitudeSimulatorDiscrete.gif) | ![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/demonstration/DQN/DQN-4-SecondOrderIntegration.gif) |
 
 ## DuelingDQN
-
+| FlightAttitudeSimulator | SecondOrderIntegration |
+|-------------------------|------------------------|
+| ![iamge](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/demonstration/DuelingDQN/DuelingDQN-4-FlightAttitudeSimulatorDiscrete.gif) | ![iamge](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/demonstration/DuelingDQN/DuelingDQN-4-SecondOrderIntegration.gif)             |
 
 ## PPO
+| FlightAttitudeSimulator                                                                                                                   | SecondOrderIntegration                                                                                                                                  | BallBalancer1D                                                                                                                                      |
+|-------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------|
+| ![image]()                                                                                                                                | ![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/demonstration/PPO/PPO-4-SecondOrderIntegration.mp4) | ![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/demonstration/PPO/PPO-4-BallBalancer1D.gif)     |
+| CartPole                                                                                                                                  | CartPoleAngleOnly                                                                                                                                       | TwoLinkManipulator                                                                                                                                  |
+| ![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/demonstration/PPO/PPO-4-CartPole.gif) | ![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/demonstration/PPO/PPO-4-CartPoleAngleOnly.mp4)      | ![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/demonstration/PPO/PPO-4-TwoLinkManipulator.mp4) |
+| UGV                                                                                                                                       | UavHover                                                                                                                                                | UavHoverOuterLoop                                                                                                                                   |
+| ![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/demonstration/PPO/PPO-4-UGV.mp4)      | ![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/demonstration/PPO/PPO-4-uav_hover.mp4)             | ![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/demonstration/PPO/PPO-4-uav_hover_outer_loop.mp4)                                                                                                                                          |
+| UavHoverInnerLoop                                                                                                                         |                                                                                                                                                         |                                                                                                                                                     |
+| ![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/demonstration/PPO/PPO-4-uav_inner_loop.mp4)                                                                                                                                |||
+
 
 
 ## PPO2
