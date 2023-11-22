@@ -75,7 +75,7 @@ CartPole with both **angle** and **position**
 CartPole with **angle** only
 
 <div align=center>
-    <img src="https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/envs/CartPole.gif" width="400px">
+    <img src="https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/envs/CartPoleAngleOnly.gif" width="400px">
 </div>
 
 ### 3. FlightAttitudeSimulator
