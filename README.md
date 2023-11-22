@@ -36,7 +36,7 @@ All RL algorithms we implemented for now.
 
 
 | Algorithm   | classification | Description                  |
-| ----------- | -------------- | ---------------------------- |
+|-------------|----------------|------------------------------|
 | DQN         | value based    | None                         |
 | Dueling DQN | value based    | None                         |
 | Double DQN  | value based    | None                         |
@@ -142,12 +142,22 @@ We put each demo a gif here:
 
 
 | CartPoleAngleOnly                                                                                                                                    | FlightAttitudeSimulator                                                                                                                                      | SecondOrderIntegration                                                                                                                                    |
-| ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
 | ![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/demonstration/DDPG/DDPG-4-CartPoleAngleOnly.gif) | ![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/demonstration/DDPG/DDPG-4-Flight_Attitude_Simulator.gif) | ![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/demonstration/DDPG/DDPG-4-SecondOrderIntegration.gif) |
 
 ## DoubleDQN
 
 
-| FlightAttitudeSimulator                                                                                                                                      | SecondOrderIntegration |
-|--------------------------------------------------------------------------------------------------------------------------------------------------------------| ------------------|
+| FlightAttitudeSimulator                                                                                                                                                      | SecondOrderIntegration                                                                                                                                              |
+|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | ![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/demonstration/DoubleDQN/DoubleDQN-4-FlightAttitudeSimulatorDiscrete.gif) | ![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/demonstration/DoubleDQN/DoubleDQN-4-SecondOrderIntegration.gif) |
+
+
+## DPPO
+| BallBalancer1D | CartPole          | TwoLinkManipulator |
+|----------------|-------------------|--------------------|
+| ![image]()     | ![image]()        | ![image]()         |
+| UavHover       | UavHoverOuterLoop | UavHoverInnerLoop  |
+| ![image]()     | ![image]()        | ![image]()         |
+| UGV            |                   |                    |
+| ![image]()     |                   |                    |
