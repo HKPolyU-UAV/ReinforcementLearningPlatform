@@ -161,3 +161,24 @@ We put each demo a gif here:
 | ![image]()                                                                                                                                        | ![image]()                                                                                                                                  | ![image]()         |
 | UGV                                                                                                                                               |                                                                                                                                             |                    |
 | ![image]()                                                                                                                                        |                                                                                                                                             |                    |
+
+
+## DPPO2
+
+
+## DQN
+
+
+## DuelingDQN
+
+
+## PPO
+
+
+## PPO2
+
+
+## SAC
+
+
+## TD3
