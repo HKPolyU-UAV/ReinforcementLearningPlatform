@@ -1,6 +1,7 @@
 import os
 import sys
 import torch
+import cv2 as cv
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../")
@@ -86,9 +87,9 @@ if __name__ == '__main__':
 	optPath = os.path.dirname(os.path.abspath(__file__)) + '/datasave/net/'
 	opt_actor.load_state_dict(torch.load(optPath + 'actor'))  # 测试时，填入测试actor网络
 	env.load_norm_normalizer_from_file(optPath, 'state_norm.csv')
-
-	n = 10
-	for i in range(10):
+	video = cv.VideoWriter('../PPO-4-' + env.name + '.mp4', cv.VideoWriter_fourcc(*"mp4v"), 200, (env.att_w, env.att_h))
+	n = 1
+	for i in range(n):
 		reset_att_ctrl_param('zero')
 		yyf = [deg2rad(80) * np.ones(3), 5 * np.ones(3), np.array([0, -np.pi / 2, np.pi / 2])]
 		env.reset_uav_att_ctrl_RL_tracking(random_trajectory=True,
@@ -109,4 +110,6 @@ if __name__ == '__main__':
 			test_r += env.reward
 
 			env.visualization()
+			video.write(env.att_image)
 		print('   Evaluating %.0f | Reward: %.2f ' % (i, test_r))
+	video.release()

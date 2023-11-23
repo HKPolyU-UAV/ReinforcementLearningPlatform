@@ -4,6 +4,7 @@ import datetime
 import pandas as pd
 import torch
 import matplotlib.pyplot as plt
+import cv2 as cv
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../")
@@ -107,7 +108,7 @@ if __name__ == '__main__':
 	optPath = os.path.dirname(os.path.abspath(__file__)) + '/datasave/net/'
 	opt_actor.load_state_dict(torch.load(optPath + 'actor'))  # 测试时，填入测试actor网络
 	env.load_norm_normalizer_from_file(optPath, 'state_norm.csv')
-	# exit(0)
+	video = cv.VideoWriter('../PPO-4-' + env.name + '.mp4', cv.VideoWriter_fourcc(*"mp4v"), 200, (env.width, env.height))
 	n = 1
 	for i in range(n):
 		opt_SMC_para = np.atleast_2d(np.zeros(env.action_dim))
@@ -117,7 +118,7 @@ if __name__ == '__main__':
 												new_att_ctrl_param=None,
 												new_pos_ctrl_parma=pos_ctrl_param,
 												outer_param=None)
-		env.show_image(False)
+		env.visualization()
 		test_r = 0.
 		while not env.is_terminal:
 			new_SMC_param = opt_actor.evaluate(env.current_state_norm(env.current_state, update=False))
@@ -128,13 +129,14 @@ if __name__ == '__main__':
 			test_r += env.reward
 
 			env.visualization()
+			video.write(env.image)
 		print('   Evaluating %.0f | Reward: %.2f ' % (i, test_r))
 		# print(opt_SMC_para.shape)
-		(pd.DataFrame(opt_SMC_para,
-					  columns=['k11', 'k12', 'k13', 'k21', 'k22', 'k23', 'gamma', 'lambda']).
-		 to_csv(simulationPath + 'opt_smc_param.csv', sep=',', index=False))
-
-		env.collector.package2file(simulationPath)
+		# (pd.DataFrame(opt_SMC_para,
+		# 			  columns=['k11', 'k12', 'k13', 'k21', 'k22', 'k23', 'gamma', 'lambda']).
+		#  to_csv(simulationPath + 'opt_smc_param.csv', sep=',', index=False))
+		#
+		# env.collector.package2file(simulationPath)
 		# env.collector.plot_att()
 		#
 		# env.collector.plot_pos()
@@ -155,3 +157,4 @@ if __name__ == '__main__':
 		# plt.legend()
 		#
 		# plt.show()
+	video.release()

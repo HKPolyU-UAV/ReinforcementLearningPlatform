@@ -3,6 +3,7 @@ import sys
 import torch
 import torch.nn as nn
 from torch.distributions import Normal
+import cv2 as cv
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../")
@@ -91,8 +92,10 @@ if __name__ == '__main__':
                                   init_std=1.2,
                                   use_orthogonal_init=True)
     opt_actor.load_state_dict(torch.load(optPath + 'actor'))
+    video = cv.VideoWriter('../PPO2-4-' + env.name + '.mp4', cv.VideoWriter_fourcc(*"mp4v"), 200, (env.image_size[0], env.image_size[1]))
 
-    n = 10
+    n = 2
+
     for i in range(n):
         env.reset(random=True)
         test_r = 0.
@@ -102,5 +105,7 @@ if __name__ == '__main__':
             env.step_update(_a)
             test_r += env.reward
             env.visualization()
+            video.write(env.image)
         test_num += 1
         test_reward.append(test_r)
+    video.release()

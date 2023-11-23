@@ -68,7 +68,11 @@ class uav_pos_ctrl_RL(rl_base, uav_pos_ctrl):
         return state
 
     def draw_init_image(self):
-        pass
+        self.draw_label()
+        self.draw_boundary()
+        self.draw_region_grid(5, 5, 5)
+        self.draw_axis(5, 5, 5)
+        self.image_copy = self.image.copy()
 
     def visualization(self):
         self.image = self.image_copy.copy()
@@ -201,6 +205,10 @@ class uav_pos_ctrl_RL(rl_base, uav_pos_ctrl):
         self.is_terminal = False
         self.terminal_flag = 0
         '''RL_BASE'''
+
+        # self.image = np.ones([self.height, self.width, 3], np.uint8) * 255
+        # self.image_copy = self.image.copy()
+        # self.draw_init_image()
 
     def save_state_norm(self, path, msg=None):
         data = {
