@@ -194,8 +194,7 @@ if __name__ == '__main__':
     RETRAIN = False
 
     env = env()
-    reward_norm = Normalization(shape=1)
-    actor = SACActor(env.state_dim, env.action_dim, env.action_range[:, 0], env.action_range[:, 1], std_scale=0.5)
+    actor = SACActor(env.state_dim, env.action_dim, env.action_range[:, 0], env.action_range[:, 1], std_scale=1.)
     critic = SACCritic(env.state_dim, env.action_dim)
     target_critic = SACCritic(env.state_dim, env.action_dim)
     actor_lr, critic_lr, alpha_lr = 1e-4, 1e-4, 1e-4
@@ -232,7 +231,7 @@ if __name__ == '__main__':
     new_state, new_action, new_reward, new_state_, new_dw = [], [], [], [], []
     step = 0
     is_storage_only_success = False
-    while agent.episode <= MAX_EPISODE:
+    while True:
         env.reset(True)
         sumr = 0
         new_state.clear()

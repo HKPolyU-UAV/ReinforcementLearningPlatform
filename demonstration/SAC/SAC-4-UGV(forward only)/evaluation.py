@@ -11,7 +11,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../../")
 
-from CartPole import CartPole as env
+from UGV import UGV as env
 
 
 class SACActor(nn.Module):
@@ -61,7 +61,7 @@ class SACActor(nn.Module):
 
 if __name__ == '__main__':
     optPath = './datasave/net/'
-    env = env(initTheta=0., initX=0.)
+    env = env()
     eval_net = SACActor(state_dim=env.state_dim, action_dim=env.action_dim, a_min=env.action_range[:, 0],
                         a_max=env.action_range[:, 1])
     eval_net.load_state_dict(torch.load(optPath + 'actor'))

@@ -67,60 +67,61 @@ class SAC:
         a = torch.rand(self.env_msg['action_dim']) * (self.a_max - self.a_min) + self.a_min
         return a.cpu().detach().numpy().flatten()
 
-    def learn(self, is_reward_ascent=False):
-        batch_s, batch_a, batch_r, batch_s_, batch_dw = self.memory.sample_buffer(is_reward_ascent=is_reward_ascent)
-        batch_s = torch.FloatTensor(batch_s).to(self.device)
-        batch_a = torch.FloatTensor(batch_a).to(self.device)
-        batch_r = torch.FloatTensor(batch_r).unsqueeze(1).to(self.device)
-        batch_s_ = torch.FloatTensor(batch_s_).to(self.device)
-        batch_dw = torch.FloatTensor(batch_dw).unsqueeze(1).to(self.device)
+    def learn(self, is_reward_ascent=False, iter=1):
+        for _ in range(iter):
+            batch_s, batch_a, batch_r, batch_s_, batch_dw = self.memory.sample_buffer(is_reward_ascent=is_reward_ascent)
+            batch_s = torch.FloatTensor(batch_s).to(self.device)
+            batch_a = torch.FloatTensor(batch_a).to(self.device)
+            batch_r = torch.FloatTensor(batch_r).unsqueeze(1).to(self.device)
+            batch_s_ = torch.FloatTensor(batch_s_).to(self.device)
+            batch_dw = torch.FloatTensor(batch_dw).unsqueeze(1).to(self.device)
 
-        with torch.no_grad():
-            batch_a_, log_pi_ = self.actor(batch_s_)  # a' from the current policy
-            # Compute target Q
-            target_Q1, target_Q2 = self.target_critic(batch_s_, batch_a_)
-            target_Q = batch_r + self.gamma * (1 - batch_dw) * (torch.min(target_Q1, target_Q2) - self.alpha * log_pi_)
+            with torch.no_grad():
+                batch_a_, log_pi_ = self.actor(batch_s_)  # a' from the current policy
+                # Compute target Q
+                target_Q1, target_Q2 = self.target_critic(batch_s_, batch_a_)
+                target_Q = batch_r + self.gamma * (1 - batch_dw) * (torch.min(target_Q1, target_Q2) - self.alpha * log_pi_)
 
-        # Compute current Q
-        current_Q1, current_Q2 = self.critic(batch_s, batch_a)
-        # Compute critic loss
-        critic_loss = func.mse_loss(current_Q1, target_Q) + func.mse_loss(current_Q2, target_Q)
-        # Optimize the critic
-        self.critic_optimizer.zero_grad()
-        critic_loss.backward()
-        self.critic_optimizer.step()
+            # Compute current Q
+            current_Q1, current_Q2 = self.critic(batch_s, batch_a)
+            # Compute critic loss
+            critic_loss = func.mse_loss(current_Q1, target_Q) + func.mse_loss(current_Q2, target_Q)
+            # Optimize the critic
+            self.critic_optimizer.zero_grad()
+            critic_loss.backward()
+            self.critic_optimizer.step()
 
-        # Freeze critic networks so you don't waste computational effort
-        for params in self.critic.parameters():
-            params.requires_grad = False
+            # Freeze critic networks so you don't waste computational effort
+            for params in self.critic.parameters():
+                params.requires_grad = False
 
-        # Compute actor loss
-        a, log_pi = self.actor(batch_s)
-        Q1, Q2 = self.critic(batch_s, a)
-        Q = torch.min(Q1, Q2)
-        actor_loss = (self.alpha * log_pi - Q).mean()
+            # Compute actor loss
+            a, log_pi = self.actor(batch_s)
+            Q1, Q2 = self.critic(batch_s, a)
+            Q = torch.min(Q1, Q2)
+            actor_loss = (self.alpha * log_pi - Q).mean()
 
-        # Optimize the actor
-        self.actor_optimizer.zero_grad()
-        actor_loss.backward()
-        self.actor_optimizer.step()
+            # Optimize the actor
+            self.actor_optimizer.zero_grad()
+            actor_loss.backward()
+            self.actor_optimizer.step()
 
-        # Unfreeze critic networks
-        for params in self.critic.parameters():
-            params.requires_grad = True
+            # Unfreeze critic networks
+            for params in self.critic.parameters():
+                params.requires_grad = True
 
-        # Update alpha
-        if self.adaptive_alpha:
-            # We learn log_alpha instead of alpha to ensure that alpha=exp(log_alpha)>0
-            alpha_loss = -(self.log_alpha.exp() * (log_pi + self.target_entropy).detach()).mean()
-            self.alpha_optimizer.zero_grad()
-            alpha_loss.backward()
-            self.alpha_optimizer.step()
-            self.alpha = self.log_alpha.exp()
+            # Update alpha
+            if self.adaptive_alpha:
+                # We learn log_alpha instead of alpha to ensure that alpha=exp(log_alpha)>0
+                alpha_loss = -(self.log_alpha.exp() * (log_pi + self.target_entropy).detach()).mean()
+                self.alpha_optimizer.zero_grad()
+                alpha_loss.backward()
+                self.alpha_optimizer.step()
+                self.alpha = self.log_alpha.exp()
 
-        # Softly update target networks
-        for param, target_param in zip(self.critic.parameters(), self.target_critic.parameters()):
-            target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)
+            # Softly update target networks
+            for param, target_param in zip(self.critic.parameters(), self.target_critic.parameters()):
+                target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)
 
     def save_ac(self, msg, path):
         torch.save(self.actor.state_dict(), path + 'actor' + msg)
