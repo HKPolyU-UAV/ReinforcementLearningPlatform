@@ -115,7 +115,7 @@ if __name__ == '__main__':
     simulation_path = log_dir + datetime.datetime.strftime(datetime.datetime.now(),
                                                            '%Y-%m-%d-%H-%M-%S') + '-' + ENV + '/'
     os.mkdir(simulation_path)
-    RETRAIN = True
+    RETRAIN = False
 
     env = env()
     reward_norm = Normalization(shape=1)
@@ -141,8 +141,8 @@ if __name__ == '__main__':
         agent.policy.load_state_dict(torch.load('actor-critic'))
         agent.policy_old.load_state_dict(torch.load('actor-critic'))
         '''如果修改了奖励函数，则原来的critic网络已经不起作用了，需要重新初始化'''
-        # agent.policy.critic_reset_orthogonal()
-        # agent.policy_old.critic_reset_orthogonal()
+        agent.policy.critic_reset_orthogonal()
+        agent.policy_old.critic_reset_orthogonal()
     agent.PPO_info()
 
     max_training_timestep = int(env.time_max / env.dt) * 40000

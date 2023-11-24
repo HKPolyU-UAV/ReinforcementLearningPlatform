@@ -1,4 +1,6 @@
 import cv2 as cv
+import numpy as np
+
 from utils.functions import *
 from algorithm.rl_base import rl_base
 from environment.color import Color
@@ -85,8 +87,9 @@ class UGV(rl_base):
                  [0, self.e_phi_max],
                  [-self.omega_max, self.omega_max]]
             )
-        self.current_state = self.get_state()
-        self.next_state = self.current_state.copy()
+        self.initial_state = self.get_state()
+        self.current_state = self.initial_state.copy()
+        self.next_state = self.initial_state.copy()
 
         self.action_dim = 2
         self.action_step = [None for _ in range(self.action_dim)]
@@ -268,21 +271,23 @@ class UGV(rl_base):
 
     def get_reward(self, param=None):
         Q_pos = 2.
-        Q_vel = 0.0
-        Q_phi = 2.
-        Q_omega = 1.0
+        Q_vel = 0.1
+        Q_phi = 1.
+        Q_omega = 0.1
 
         u_pos = -self.error * Q_pos
         u_vel = -np.fabs(self.vel) * Q_vel
-        u_phi = -self.e_phi * Q_phi if self.error > 0.1 else 0.0
+        u_phi = -np.fabs(self.e_phi) * Q_phi if self.error > 0.1 else 0.0
         u_omega = -np.fabs(self.omega) * Q_omega
 
         u_psi = 0.
         if self.terminal_flag == 1:  # 出界
             _n = (self.time_max - self.time) / self.dt
             u_psi = _n * (u_pos + u_vel + u_phi + u_omega)
-
+        if self.is_success():
+            u_psi += 1000
         self.reward = u_pos + u_vel + u_phi + u_omega + u_psi
+        self.reward /= 10
 
     def ode(self, xx: np.ndarray):
         """
@@ -319,12 +324,7 @@ class UGV(rl_base):
         self.e_phi = self.get_e_phi()
 
     def get_e_phi(self):
-        vec1 = (self.target - self.pos) / np.linalg.norm(self.target - self.pos)
-        vec2 = np.array([C(self.phi), S(self.phi)])
-
-        _th = np.arccos(np.dot(vec1, vec2))
-        if _th > np.pi / 2 and (not self.forward_only):
-            _th = np.pi - _th
+        _th = cal_vector_rad_oriented([np.cos(self.phi), np.sin(self.phi)], self.target - self.pos)
         return _th
 
     def step_update(self, action: np.ndarray):
@@ -359,8 +359,9 @@ class UGV(rl_base):
         self.time = 0.
         self.a_linear = self.a_angular = 0.
 
-        self.current_state = self.get_state()
-        self.next_state = self.current_state.copy()
+        self.initial_state = self.get_state()
+        self.current_state = self.initial_state.copy()
+        self.next_state = self.initial_state.copy()
         self.current_action = np.array([self.a_linear, self.a_angular])
         self.reward = 0.0
         self.is_terminal = False

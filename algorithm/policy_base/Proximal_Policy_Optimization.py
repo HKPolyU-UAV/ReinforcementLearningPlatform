@@ -21,8 +21,8 @@ class Proximal_Policy_Optimization:
                  eps_clip: float = 0.2,
                  action_std_init: np.ndarray = None,
                  buffer_size: int = 1200,
-                 policy: PPOActorCritic = PPOActorCritic(1, 1, 0.1),
-                 policy_old: PPOActorCritic = PPOActorCritic(1, 1, 0.1),
+                 policy: PPOActorCritic = PPOActorCritic(1, 1, np.zeros(3)),
+                 policy_old: PPOActorCritic = PPOActorCritic(1, 1, np.zeros(3)),
                  path: str = ''):
         """
 		@note:

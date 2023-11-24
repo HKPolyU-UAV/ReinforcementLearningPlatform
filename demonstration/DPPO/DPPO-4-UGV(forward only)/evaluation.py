@@ -107,9 +107,9 @@ if __name__ == '__main__':
     eval_policy = PPOActorCritic(env.state_dim, env.action_dim, env.action_range)
     # 加载模型参数文件
     eval_policy.load_state_dict(torch.load(optPath + 'actor-critic'))
-    test_num = 2
-    # video = cv.VideoWriter('../DPPO-4-' + env.name + '.mp4', cv.VideoWriter_fourcc(*"mp4v"), 200,
-    #                        (env.image_size[0] - env.board, env.image_size[1]))
+    test_num = 3
+    video = cv.VideoWriter('../DPPO-4-' + env.name + '.mp4', cv.VideoWriter_fourcc(*"mp4v"), 200,
+                           (env.image_size[0] - env.board, env.image_size[1]))
     for _ in range(test_num):
         env.reset(random=True)
         while not env.is_terminal:
@@ -119,5 +119,5 @@ if __name__ == '__main__':
             action = eval_policy.action_linear_trans(action_from_actor.flatten())  # 将动作转换到实际范围上
             env.step_update(action)  # 环境更新的action需要是物理的action
             env.visualization()  # 画图
-            # video.write(env.image[:, 0:env.image_size[0] - env.board])
-    # video.release()
+            video.write(env.image[:, 0:env.image_size[0] - env.board])
+    video.release()
