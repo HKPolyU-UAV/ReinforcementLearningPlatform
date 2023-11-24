@@ -321,13 +321,7 @@ class UGV(rl_base):
 		self.e_phi = self.get_e_phi()
 
 	def get_e_phi(self):
-		vec1 = (self.target - self.pos) / np.linalg.norm(self.target - self.pos)
-		vec2 = np.array([C(self.phi), S(self.phi)])
-
-		_th = np.arccos(np.dot(vec1, vec2))
-		if _th > np.pi / 2 and (not self.forward_only):
-			_th = np.pi - _th
-		return _th
+		return cal_vector_rad_oriented([np.cos(self.phi), np.sin(self.phi)], self.target - self.pos)
 
 	def step_update(self, action: np.ndarray):
 		"""
