@@ -1,17 +1,22 @@
 import sys
 import os
 import cv2 as cv
-import numpy as np
-import torch
-import torch.nn as nn
-import torch.nn.functional as func
-from torch.distributions import Normal
+from utils.classes import *
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../../")
 
 from UGV import UGV as env
+
+
+def setup_seed(seed):
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+    random.seed(seed)
+
+
+# setup_seed(3407)
 
 
 class SACActor(nn.Module):
@@ -66,7 +71,8 @@ if __name__ == '__main__':
                         a_max=env.action_range[:, 1])
     eval_net.load_state_dict(torch.load(optPath + 'actor'))
 
-    n = 10
+    n = 3
+    video = cv.VideoWriter('../SAC-4-' + env.name + '.mp4', cv.VideoWriter_fourcc(*"mp4v"), 200, (env.image_size[0], env.image_size[1]))
     for _ in range(n):
         env.reset(True)
         sumr = 0
@@ -77,7 +83,8 @@ if __name__ == '__main__':
             action_from_actor = eval_net.evaluate(env.current_state)
             env.step_update(action_from_actor)
             env.visualization()
-
+            video.write(env.image)
             sumr += env.reward
         print('Cumulative reward:', round(sumr, 3))
         print()
+    video.release()

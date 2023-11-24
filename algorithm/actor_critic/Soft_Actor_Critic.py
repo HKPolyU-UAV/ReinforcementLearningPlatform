@@ -82,38 +82,43 @@ class SAC:
                 target_Q1, target_Q2 = self.target_critic(batch_s_, batch_a_)
                 target_Q = batch_r + self.gamma * (1 - batch_dw) * (torch.min(target_Q1, target_Q2) - self.alpha * log_pi_)
 
-            # Compute current Q
-            current_Q1, current_Q2 = self.critic(batch_s, batch_a)
-            # Compute critic loss
-            critic_loss = func.mse_loss(current_Q1, target_Q) + func.mse_loss(current_Q2, target_Q)
-            # Optimize the critic
-            self.critic_optimizer.zero_grad()
-            critic_loss.backward()
-            self.critic_optimizer.step()
-
-            # Freeze critic networks so you don't waste computational effort
-            for params in self.critic.parameters():
-                params.requires_grad = False
-
             # Compute actor loss
             a, log_pi = self.actor(batch_s)
             Q1, Q2 = self.critic(batch_s, a)
             Q = torch.min(Q1, Q2)
             actor_loss = (self.alpha * log_pi - Q).mean()
 
+            # Compute critic loss
+            current_Q1, current_Q2 = self.critic(batch_s, batch_a)
+            critic_loss = func.mse_loss(current_Q1, target_Q) + func.mse_loss(current_Q2, target_Q)
+
+            # Compute alpha loss
+            alpha_loss = 0.
+            if self.adaptive_alpha:
+                # We learn log_alpha instead of alpha to ensure that alpha=exp(log_alpha)>0
+                alpha_loss = -(self.log_alpha.exp() * (log_pi + self.target_entropy).detach()).mean()
+
             # Optimize the actor
             self.actor_optimizer.zero_grad()
             actor_loss.backward()
             self.actor_optimizer.step()
 
-            # Unfreeze critic networks
-            for params in self.critic.parameters():
-                params.requires_grad = True
+            # Optimize the critic
+            self.critic_optimizer.zero_grad()
+            critic_loss.backward()
+            self.critic_optimizer.step()
+
+            # # Freeze critic networks so you don't waste computational effort
+            # for params in self.critic.parameters():
+            #     params.requires_grad = False
+            #
+            # # Unfreeze critic networks
+            # for params in self.critic.parameters():
+            #     params.requires_grad = True
 
             # Update alpha
             if self.adaptive_alpha:
                 # We learn log_alpha instead of alpha to ensure that alpha=exp(log_alpha)>0
-                alpha_loss = -(self.log_alpha.exp() * (log_pi + self.target_entropy).detach()).mean()
                 self.alpha_optimizer.zero_grad()
                 alpha_loss.backward()
                 self.alpha_optimizer.step()
