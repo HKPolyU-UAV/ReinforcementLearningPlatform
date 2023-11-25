@@ -7,13 +7,13 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../../")
 
-from UGV import UGV as env
+from UGVForward import UGVForward as env
 from utils.classes import *
 
 optPath = './datasave/net/'
 show_per = 1
 timestep = 0
-ENV = 'DPPO-UGV(forward only)'
+ENV = 'DPPO-UGVForward'
 
 
 def setup_seed(seed):
@@ -107,7 +107,7 @@ if __name__ == '__main__':
     eval_policy = PPOActorCritic(env.state_dim, env.action_dim, env.action_range)
     # 加载模型参数文件
     eval_policy.load_state_dict(torch.load(optPath + 'actor-critic'))
-    test_num = 3
+    test_num = 10
     # video = cv.VideoWriter('../DPPO-4-' + env.name + '.mp4', cv.VideoWriter_fourcc(*"mp4v"), 200,
     #                        (env.image_size[0] - env.board, env.image_size[1]))
     for _ in range(test_num):

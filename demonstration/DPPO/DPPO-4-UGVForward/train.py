@@ -7,7 +7,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../../")
 
-from UGV import UGV as env
+from UGVForward import UGVForward as env
 from Distributed_PPO import Distributed_PPO as DPPO
 from Distributed_PPO import Worker
 from utils.classes import *
@@ -16,7 +16,7 @@ import torch.multiprocessing as mp
 optPath = './datasave/net/'
 show_per = 1
 timestep = 0
-ENV = 'DPPO-UGV(forward only)'
+ENV = 'DPPO-UGVForward'
 
 
 # 每个cpu核上只运行一个进程
@@ -116,7 +116,7 @@ if __name__ == '__main__':
     os.mkdir(simulationPath)
     c = cv.waitKey(1)
 
-    RETRAIN = False  # 基于之前的训练结果重新训练
+    RETRAIN = True  # 基于之前的训练结果重新训练
 
     env = env()
 
@@ -147,6 +147,10 @@ if __name__ == '__main__':
     '''3. 重新加载全局网络和优化器，这是必须的操作，因为考虑到不同的学习环境要设计不同的网络结构，在训练前，要重写 PPOActorCritic 类'''
     agent.global_policy = PPOActorCritic(agent.env.state_dim, agent.env.action_dim, action_std_init)
     agent.eval_policy = PPOActorCritic(agent.env.state_dim, agent.env.action_dim, action_std_init)
+    if RETRAIN:
+        agent.global_policy.load_state_dict(torch.load('actor-critic'))
+        '''如果修改了奖励函数，则原来的critic网络已经不起作用了，需要重新初始化'''
+        agent.global_policy.critic_reset_orthogonal()
     agent.global_policy.share_memory()
     agent.optimizer = SharedAdam([
         {'params': agent.global_policy.actor.parameters(), 'lr': actor_lr},

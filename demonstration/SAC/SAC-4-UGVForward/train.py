@@ -12,13 +12,13 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../")
 
-from UGV import UGV as env
+from UGVForward import UGVForward as env
 from algorithm.actor_critic.Soft_Actor_Critic import SAC
 from utils.functions import *
 from utils.classes import Normalization
 
 timestep = 0
-ENV = 'UGV'
+ENV = 'UGVForward'
 ALGORITHM = 'SAC'
 MAX_EPISODE = 1500
 r_norm = Normalization(shape=1)
@@ -202,8 +202,8 @@ if __name__ == '__main__':
     agent = SAC(env_msg=env_msg,
                 gamma=0.99,
                 critic_tau=0.005,
-                memory_capacity=1000000,
-                batch_size=128,
+                memory_capacity=40000,
+                batch_size=256,
                 actor=actor,
                 critic=critic,
                 target_critic=target_critic,
@@ -221,10 +221,10 @@ if __name__ == '__main__':
         agent.target_critic.load_state_dict(torch.load(optPath + 'target_critic'))
         agent.critic.orthogonal_init_all()
         agent.target_critic.orthogonal_init_all()
-        fullFillReplayMemory_with_Optimal(randomEnv=True, fullFillRatio=0.025, is_only_success=True)
+        fullFillReplayMemory_with_Optimal(randomEnv=True, fullFillRatio=0.5, is_only_success=True)
     else:
         '''fullFillReplayMemory_Random'''
-        fullFillReplayMemory_Random(randomEnv=True, fullFillRatio=0.025)
+        fullFillReplayMemory_Random(randomEnv=True, fullFillRatio=0.5)
         '''fullFillReplayMemory_Random'''
 
     print('Start to train...')

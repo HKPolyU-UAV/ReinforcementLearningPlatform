@@ -7,7 +7,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../../")
 
-from UGV import UGV as env
+from UGVForward import UGVForward as env
 
 
 def setup_seed(seed):
