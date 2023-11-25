@@ -1,10 +1,10 @@
-from UGV import UGV
+from UGVForward import UGVForward
 import cv2 as cv
 import numpy as np
 
 
 if __name__ == '__main__':
-    env = UGV()
+    env = UGVForward()
     video = cv.VideoWriter(env.name + '.mp4', cv.VideoWriter_fourcc(*"mp4v"), 60, (env.image_size[0],env.image_size[1]))
     n = 1
     for i in range(n):

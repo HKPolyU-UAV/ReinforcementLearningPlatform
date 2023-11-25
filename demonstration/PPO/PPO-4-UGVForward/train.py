@@ -8,14 +8,14 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../../")
 
-from UGV import UGV as env
+from UGVForward import UGVForward as env
 from algorithm.policy_base.Proximal_Policy_Optimization import Proximal_Policy_Optimization as PPO
 from utils.classes import *
 
 optPath = './datasave/net'
 show_per = 1
 timestep = 0
-ENV = 'PPO-UGV(forward only)'
+ENV = 'PPO-UGVForward'
 
 
 class PPOActorCritic(nn.Module):
@@ -146,7 +146,7 @@ if __name__ == '__main__':
     agent.PPO_info()
 
     max_training_timestep = int(env.time_max / env.dt) * 40000
-    action_std_decay_freq = int(env.time_max / env.dt) * 200
+    action_std_decay_freq = int(env.time_max / env.dt) * 1000
     action_std_decay_rate = 0.05
     min_action_std = 0.1
 
