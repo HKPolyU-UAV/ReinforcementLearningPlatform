@@ -30,6 +30,18 @@ def cosd(theta):
 
 
 '''geometry'''
+def cal_vector_rad(v1: list, v2: list) -> float:
+    """
+    :brief:         calculate the rad between two vectors
+    :param v1:      vector1
+    :param v2:      vector2
+    :return:        the rad
+    """
+    # print(v1, v2)
+    if np.linalg.norm(v2) < 1e-4 or np.linalg.norm(v1) < 1e-4:
+        return 0
+    cosTheta = min(max(np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2)), -1), 1)
+    return np.arccos(cosTheta)
 
 
 def cal_vector_rad_oriented(v1, v2):
@@ -118,4 +130,12 @@ def line_is_in_circle(c, r, pt1, pt2) -> bool:
     return line_is_in_ellipse(r, r, 0, c, pt1, pt2)
 
 
+def dis_point_2_poly(points, point):
+    _l = len(points)
+    dis = np.inf
+    for i in range(_l):
+        _dis = dis_point_2_line_segment(point, points[i], points[(i + 1) % _l])
+        if _dis < dis:
+            dis = _dis
+    return dis
 '''geometry'''

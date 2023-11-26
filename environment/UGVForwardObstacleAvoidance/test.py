@@ -1,12 +1,21 @@
-from map import Map
+from UGVForwardObstacleAvoidance import UGVForwardObstacleAvoidance as env
+import numpy as np
+import cv2 as cv
 
-map = Map()
-map.generate_circle_obs_training_dataset(xMax=5.0,
-                                         yMax=5.0,
-                                         safety_dis_obs=0.4,
-                                         safety_dis_st=0.2,
-                                         rMin=0.1,
-                                         rMax=0.6,
-                                         obsNum=3,
-                                         batch=10,
-                                         filename='dataset.txt')
+
+if __name__ == '__main__':
+    env = env()
+    video = cv.VideoWriter(env.name + '.mp4', cv.VideoWriter_fourcc(*"mp4v"), 60, (env.image_size[0], env.image_size[1]))
+    n = 5
+    for i in range(n):
+        env.reset(True)
+        test_r = 0.
+        while not env.is_terminal:
+            a = np.random.uniform(env.action_range[:, 0], env.action_range[:, 1])
+            env.step_update(a)
+            test_r += env.reward
+            env.visualization()
+            video.write(env.image)
+            # cv.waitKey(0)
+        print('   Evaluating %.0f | Reward: %.2f ' % (i, test_r))
+    video.release()
