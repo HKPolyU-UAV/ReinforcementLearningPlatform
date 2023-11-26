@@ -103,8 +103,8 @@ if __name__ == '__main__':
     policy.load_state_dict(torch.load(optPath + 'actor-critic'))
     test_num = 3
     r = 0
-    video = cv.VideoWriter('../PPO-4-' + env.name + '.mp4', cv.VideoWriter_fourcc(*"mp4v"), 200,
-                           (env.image_size[0] - env.board, env.image_size[1]))
+    # video = cv.VideoWriter('../PPO-4-' + env.name + '.mp4', cv.VideoWriter_fourcc(*"mp4v"), 200,
+    #                        (env.image_size[0] - env.board, env.image_size[1]))
     for i in range(test_num):
         r = 0
         env.reset(random=True)
@@ -115,6 +115,6 @@ if __name__ == '__main__':
             env.step_update(_action)  # 环境更新的动作必须是实际物理动作
             r += env.reward
             env.visualization()
-            video.write(env.image[:, 0:env.image_size[0] - env.board])
+            # video.write(env.image[:, 0:env.image_size[0] - env.board])
         print(r)
-    video.release()
+    # video.release()

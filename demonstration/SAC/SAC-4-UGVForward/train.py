@@ -191,7 +191,7 @@ if __name__ == '__main__':
     os.mkdir(simulationPath)
     c = cv.waitKey(1)
 
-    RETRAIN = False
+    RETRAIN = True
 
     env = env()
     actor = SACActor(env.state_dim, env.action_dim, env.action_range[:, 0], env.action_range[:, 1], std_scale=1.)
@@ -202,7 +202,7 @@ if __name__ == '__main__':
     agent = SAC(env_msg=env_msg,
                 gamma=0.99,
                 critic_tau=0.005,
-                memory_capacity=40000,
+                memory_capacity=1000000,
                 batch_size=256,
                 actor=actor,
                 critic=critic,
@@ -221,17 +221,17 @@ if __name__ == '__main__':
         agent.target_critic.load_state_dict(torch.load(optPath + 'target_critic'))
         agent.critic.orthogonal_init_all()
         agent.target_critic.orthogonal_init_all()
-        fullFillReplayMemory_with_Optimal(randomEnv=True, fullFillRatio=0.5, is_only_success=True)
+        fullFillReplayMemory_with_Optimal(randomEnv=True, fullFillRatio=0.025, is_only_success=False)
     else:
         '''fullFillReplayMemory_Random'''
-        fullFillReplayMemory_Random(randomEnv=True, fullFillRatio=0.5)
+        fullFillReplayMemory_Random(randomEnv=True, fullFillRatio=0.025)
         '''fullFillReplayMemory_Random'''
 
     print('Start to train...')
     new_state, new_action, new_reward, new_state_, new_dw = [], [], [], [], []
     step = 0
     is_storage_only_success = False
-    while True:
+    while agent.episode <= MAX_EPISODE:
         env.reset(True)
         sumr = 0
         new_state.clear()

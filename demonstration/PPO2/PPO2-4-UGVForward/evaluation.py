@@ -9,7 +9,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../")
 
-from UGV import UGV as env
+from UGVForward import UGVForward as env
 from utils.functions import *
 
 test_episode = []
@@ -70,7 +70,7 @@ class PPOActor_Gaussian(nn.Module):
 
 
 if __name__ == '__main__':
-    env = env(forward_only=True)    # it has to be True for now.
+    env = env()    # it has to be True for now.
     opt_actor = PPOActor_Gaussian(state_dim=env.state_dim,
                                   action_dim=env.action_dim,
                                   a_min=np.array(env.action_range)[:, 0],
@@ -79,8 +79,8 @@ if __name__ == '__main__':
                                   use_orthogonal_init=True)
     optPath = os.path.dirname(os.path.abspath(__file__)) + '/datasave/net/'
     opt_actor.load_state_dict(torch.load(optPath + 'actor'))
-    video = cv.VideoWriter('../PPO-4-' + env.name + '.mp4', cv.VideoWriter_fourcc(*"mp4v"), 200, (env.image_size[0], env.image_size[1]))
-    n = 2
+    # video = cv.VideoWriter('../PPO-4-' + env.name + '.mp4', cv.VideoWriter_fourcc(*"mp4v"), 200, (env.image_size[0], env.image_size[1]))
+    n = 5
     for i in range(n):
         env.reset(True)
         test_r = 0.
@@ -89,6 +89,6 @@ if __name__ == '__main__':
             env.step_update(a)
             test_r += env.reward
             env.visualization()
-            video.write(env.image)
+            # video.write(env.image)
         print('   Evaluating %.0f | Reward: %.2f ' % (i, test_r))
-    video.release()
+    # video.release()

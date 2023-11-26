@@ -13,13 +13,13 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../")
 
-from UGV import UGV
+from UGVForward import UGVForward
 from algorithm.policy_base.Proximal_Policy_Optimization2 import Proximal_Policy_Optimization2 as PPO2
 from utils.functions import *
 from utils.classes import Normalization
 
 timestep = 0
-ENV = 'UGV'
+ENV = 'UGVForward'
 ALGORITHM = 'PPO2'
 test_episode = []
 test_reward = []
@@ -135,7 +135,7 @@ if __name__ == '__main__':
 
     RETRAIN = False
 
-    env = UGV()
+    env = UGVForward()
     reward_norm = Normalization(shape=1)
     env_msg = {'state_dim': env.state_dim, 'action_dim': env.action_dim, 'name': env.name, 'action_range': env.action_range}
     t_epoch = 0  # 当前训练次数

@@ -52,7 +52,7 @@ class UGVForward(rl_base):
         '''state limitation'''
         # 有一些所谓的 limitation 仅仅是为了参数归一化设计的，实际不在这个范围也没事
         # 比如速度，角度误差，角速度
-        self.e_max = np.linalg.norm(self.map_size)
+        self.e_max = np.linalg.norm(self.map_size) / 2
         self.v_max = 3
         self.e_phi_max = np.pi
         self.omega_max = 2 * np.pi
@@ -74,7 +74,7 @@ class UGVForward(rl_base):
             self.state_range = np.array([-self.static_gain, self.static_gain] for _ in range(self.state_dim))
         else:
             self.state_range = np.array(
-                [[-self.e_max, self.e_max],
+                [[0, self.e_max],
                  [0, self.v_max],
                  [-self.e_phi_max, self.e_phi_max],
                  [-self.omega_max, self.omega_max]]
@@ -218,7 +218,7 @@ class UGVForward(rl_base):
         self.error = self.get_e()
         self.e_phi = self.get_e_phi()
         if self.use_norm:
-            _s = self.error / self.e_max
+            _s = 2 / self.e_max * self.error - 1
             _vel = 2 / self.v_max * self.vel - 1
             _e_phi = self.e_phi / self.e_phi_max
             _omega = self.omega / self.omega_max
@@ -313,14 +313,11 @@ class UGVForward(rl_base):
         self.e_phi = self.get_e_phi()
 
     def get_e(self):
-        error = self.target - self.pos
-        val = np.linalg.norm(error)
-        sign = np.sign(np.dot([np.cos(self.phi), np.sin(self.phi)], error))
-        return sign * val
+        # forward 位置误差不区分正负
+        return np.linalg.norm(self.target - self.pos)
 
     def get_e_phi(self):
-        _th = cal_vector_rad_oriented([np.cos(self.phi), np.sin(self.phi)], self.target - self.pos)
-        return _th
+        return cal_vector_rad_oriented([np.cos(self.phi), np.sin(self.phi)], self.target - self.pos)
 
     def step_update(self, action: np.ndarray):
         """

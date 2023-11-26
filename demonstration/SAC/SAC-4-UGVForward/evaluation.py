@@ -71,8 +71,8 @@ if __name__ == '__main__':
                         a_max=env.action_range[:, 1])
     eval_net.load_state_dict(torch.load(optPath + 'actor'))
 
-    n = 3
-    video = cv.VideoWriter('../SAC-4-' + env.name + '.mp4', cv.VideoWriter_fourcc(*"mp4v"), 200, (env.image_size[0], env.image_size[1]))
+    n = 5
+    # video = cv.VideoWriter('../SAC-4-' + env.name + '.mp4', cv.VideoWriter_fourcc(*"mp4v"), 200, (env.image_size[0], env.image_size[1]))
     for _ in range(n):
         env.reset(True)
         sumr = 0
@@ -83,8 +83,8 @@ if __name__ == '__main__':
             action_from_actor = eval_net.evaluate(env.current_state)
             env.step_update(action_from_actor)
             env.visualization()
-            video.write(env.image)
+            # video.write(env.image)
             sumr += env.reward
         print('Cumulative reward:', round(sumr, 3))
         print()
-    video.release()
+    # video.release()

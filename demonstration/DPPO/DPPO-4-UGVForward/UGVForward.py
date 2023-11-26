@@ -52,7 +52,7 @@ class UGVForward(rl_base):
         '''state limitation'''
         # 有一些所谓的 limitation 仅仅是为了参数归一化设计的，实际不在这个范围也没事
         # 比如速度，角度误差，角速度
-        self.e_max = np.linalg.norm(self.map_size)
+        self.e_max = np.linalg.norm(self.map_size) / 2
         self.v_max = 3
         self.e_phi_max = np.pi
         self.omega_max = 2 * np.pi
@@ -79,7 +79,7 @@ class UGVForward(rl_base):
             )
         else:
             self.state_range = np.array(
-                [[-self.e_max, self.e_max],
+                [[0, self.e_max],
                  [0, self.v_max],
                  [-self.e_phi_max, self.e_phi_max],
                  [-self.omega_max, self.omega_max]]
@@ -223,7 +223,7 @@ class UGVForward(rl_base):
         self.error = self.get_e()
         self.e_phi = self.get_e_phi()
         if self.use_norm:
-            _s = self.error / self.e_max
+            _s = 2 / self.e_max * self.error - 1
             _vel = 2 / self.v_max * self.vel - 1
             _e_phi = self.e_phi / self.e_phi_max
             _omega = self.omega / self.omega_max
@@ -243,8 +243,8 @@ class UGVForward(rl_base):
 
     def is_success(self):
         b1 = np.fabs(self.error) <= 0.05
-        b2 = np.fabs(self.omega) < 0.01
-        # b2 = True
+        # b2 = np.fabs(self.omega) < 0.05
+        b2 = True
         b3 = np.fabs(self.vel) < 0.01
 
         return b1 and b2 and b3
@@ -267,9 +267,9 @@ class UGVForward(rl_base):
 
     def get_reward(self, param=None):
         Q_pos = 2.
-        Q_vel = 0.0
-        Q_phi = 4.  # 一开始是0.5
-        Q_omega = 0.1
+        Q_vel = 0.1
+        Q_phi = 2.
+        Q_omega = 1.
 
         u_pos = -np.fabs(self.error) * Q_pos
         u_vel = -np.fabs(self.vel) * Q_vel
@@ -283,7 +283,6 @@ class UGVForward(rl_base):
         if self.is_success():
             u_psi += 1000
         self.reward = u_pos + u_vel + u_phi + u_omega + u_psi
-        self.reward /= 10
 
     def ode(self, xx: np.ndarray):
         """
@@ -320,14 +319,11 @@ class UGVForward(rl_base):
         self.e_phi = self.get_e_phi()
 
     def get_e(self):
-        error = self.target - self.pos
-        val = np.linalg.norm(error)
-        sign = np.sign(np.dot([np.cos(self.phi), np.sin(self.phi)], error))
-        return sign * val
+        # forward 位置误差不区分正负
+        return np.linalg.norm(self.target - self.pos)
 
     def get_e_phi(self):
-        _th = cal_vector_rad_oriented([np.cos(self.phi), np.sin(self.phi)], self.target - self.pos)
-        return _th
+        return cal_vector_rad_oriented([np.cos(self.phi), np.sin(self.phi)], self.target - self.pos)
 
     def step_update(self, action: np.ndarray):
         """
