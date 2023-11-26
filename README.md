@@ -247,7 +247,7 @@ We put each demo a gif here:
 | ![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/demonstration/TD3/TD3-4-CartPoleAngleOnly.gif) | ![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/demonstration/TD3/TD3-4-Flight_Attitude_Simulator.gif) | ![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/demonstration/TD3/TD3-4-SecondOrderIntegration.gif) |
 
 # TODOs
-- [] Add D4PG algorithm (maybe)
-- [] Add more demos of DPPO2
-- [] Add a new environment: UGVObstacleAvoidance (This environment has already integrated into our [ReinforcementLearning](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning), 
-          we just haven't rewrite it yet.)
+- [ ] Add D4PG algorithm (maybe)
+- [ ] Add more demos of DPPO2
+- [ ] Add a new environment: UGVObstacleAvoidance (This environment has already been integrated into our [ReinforcementLearning](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning), 
+          but we just haven't rewrite it yet.)
