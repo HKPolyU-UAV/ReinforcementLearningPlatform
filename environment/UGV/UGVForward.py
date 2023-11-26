@@ -60,7 +60,7 @@ class UGVForward(rl_base):
         self.a_angular_max = 2 * np.pi
         '''state limitation'''
 
-        self.name = 'UGV'
+        self.name = 'UGVForward'
 
         '''rl_base'''
         self.use_norm = True
@@ -238,8 +238,8 @@ class UGVForward(rl_base):
 
     def is_success(self):
         b1 = np.fabs(self.error) <= 0.05
-        b2 = np.fabs(self.omega) < 0.01
-        # b2 = True
+        # b2 = np.fabs(self.omega) < 0.01
+        b2 = True
         b3 = np.fabs(self.vel) < 0.01
 
         return b1 and b2 and b3
