@@ -134,8 +134,30 @@ class Map:
         r = np.random.uniform(rMin, rMax)
         return ['circle', center, [r]]
 
-    def is_obs_legal(self, s, t, obs, safety_dis_obs):
-        pass # TODO
+    @staticmethod
+    def is_new_obs_in_obs(obs, new_obs, safety_dis_obs):
+        name1, c1, r1 = obs
+        name2, c2, r2 = new_obs
+        if name1 == 'ellipse' or name2 == 'ellipse':
+            return True
+        else:
+            return dis_two_points(c1, c2) <= r1[0] + r2[0] + safety_dis_obs
+
+    def is_obs_legal(self, s, t, obs, safety_dis_obs, safety_dis_st):
+        name, center, constraints = obs
+        if name == 'circle':
+            if dis_two_points(s, center) <= constraints[0] + safety_dis_st:
+                return False
+            if dis_two_points(t, center) <= constraints[0] + safety_dis_st:
+                return False
+            for _o in self.obs:
+                if self.is_new_obs_in_obs(obs=_o, new_obs=obs, safety_dis_obs=safety_dis_obs):
+                    return False
+            return True
+        elif name == 'ellipse':
+            return False
+        else:
+            return False
 
     def generate_circle_obs_training_dataset(self,
                                              xMax: float = 5.0,
@@ -146,9 +168,10 @@ class Map:
                                              rMax: float = 0.6,
                                              obsNum: int = -1,
                                              batch: int = 1000,
-                                             filename: str= 'dataset.txt'):
+                                             filename: str = 'dataset.txt'):
         """
         Args:
+            filename:
             xMax:               地图 x 尺寸
             yMax:               地图 y 尺寸
             safety_dis_obs:     障碍物之间的最短距离
@@ -164,14 +187,18 @@ class Map:
         f.writelines('MapSize: [%.2f.%.2f]' % (xMax, yMax) + '\n')
         f.writelines('BEGIN' + '\n')
         for i in range(batch):
-            f.writelines('=====%.0f=====' % (i) + '\n')
-            start, terminal = self.generate_random_ST(yMax, safety_dis_st)
+            f.writelines('=====%.0f=====' % i + '\n')
+            start, terminal = self.generate_random_ST(xMax, yMax, safety_dis_st)
             f.writelines('Start: [%.2f, %.2f], Terminal: [%.2f, %.2f]' % (start[0], start[1], terminal[0], terminal[1]) + '\n')
             _obsNum = obsNum if 0 < obsNum < 20 else np.random.randint(1, 16)
+            f.writelines('ObsNum: %.0f' % _obsNum + '\n')
             for _ in range(_obsNum):
-                __new_obs =
-            f.writelines('ObsNum: %.0f' % (_obsNum) + '\n')
-            f.writelines('=====%.0f=====' % (i) + '\n')
+                _new_obs = ['circle', start.copy(), [0.1]]
+                while not self.is_obs_legal(start, terminal, _new_obs, safety_dis_obs, safety_dis_st):
+                    _new_obs = self.generate_one_circular_obs(xMax, yMax, rMin, rMax)
+                f.writelines('[' + _new_obs[0] + ', ' + '[%.2f], ' % (_new_obs[2][0]) + '[%.2f, %.2f]' % (_new_obs[1][0], _new_obs[1][1]) + ']\n')
+                self.obs.append(_new_obs)
+            f.writelines('=====%.0f=====' % i + '\n')
             f.writelines('\n')
         f.writelines('END' + '\n')
         f.close()
