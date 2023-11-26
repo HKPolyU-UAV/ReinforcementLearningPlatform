@@ -248,6 +248,6 @@ We put each demo a gif here:
 
 # TODOs
 - [ ] Add D4PG algorithm (maybe)
-- [ ] Add more demos of DPPO2
+- [ ] Add more demos for DPPO2
 - [ ] Add a new environment: UGVObstacleAvoidance (This environment has already been integrated into our [ReinforcementLearning](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning), 
           but we just haven't rewrite it yet.)
