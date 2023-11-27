@@ -11,13 +11,13 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../")
 
-from UGV import UGV
+from UGVForward import UGVForward
 from Distributed_PPO2 import Distributed_PPO2 as DPPO2
 from Distributed_PPO2 import Worker
 from utils.classes import Normalization, SharedAdam
 
 ENV = 'UGV(forward only)'
-ALGORITHM = 'PPO2'
+ALGORITHM = 'DPPO2'
 os.environ["OMP_NUM_THREADS"] = "1"
 
 
@@ -119,7 +119,7 @@ if __name__ == '__main__':
 
     RETRAIN = False
 
-    env = UGV()
+    env = UGVForward()
     reward_norm = Normalization(shape=1)
 
     env_msg = {'state_dim': env.state_dim, 'action_dim': env.action_dim, 'name': env.name,
@@ -127,13 +127,13 @@ if __name__ == '__main__':
 
     mp.set_start_method('spawn', force=True)
 
-    process_num = 6
+    process_num = 10
     actor_lr = 1e-4  # / min(process_num, 5)
-    critic_lr = 1e-4  # / min(process_num, 5)  # 一直都是 1e-3
+    critic_lr = 1e-3  # / min(process_num, 5)  # 一直都是 1e-3
     # k_epo = int(100 / process_num * 1)  # int(100 / process_num * 1.1)
     k_epo = 30  # / min(process_num, 5)
     agent = DPPO2(env=env, actor_lr=actor_lr, critic_lr=critic_lr, num_of_pro=process_num, path=simulationPath)
-    std0 = (env.action_range[:, 1] - env.action_range[:, 0]) / 2 / 3
+    std0 = (env.action_range[:, 1] - env.action_range[:, 0]) / 2 / 5
     '''3. 重新加载全局网络和优化器，这是必须的操作'''
     agent.global_actor = PPOActor_Gaussian(state_dim=env.state_dim,
                                            action_dim=env.action_dim,
@@ -163,20 +163,17 @@ if __name__ == '__main__':
     ppo_msg = {'gamma': 0.99,
                'k_epo': k_epo,
                'eps_clip': 0.2,
-               # 'buffer_size': int(env.time_max / env.dt) * 2,
-               'buffer_size': 2048,
+               'buffer_size': int(env.time_max / env.dt) * 4,
                'state_dim': env.state_dim,
                'action_dim': env.action_dim,
-               # 'a_lr': 1e-4,
-               # 'c_lr': 1e-3,
                'device': 'cpu',
                'set_adam_eps': True,
                'lmd': 0.95,
                'use_adv_norm': True,
                'mini_batch_size': 64,
                'entropy_coef': 0.01,
-               'use_grad_clip': False,
-               'use_lr_decay': True,
+               'use_grad_clip': True,
+               'use_lr_decay': False,
                'max_train_steps': int(5e6),
                'using_mini_batch': False}
     for i in range(agent.num_of_pro):

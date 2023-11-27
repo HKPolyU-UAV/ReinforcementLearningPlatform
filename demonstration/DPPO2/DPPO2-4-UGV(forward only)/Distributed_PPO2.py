@@ -277,6 +277,7 @@ class Distributed_PPO2:
         for p in self.processes:
             p.start()
             p.join(0.5)
+        # print('Finish loading all workers')
 
     def evaluate(self, state):
         with torch.no_grad():

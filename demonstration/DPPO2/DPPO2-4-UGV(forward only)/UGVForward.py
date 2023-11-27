@@ -1,27 +1,28 @@
 import cv2 as cv
+import numpy as np
+
 from utils.functions import *
 from algorithm.rl_base import rl_base
 from environment.color import Color
 
 
-class UGV(rl_base):
+class UGVForward(rl_base):
     def __init__(self,
                  pos0: np.ndarray = np.array([1., 1.]),
                  vel0: float = 0.,
                  phi0: float = 0.,
                  omega0: float = 0.,
                  map_size: np.ndarray = np.array([5.0, 5.0]),
-                 target: np.ndarray = np.array([2.5, 2.5]),
-                 forward_only: bool = True):
+                 target: np.ndarray = np.array([2.5, 2.5])):
         """
-		:param pos0:
-		:param vel0:
-		:param phi0:
-		:param omega0:
-		:param map_size:
-		:param target:
-		"""
-        super(UGV, self).__init__()
+        :param pos0:
+        :param vel0:
+        :param phi0:
+        :param omega0:
+        :param map_size:
+        :param target:
+        """
+        super(UGVForward, self).__init__()
 
         self.init_pos = pos0  # 初始位置
         self.init_vel = vel0  # 初始线速度
@@ -35,10 +36,8 @@ class UGV(rl_base):
         self.omega = omega0  # 角速度
         self.map_size = map_size  # 地图大小
         self.target = target  # 目标位置
-        self.error = np.linalg.norm(self.target - self.pos)  # 位置误差
+        self.error = self.get_e()  # 位置误差
         self.e_phi = self.get_e_phi()
-
-        self.forward_only = forward_only
 
         '''hyper-parameters'''
         self.dt = 0.02  # 50Hz
@@ -53,9 +52,9 @@ class UGV(rl_base):
         '''state limitation'''
         # 有一些所谓的 limitation 仅仅是为了参数归一化设计的，实际不在这个范围也没事
         # 比如速度，角度误差，角速度
-        self.e_max = np.linalg.norm(self.map_size)
+        self.e_max = np.linalg.norm(self.map_size) / 2
         self.v_max = 3
-        self.e_phi_max = np.pi / 2
+        self.e_phi_max = np.pi
         self.omega_max = 2 * np.pi
         self.a_linear_max = 3
         self.a_angular_max = 2 * np.pi
@@ -71,18 +70,13 @@ class UGV(rl_base):
         self.state_step = [None for _ in range(self.state_dim)]
         self.state_space = [None for _ in range(self.state_dim)]
         self.isStateContinuous = [True for _ in range(self.state_dim)]
-        if self.forward_only:
-            self.state_range = np.array(
-                [[0, self.e_max],
-                 [0, self.v_max],
-                 [0, self.e_phi_max],
-                 [-self.omega_max, self.omega_max]]
-            )
+        if self.use_norm:
+            self.state_range = np.array([-self.static_gain, self.static_gain] for _ in range(self.state_dim))
         else:
             self.state_range = np.array(
                 [[0, self.e_max],
-                 [-self.v_max, self.v_max],
-                 [0, self.e_phi_max],
+                 [0, self.v_max],
+                 [-self.e_phi_max, self.e_phi_max],
                  [-self.omega_max, self.omega_max]]
             )
         self.current_state = self.get_state()
@@ -117,20 +111,20 @@ class UGV(rl_base):
 
     def dis2pixel(self, coord) -> tuple:
         """
-		:brief:         the transformation of coordinate between physical world and image
-		:param coord:   position in physical world
-		:return:        position in image coordinate
-		"""
+        :brief:         the transformation of coordinate between physical world and image
+        :param coord:   position in physical world
+        :return:        position in image coordinate
+        """
         x = self.x_offset + coord[0] * self.pixel_per_meter
         y = self.image_size[1] - self.y_offset - coord[1] * self.pixel_per_meter
         return int(x), int(y)
 
     def length2pixel(self, _l):
         """
-		:brief:         the transformation of distance between physical world and image
-		:param _l:      length in physical world
-		:return:        length in image
-		"""
+        :brief:         the transformation of distance between physical world and image
+        :param _l:      length in physical world
+        :return:        length in image
+        """
         return int(_l * self.pixel_per_meter)
 
     def draw_boundary(self):
@@ -221,12 +215,12 @@ class UGV(rl_base):
         cv.waitKey(1)
 
     def get_state(self) -> np.ndarray:
-        self.error = np.linalg.norm(self.target - self.pos)
+        self.error = self.get_e()
         self.e_phi = self.get_e_phi()
         if self.use_norm:
             _s = 2 / self.e_max * self.error - 1
-            _vel = 2 / self.v_max * self.vel - 1 if self.forward_only else self.vel / self.v_max
-            _e_phi = 2 / self.e_phi_max * self.e_phi - 1
+            _vel = 2 / self.v_max * self.vel - 1
+            _e_phi = self.e_phi / self.e_phi_max
             _omega = self.omega / self.omega_max
             return np.array([_s, _vel, _e_phi, _omega]) * self.static_gain
         else:
@@ -234,8 +228,8 @@ class UGV(rl_base):
 
     def is_out(self):
         """
-		:return:
-		"""
+        :return:
+        """
         right_out = self.pos[0] > self.map_size[0]
         left_out = self.pos[0] < 0
         up_out = self.pos[1] > self.map_size[1]
@@ -243,10 +237,10 @@ class UGV(rl_base):
         return right_out or left_out or up_out or down_out
 
     def is_success(self):
-        b1 = self.error <= 0.05
-        # b2 = np.fabs(self.omega) < 0.01
+        b1 = np.fabs(self.error) <= 0.05
+        # b2 = np.fabs(self.omega) < 0.05
         b2 = True
-        b3 = np.linalg.norm(self.vel) < 0.01
+        b3 = np.fabs(self.vel) < 0.01
 
         return b1 and b2 and b3
 
@@ -262,19 +256,19 @@ class UGV(rl_base):
             self.terminal_flag = 2
             self.is_terminal = True
         if self.is_success():
-            # print('...success...')
+            print('...success...')
             self.terminal_flag = 3
             self.is_terminal = True
 
     def get_reward(self, param=None):
         Q_pos = 2.
-        Q_vel = 0.0
+        Q_vel = 0.1
         Q_phi = 2.
-        Q_omega = 1.0
+        Q_omega = 1.
 
-        u_pos = -self.error * Q_pos
+        u_pos = -np.fabs(self.error) * Q_pos
         u_vel = -np.fabs(self.vel) * Q_vel
-        u_phi = -self.e_phi * Q_phi if self.error > 0.1 else 0.0
+        u_phi = -np.fabs(self.e_phi) * Q_phi if self.error > 0.1 else 0.0
         u_omega = -np.fabs(self.omega) * Q_omega
 
         u_psi = 0.
@@ -286,9 +280,9 @@ class UGV(rl_base):
 
     def ode(self, xx: np.ndarray):
         """
-		@param xx:	state
-		@return:	dx = f(x, t)，返回值当然是  dot{xx}
-		"""
+        @param xx:	state
+        @return:	dx = f(x, t)，返回值当然是  dot{xx}
+        """
         [_x, _y, _vel, _phi, _omega] = xx[:]
         _dx = _vel * np.cos(_phi)
         _dy = _vel * np.sin(_phi)
@@ -306,7 +300,7 @@ class UGV(rl_base):
         K4 = self.dt * self.ode(xx + K3)
         xx = xx + (K1 + 2 * K2 + 2 * K3 + K4) / 6
         [self.pos[0], self.pos[1], self.vel, self.phi, self.omega] = xx[:]
-        if self.vel < 0. and self.forward_only:
+        if self.vel < 0.:
             self.vel = 0.
         self.time += self.dt
 
@@ -315,23 +309,21 @@ class UGV(rl_base):
         if self.phi < -np.pi:
             self.phi += 2 * np.pi
 
-        self.error = np.linalg.norm(self.target - self.pos)
+        self.error = self.get_e()
         self.e_phi = self.get_e_phi()
 
-    def get_e_phi(self):
-        vec1 = (self.target - self.pos) / np.linalg.norm(self.target - self.pos)
-        vec2 = np.array([C(self.phi), S(self.phi)])
+    def get_e(self):
+        # forward 位置误差不区分正负
+        return np.linalg.norm(self.target - self.pos)
 
-        _th = np.arccos(np.dot(vec1, vec2))
-        if _th > np.pi / 2 and (not self.forward_only):
-            _th = np.pi - _th
-        return _th
+    def get_e_phi(self):
+        return cal_vector_rad_oriented([np.cos(self.phi), np.sin(self.phi)], self.target - self.pos)
 
     def step_update(self, action: np.ndarray):
         """
-		@param action:
-		@return:
-		"""
+        @param action:
+        @return:
+        """
         self.current_action = action.copy()
         self.current_state = self.get_state()
         self.rk44(action=action)
@@ -354,7 +346,7 @@ class UGV(rl_base):
         self.phi = self.init_phi
         self.omega = self.init_omega
         self.target = self.init_target.copy()
-        self.error = np.linalg.norm(self.target - self.pos)
+        self.error = self.get_e()
         self.e_phi = self.get_e_phi()
         self.time = 0.
         self.a_linear = self.a_angular = 0.
