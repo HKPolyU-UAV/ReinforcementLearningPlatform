@@ -8,12 +8,12 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../")
 
-from UGV import UGV
+from UGVForward import UGVForward
 from utils.functions import *
 
 timestep = 0
-ENV = 'UGV(forward only)'
-ALGORITHM = 'PPO2'
+ENV = 'UGVForward'
+ALGORITHM = 'DPPO2'
 test_episode = []
 test_reward = []
 sumr_list = []
@@ -28,14 +28,10 @@ class PPOActor_Gaussian(nn.Module):
                  init_std: float = 0.5,
                  use_orthogonal_init: bool = True):
         super(PPOActor_Gaussian, self).__init__()
-        self.net = nn.Sequential(
-            nn.Linear(state_dim, 64),
-            nn.Tanh(),
-            nn.Linear(64, 32),
-            nn.Tanh(),
-            nn.Linear(32, action_dim),
-            nn.Tanh()
-        )
+        self.fc1 = nn.Linear(state_dim, 256)
+        self.fc2 = nn.Linear(256, 256)
+        self.mean_layer = nn.Linear(256, action_dim)
+        self.activate_func = nn.Tanh()
         self.a_min = torch.tensor(a_min, dtype=torch.float)
         self.a_max = torch.tensor(a_max, dtype=torch.float)
         self.off = (self.a_min + self.a_max) / 2.0
@@ -52,28 +48,32 @@ class PPOActor_Gaussian(nn.Module):
         nn.init.constant_(layer.bias, 0)
 
     def orthogonal_init_all(self):
-        self.orthogonal_init(self.net[0])
-        self.orthogonal_init(self.net[2])
-        self.orthogonal_init(self.net[4], gain=0.01)
+        self.orthogonal_init(self.fc1)
+        self.orthogonal_init(self.fc2)
+        self.orthogonal_init(self.mean_layer, gain=0.01)
 
-    def forward(self):
-        raise NotImplementedError
+    def forward(self, s):
+        s = self.activate_func(self.fc1(s))
+        s = self.activate_func(self.fc2(s))
+        mean = torch.tanh(self.mean_layer(s)) * self.gain + self.off
+        # mean = torch.relu(self.mean_layer(s))
+        return mean
 
     def get_dist(self, s):
-        mean = self.net(s)
+        mean = self.forward(s)
         std = self.std.expand_as(mean)
         dist = Normal(mean, std)
         return dist
 
     def evaluate(self, state):
         with torch.no_grad():
-            t_state = torch.unsqueeze(torch.tensor(state, dtype=torch.float), 0)
-            action_mean = self.net(t_state)
+            t_state = torch.unsqueeze(torch.FloatTensor(state), 0)
+            action_mean = self.forward(t_state)
         return action_mean.detach().cpu().numpy().flatten()
 
 
 if __name__ == '__main__':
-    env = UGV()
+    env = UGVForward()
     env_msg = {'state_dim': env.state_dim, 'action_dim': env.action_dim, 'name': env.name, 'action_range': env.action_range}
     t_epoch = 0  # 当前训练次数
     test_num = 0

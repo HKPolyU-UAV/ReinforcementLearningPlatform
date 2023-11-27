@@ -86,7 +86,7 @@ class Worker(mp.Process):
             self.g_opt_actor.zero_grad()
             actor_loss.mean().backward()
             if self.use_grad_clip:
-                torch.nn.utils.clip_grad_norm_(self.l_actor.parameters(), 0.5)  # TODO YYF 也改了
+                torch.nn.utils.clip_grad_norm_(self.l_actor.parameters(), 0.2)  # TODO YYF 也改了
             for l_a, g_a in zip(self.l_actor.parameters(), self.g_actor.parameters()):
                 g_a._grad = l_a.grad
             self.g_opt_actor.step()
@@ -97,7 +97,7 @@ class Worker(mp.Process):
             self.g_opt_critic.zero_grad()
             critic_loss.backward()
             if self.use_grad_clip:  # Trick 7: Gradient clip
-                torch.nn.utils.clip_grad_norm_(self.l_critic.parameters(), 0.5)  # TODO YYF 也改了
+                torch.nn.utils.clip_grad_norm_(self.l_critic.parameters(), 0.2)  # TODO YYF 也改了
             for l_c, g_c in zip(self.l_critic.parameters(), self.g_critic.parameters()):
                 g_c._grad = l_c.grad
             self.g_opt_critic.step()

@@ -71,7 +71,12 @@ class UGVForward(rl_base):
         self.state_space = [None for _ in range(self.state_dim)]
         self.isStateContinuous = [True for _ in range(self.state_dim)]
         if self.use_norm:
-            self.state_range = np.array([-self.static_gain, self.static_gain] for _ in range(self.state_dim))
+            self.state_range = self.state_range = np.array(
+                [[-self.static_gain, self.static_gain],
+                 [-self.static_gain, self.static_gain],
+                 [-self.static_gain, self.static_gain],
+                 [-self.static_gain, self.static_gain]]
+            )
         else:
             self.state_range = np.array(
                 [[0, self.e_max],

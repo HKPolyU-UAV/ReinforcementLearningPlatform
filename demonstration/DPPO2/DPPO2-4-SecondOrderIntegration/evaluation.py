@@ -14,7 +14,7 @@ from utils.classes import Normalization
 
 timestep = 0
 ENV = 'SecondOrderIntegration'
-ALGORITHM = 'PPO2'
+ALGORITHM = 'DPPO2'
 test_episode = []
 test_reward = []
 sumr_list = []

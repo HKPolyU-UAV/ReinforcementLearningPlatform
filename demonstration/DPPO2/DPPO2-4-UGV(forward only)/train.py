@@ -16,7 +16,7 @@ from Distributed_PPO2 import Distributed_PPO2 as DPPO2
 from Distributed_PPO2 import Worker
 from utils.classes import Normalization, SharedAdam
 
-ENV = 'UGV(forward only)'
+ENV = 'UGVForwardOnly'
 ALGORITHM = 'DPPO2'
 os.environ["OMP_NUM_THREADS"] = "1"
 
@@ -30,9 +30,9 @@ class PPOActor_Gaussian(nn.Module):
                  init_std: float = 0.5,
                  use_orthogonal_init: bool = True):
         super(PPOActor_Gaussian, self).__init__()
-        self.fc1 = nn.Linear(state_dim, 128)
-        self.fc2 = nn.Linear(128, 64)
-        self.mean_layer = nn.Linear(64, action_dim)
+        self.fc1 = nn.Linear(state_dim, 256)
+        self.fc2 = nn.Linear(256, 256)
+        self.mean_layer = nn.Linear(256, action_dim)
         self.activate_func = nn.Tanh()
         self.a_min = torch.tensor(a_min, dtype=torch.float)
         self.a_max = torch.tensor(a_max, dtype=torch.float)
@@ -78,11 +78,11 @@ class PPOCritic(nn.Module):
     def __init__(self, state_dim=3, use_orthogonal_init: bool = True):
         super(PPOCritic, self).__init__()
         self.net = nn.Sequential(
-            nn.Linear(state_dim, 128),
+            nn.Linear(state_dim, 256),
             nn.Tanh(),
-            nn.Linear(128, 64),
+            nn.Linear(256, 256),
             nn.Tanh(),
-            nn.Linear(64, 1),
+            nn.Linear(256, 1),
         )
         self.init(use_orthogonal_init=use_orthogonal_init)
 
@@ -127,13 +127,13 @@ if __name__ == '__main__':
 
     mp.set_start_method('spawn', force=True)
 
-    process_num = 10
-    actor_lr = 1e-4  # / min(process_num, 5)
-    critic_lr = 1e-3  # / min(process_num, 5)  # 一直都是 1e-3
+    process_num = 20
+    actor_lr = 1e-4 / min(process_num, 5)
+    critic_lr = 1e-3 / min(process_num, 5)  # 一直都是 1e-3
     # k_epo = int(100 / process_num * 1)  # int(100 / process_num * 1.1)
-    k_epo = 30  # / min(process_num, 5)
+    k_epo = int(30 / min(process_num, 5))
     agent = DPPO2(env=env, actor_lr=actor_lr, critic_lr=critic_lr, num_of_pro=process_num, path=simulationPath)
-    std0 = (env.action_range[:, 1] - env.action_range[:, 0]) / 2 / 5
+    std0 = (env.action_range[:, 1] - env.action_range[:, 0]) / 2 / 3
     '''3. 重新加载全局网络和优化器，这是必须的操作'''
     agent.global_actor = PPOActor_Gaussian(state_dim=env.state_dim,
                                            action_dim=env.action_dim,
