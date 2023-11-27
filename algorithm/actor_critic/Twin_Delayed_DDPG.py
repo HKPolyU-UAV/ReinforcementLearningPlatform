@@ -4,6 +4,9 @@ from utils.functions import *
 from utils.classes import Actor, TD3Critic, ReplayBuffer
 import torch.nn.functional as func
 from torch.distributions import Normal
+import os
+
+os.environ["KMP_DUPLICATE_LIB_OK"]  =  "TRUE"
 
 """use CPU or GPU"""
 use_cuda = torch.cuda.is_available()
@@ -93,7 +96,7 @@ class Twin_Delayed_DDPG:
 				done: [batch_size, 1]
 			'''
 			with torch.no_grad():
-				noise = self.noise_policy.sample(torch.Size((self.memory.batch_size, 1))).squeeze()
+				noise = self.noise_policy.sample(torch.Size((self.memory.batch_size, 1))).squeeze(dim=2)
 				noise = torch.maximum(torch.minimum(noise, self.noise_clip), -self.noise_clip)
 				next_action = self.target_actor(s_).cpu() + noise
 				next_action = torch.maximum(torch.minimum(next_action, self.a_max), self.a_min)
