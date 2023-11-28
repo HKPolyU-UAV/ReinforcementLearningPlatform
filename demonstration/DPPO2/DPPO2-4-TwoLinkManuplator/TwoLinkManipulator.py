@@ -78,8 +78,7 @@ class TwoLinkManipulator(rl_base):
         self.action_step = [None, None]
         self.action_range = np.array(
             [[-self.torqueMax, self.torqueMax],
-             [-self.torqueMax, self.torqueMax]]
-        )
+             [-self.torqueMax, self.torqueMax]])
         self.action_num = [np.inf, np.inf]
         self.action_space = [None, None]
         self.isActionContinuous = [True, True]
@@ -134,7 +133,6 @@ class TwoLinkManipulator(rl_base):
             (self.image_size[0] - self.board - 5, 130), cv.FONT_HERSHEY_COMPLEX, 0.5, Color().Purple, 1)
 
     def draw_init_image(self):
-        self.draw_grid()
         self.draw_boundary()
         self.image_white = self.image.copy()
 
@@ -185,22 +183,6 @@ class TwoLinkManipulator(rl_base):
     def draw_target(self):
         cv.circle(self.image, self.dis2pixel(self.target), 5, Color().random_color_by_BGR(), -1)
 
-    def draw_grid(self, num: np.ndarray = np.array([10, 10])):
-        if np.min(num) <= 1:
-            pass
-        else:
-            step = self.map_size / num
-            for i in range(num[1] - 1):
-                cv.line(self.image,
-                        self.dis2pixel([0, 0 + (i + 1) * step[1]]),
-                        self.dis2pixel([self.map_size[0], 0 + (i + 1) * step[1]]),
-                        Color().Black, 1)
-            for i in range(num[0] - 1):
-                cv.line(self.image,
-                        self.dis2pixel([0 + (i + 1) * step[0], 0]),
-                        self.dis2pixel([0 + (i + 1) * step[0], self.map_size[1]]),
-                        Color().Black, 1)
-
     def get_state(self):
         state = np.concatenate((self.error, self.theta, self.omega), axis=0)
         if self.use_norm:
@@ -228,17 +210,17 @@ class TwoLinkManipulator(rl_base):
 
     def get_reward(self, param=None):
         Q_pos = 2.0
-        Q_omage = 0.01
-        Q_acc = 0.01
+        Q_omage = 0.1
+        Q_acc = 0.005
 
         r_pos = -np.linalg.norm(self.error) * Q_pos
         r_omega = -np.linalg.norm(self.omega) * Q_omage
         r_acc = -np.linalg.norm(self.torque) * Q_acc
 
         r_psi = 0.
-        if self.terminal_flag == 4:  # 瞎几把转
-            _n = (self.time_max - self.time) / self.dt
-            r_psi = _n * (r_pos + r_omega + r_acc)
+        # if self.terminal_flag == 4:  # 瞎几把转
+        #     _n = (self.time_max - self.time) / self.dt
+        #     r_psi = _n * (r_pos + r_omega + r_acc)
         self.reward = r_pos + r_omega + r_acc + r_psi
 
     def ode(self, xx: np.ndarray):
@@ -326,4 +308,5 @@ class TwoLinkManipulator(rl_base):
         self.is_terminal = False
         self.terminal_flag = 0
 
+        self.image = np.ones([self.image_size[1], self.image_size[0], 3], np.uint8) * 255
         self.draw_init_image()

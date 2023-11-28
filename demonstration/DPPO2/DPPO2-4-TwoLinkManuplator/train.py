@@ -137,7 +137,7 @@ if __name__ == '__main__':
     actor_lr = 1e-4 / min(process_num, 5)
     critic_lr = 1e-3 / min(process_num, 5)  # 一直都是 1e-3
     # k_epo = int(100 / process_num * 1)  # int(100 / process_num * 1.1)
-    k_epo = int(30 / min(process_num, 5))
+    k_epo = int(50 / min(process_num, 5))
     # k_epo = 30
     agent = DPPO2(env=env, actor_lr=actor_lr, critic_lr=critic_lr, num_of_pro=process_num, path=simulationPath)
 

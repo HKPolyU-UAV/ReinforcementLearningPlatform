@@ -135,8 +135,7 @@ class Worker(mp.Process):
                     self.env.step_update(a)
                     # env.visualization()
                     sumr += self.env.reward
-                    success = 0.0 if self.env.terminal_flag == 1 else 1.0  # 1 对应出界，固定时间内，不出界，就是 success
-                    # success = 1.0
+                    success = 0.0       # 这个环境没有 “提前结束" 的概念
                     self.buffer.append(s=self.env.current_state,
                                        a=a,
                                        log_prob=a_log_prob,
@@ -150,19 +149,18 @@ class Worker(mp.Process):
             '''1. 收集数据'''
 
             '''2. 学习'''
-            # print('~~~~~~~~~~ Training Start ~~~~~~~~~~')
-            # print('Train Epoch: {}'.format(t_epoch))
             timestep += self.ppo_msg['buffer_size']
             self.learn()
             buffer_index = 0
             '''2. 学习'''
 
-            '''4. 每学习 250 次，减小一次探索概率'''
-            STD_DELAY_PER = 0.05
-            if t_epoch % 250 == 0 and t_epoch > 0:
-                _ratio = max(1 - t_epoch / 250 * STD_DELAY_PER, 0.05)
+            '''4. 每学习 STD_DELAY_PER 次，减小一次探索概率'''
+            STD_DELAY_STEP = 0.05
+            STD_DELAY_PER = 300
+            if t_epoch % STD_DELAY_PER == 0 and t_epoch > 0:
+                _ratio = max(1 - t_epoch / STD_DELAY_PER * STD_DELAY_STEP, 0.05)
                 self.l_actor.std = torch.tensor(std0 * _ratio, dtype=torch.float)
-            '''4. 每学习 250 次，减小一次探索概率'''
+            '''4. 每学习 STD_DELAY_PER 次，减小一次探索概率'''
 
             t_epoch += 1
             with self.lock:
@@ -175,14 +173,9 @@ class Worker(mp.Process):
 class Distributed_PPO2:
     def __init__(self, env, actor_lr: float = 3e-4, critic_lr: float = 1e-3, num_of_pro: int = 5, path: str = ''):
         """
-		@param env:			RL environment
-		@param actor_lr:	actor learning rate
-		@param critic_lr:	critic learning rate
-		@param num_of_pro:	number of training process
-		"""
+
+        """
         '''RL env'''
-        # Remind: 这里的 env 还有 env 的成员函数是找不到索引的，需要确保写的时候没有问题才行，为了方便设计，不得已把 env 集成到 DPPO 里面
-        # 如果形成一种习惯，也未尝不可，嗨嗨嗨
         self.env = env
         self.state_dim_nn = env.state_dim
         self.action_dim_nn = env.action_dim
