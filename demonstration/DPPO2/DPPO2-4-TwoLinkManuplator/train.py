@@ -11,12 +11,12 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../")
 
-from CartPole import CartPole
+from TwoLinkManipulator import TwoLinkManipulator
 from Distributed_PPO2 import Distributed_PPO2 as DPPO2
 from Distributed_PPO2 import Worker
 from utils.classes import Normalization, SharedAdam
 
-ENV = 'CartPole'
+ENV = 'TwoLinkManipulator'
 ALGORITHM = 'DPPO2'
 
 
@@ -126,7 +126,7 @@ if __name__ == '__main__':
 
     RETRAIN = False
 
-    env = CartPole()
+    env = TwoLinkManipulator()
     reward_norm = Normalization(shape=1)
 
     env_msg = {'state_dim': env.state_dim, 'action_dim': env.action_dim, 'name': env.name, 'action_range': env.action_range}
@@ -137,7 +137,7 @@ if __name__ == '__main__':
     actor_lr = 1e-4 / min(process_num, 5)
     critic_lr = 1e-3 / min(process_num, 5)  # 一直都是 1e-3
     # k_epo = int(100 / process_num * 1)  # int(100 / process_num * 1.1)
-    k_epo = int(30 / min(process_num, 5))
+    k_epo = int(50 / min(process_num, 5))
     # k_epo = 30
     agent = DPPO2(env=env, actor_lr=actor_lr, critic_lr=critic_lr, num_of_pro=process_num, path=simulationPath)
 
@@ -146,7 +146,7 @@ if __name__ == '__main__':
                                            action_dim=env.action_dim,
                                            a_min=np.array(env.action_range)[:, 0],
                                            a_max=np.array(env.action_range)[:, 1],
-                                           init_std=1.2,
+                                           init_std=1.2,    # 没用的
                                            use_orthogonal_init=True).share_memory()
     agent.global_critic = PPOCritic(state_dim=env.state_dim, use_orthogonal_init=True)
     agent.eval_actor = PPOActor_Gaussian(state_dim=env.state_dim,
@@ -172,7 +172,7 @@ if __name__ == '__main__':
     ppo_msg = {'gamma': 0.99,
                'k_epo': k_epo,
                'eps_clip': 0.2,
-               'buffer_size': int(env.timeMax / env.dt) * 4,
+               'buffer_size': int(env.time_max / env.dt) * 4,
                'state_dim': env.state_dim,
                'action_dim': env.action_dim,
                'device': 'cpu',

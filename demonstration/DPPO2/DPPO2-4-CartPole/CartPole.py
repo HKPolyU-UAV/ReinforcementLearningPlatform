@@ -270,8 +270,8 @@ class CartPole(rl_base):
 		"""
 		'''physical parameters'''
 		if random:
-			self.initTheta = np.random.uniform(-self.theta_max * 0.5, self.theta_max * 0.5)
-			self.initX = np.random.uniform(-self.x_max * 0.5, self.x_max * 0.5)
+			self.initTheta = np.random.uniform(-self.theta_max / 3, self.theta_max / 3)
+			self.initX = np.random.uniform(-self.x_max / 2, self.x_max / 2)
 		self.theta = self.initTheta
 		self.x = self.initX
 		self.dtheta = 0.  # 从左往右转为正

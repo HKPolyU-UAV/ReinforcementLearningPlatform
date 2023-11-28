@@ -154,8 +154,8 @@ position of the UGV.
 # demonstration
 
 All demos are classified by Rl algorithms. For example, in folder SAC, all environments are controled by a SAC-trained
-NN controller. Currently, we have: 3 for DDPG, 2 for DoubleDQN, 7 for DPPO, 0 for DPPO2, 2 for DQN, 2 for DuelingDQN, 10
-for PPO, 7 for PPO2, 7 for SAC, 3 for TD3, which are 43 demonstrations in total.
+NN controller. Currently, we have: 3 for DDPG, 2 for DoubleDQN, 7 for DPPO, 3 for DPPO2, 2 for DQN, 2 for DuelingDQN, 10
+for PPO, 7 for PPO2, 7 for SAC, 3 for TD3, which are **46 demonstrations** (嗨嗨嗨，奥利给兄弟们干了).
 
 We put each demo a gif here:
 
@@ -182,9 +182,11 @@ We put each demo a gif here:
 | ![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/demonstration/DPPO/DPPO-4-UGV.gif)            |                                                                                                                                                         |                                                                                                                                                       |
 
 ## DPPO2
-| SecondOrderIntegration                                                                                                                                      | UGVForward                                                                                                                                      |            |
-|-------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------|------------|
-| ![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/demonstration/DPPO2/DPPO2-4-SecondOrderIntegration.gif) | ![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/demonstration/DPPO2/DPPO2-4-UGVForward.gif) | ![image]() |
+| SecondOrderIntegration                                                                                                                                      | UGVForward                                                                                                                                      | CartPole                                                                                                                                      |
+|-------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
+| ![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/demonstration/DPPO2/DPPO2-4-SecondOrderIntegration.gif) | ![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/demonstration/DPPO2/DPPO2-4-UGVForward.gif) | ![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/demonstration/DPPO2/DPPO2-4-CartPole.gif) |
+| TwoLinkManuplator                                                                                                                                           |||
+| ![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/demonstration/DPPO2/DPPO2-4-TwoLinkManipulator.gif)                                                                                                                                                  |||
 ## DQN
 
 | FlightAttitudeSimulator                                                                                                                                          | SecondOrderIntegration                                                                                                                                  |

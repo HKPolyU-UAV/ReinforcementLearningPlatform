@@ -9,12 +9,12 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../")
 
-from SecondOrderIntegration import SecondOrderIntegration
+from CartPole import CartPole
 from utils.functions import *
 from utils.classes import Normalization
 
 timestep = 0
-ENV = 'SecondOrderIntegration'
+ENV = 'CartPole'
 ALGORITHM = 'DPPO2'
 test_episode = []
 test_reward = []
@@ -74,7 +74,7 @@ class PPOActor_Gaussian(nn.Module):
 
 
 if __name__ == '__main__':
-	env = SecondOrderIntegration()
+	env = CartPole()
 	reward_norm = Normalization(shape=1)
 	env_msg = {'state_dim': env.state_dim, 'action_dim': env.action_dim, 'name': env.name, 'action_range': env.action_range}
 	t_epoch = 0  # 当前训练次数
@@ -89,8 +89,7 @@ if __name__ == '__main__':
 								  init_std=1.2,
 								  use_orthogonal_init=True)
 	opt_actor.load_state_dict(torch.load(optPath + 'actor'))
-	video = cv.VideoWriter('../DPPO2-4-' + env.name + '.mp4', cv.VideoWriter_fourcc(*"mp4v"), 200,
-						   (env.image_size[0], env.image_size[1]))
+	video = cv.VideoWriter('../DPPO2-4-' + env.name + '.mp4', cv.VideoWriter_fourcc(*"mp4v"), 200, (env.width, env.height))
 	n = 5
 	for i in range(n):
 		env.reset(random=True)
