@@ -91,7 +91,7 @@ if __name__ == '__main__':
     opt_actor.load_state_dict(torch.load(optPath + 'actor'))
     video = cv.VideoWriter('../DPPO2-4-' + env.name + '.mp4', cv.VideoWriter_fourcc(*"mp4v"), 200,
                            (env.width, env.height))
-    n = 3
+    n = 10
     for i in range(n):
         env.reset(random=True)
         test_r = 0.
@@ -101,7 +101,7 @@ if __name__ == '__main__':
             env.step_update(_a)
             test_r += env.reward
             env.visualization()
-            video.write(env.image)
+            video.write(env.save)
         test_num += 1
         test_reward.append(test_r)
     video.release()
