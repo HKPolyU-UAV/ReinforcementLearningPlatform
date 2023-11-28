@@ -42,7 +42,7 @@ class UGVForward(rl_base):
         '''hyper-parameters'''
         self.dt = 0.02  # 50Hz
         self.time = 0.  # time
-        self.time_max = 10.0  # 每回合最大时间
+        self.time_max = 5.0  # 每回合最大时间
         self.a_linear = 0.  # 等效线加速度
         self.a_angular = 0.  # 等效角加速度
         self.kf = 0.1  # 等效线阻力系数
