@@ -182,9 +182,9 @@ We put each demo a gif here:
 | ![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/demonstration/DPPO/DPPO-4-UGV.gif)            |                                                                                                                                                         |                                                                                                                                                       |
 
 ## DPPO2
-| SecondOrderIntegration | UGVForward |            |
-|------------------------|------------|------------|
-| ![image]()             | ![image]() | ![image]() |
+| SecondOrderIntegration                                                                                                                                      | UGVForward                                                                                                                                      |            |
+|-------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------|------------|
+| ![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/demonstration/DPPO2/DPPO2-4-SecondOrderIntegration.gif) | ![image](https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/demonstration/DPPO2/DPPO2-4-UGVForward.gif) | ![image]() |
 ## DQN
 
 | FlightAttitudeSimulator                                                                                                                                          | SecondOrderIntegration                                                                                                                                  |
