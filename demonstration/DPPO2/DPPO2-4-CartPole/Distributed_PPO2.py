@@ -38,7 +38,7 @@ class Worker(mp.Process):
         self.env = _env
         self.queue = _queue
         self.lock = _lock
-        self.buffer = RolloutBuffer(int(self.env.time_max / self.env.dt * 2), self.env.state_dim, self.env.action_dim)
+        self.buffer = RolloutBuffer(_ppo_msg['buffer_size'], self.env.state_dim, self.env.action_dim)
         self.gamma = _ppo_msg['gamma']
         self.k_epo = _ppo_msg['k_epo']
         self.device = _ppo_msg['device']
