@@ -104,15 +104,12 @@ if __name__ == '__main__':
     os.mkdir(simulationPath)
     c = cv.waitKey(1)
 
-    env = env(theta0=np.array([0.0, 0.0]),
-              omega0=np.array([0.0, 0.0]),
-              map_size=np.array([2.0, 2.0]),
-              target=np.array([0.5, 0.5]))
+    env = env()
 
     eval_policy = PPOActorCritic(env.state_dim, env.action_dim, env.action_range)
     # 加载模型参数文件
     eval_policy.load_state_dict(torch.load(optPath + 'actor-critic'))
-    test_num = 10
+    test_num = 3
     error = []
     terminal_list = []
     # video = cv.VideoWriter('../DPPO-4-' + env.name + '.mp4', cv.VideoWriter_fourcc(*"mp4v"), 200,

@@ -121,10 +121,7 @@ if __name__ == '__main__':
 
     RETRAIN = False  # 基于之前的训练结果重新训练
 
-    env = env(theta0=np.array([0.0, 0.0]),
-              omega0=np.array([0.0, 0.0]),
-              map_size=np.array([2.0, 2.0]),
-              target=np.array([0.5, 0.5]))
+    env = env()
 
     '''1. 启动多进程'''
     mp.set_start_method('spawn', force=True)
@@ -133,7 +130,7 @@ if __name__ == '__main__':
     '''
         网络学习率和k_epo都是进程数的函数，进程数越多，学习率和k_epo就越低
     '''
-    process_num = 5
+    process_num = 6
     actor_lr = 1e-4 / min(process_num, 5)  # 最开始是3e-4
     critic_lr = 1e-4 / min(process_num, 5)  # 一直都是 1e-3
     action_std_init = (env.action_range[:, 1] - env.action_range[:, 0]) / 2 / 3
@@ -144,8 +141,8 @@ if __name__ == '__main__':
     agent.global_policy = PPOActorCritic(agent.env.state_dim, agent.env.action_dim, action_std_init)
     agent.eval_policy = PPOActorCritic(agent.env.state_dim, agent.env.action_dim, action_std_init)
     if RETRAIN:
-        agent.global_policy.load_state_dict(torch.load('Policy_PPO49500'))
-        agent.global_policy.reset_critic()
+        agent.global_policy.load_state_dict(torch.load(optPath + 'actor-critic'))
+        agent.global_policy.critic_reset_orthogonal()
     agent.global_policy.share_memory()
     agent.optimizer = SharedAdam([
         {'params': agent.global_policy.actor.parameters(), 'lr': actor_lr},

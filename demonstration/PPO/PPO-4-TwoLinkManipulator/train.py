@@ -132,7 +132,7 @@ if __name__ == '__main__':
                 K_epochs=30,
                 eps_clip=0.2,
                 action_std_init=action_std_init,
-                buffer_size=int(env.timeMax / env.dt * 2),
+                buffer_size=int(env.time_max / env.dt * 4),
                 policy=policy,
                 policy_old=policy_old,
                 path=simulation_path)
@@ -144,8 +144,8 @@ if __name__ == '__main__':
         agent.policy_old.critic_reset_orthogonal()
     agent.PPO_info()
 
-    max_training_timestep = int(env.timeMax / env.dt) * 10000
-    action_std_decay_freq = int(env.timeMax / env.dt) * 2000
+    max_training_timestep = int(env.time_max / env.dt) * 10000
+    action_std_decay_freq = int(env.time_max / env.dt) * 1000
     action_std_decay_rate = 0.05
     min_action_std = 0.1
 

@@ -105,8 +105,8 @@ if __name__ == '__main__':
 
     policy = PPOActorCritic(env.state_dim, env.action_dim, env.action_range)
     policy.load_state_dict(torch.load(optPath + 'actor-critic'))
-    # agent.policy.load_state_dict(torch.load('Policy_PPO859000'))
-    test_num = 5
+    # policy.load_state_dict(torch.load('Policy_PPO3422400'))
+    test_num = 3
     r = 0
     # video = cv.VideoWriter('../PPO-4-' + env.name + '.mp4', cv.VideoWriter_fourcc(*"mp4v"), 200,
     #                        (env.image_size[0] - env.board, env.image_size[1]))
