@@ -147,8 +147,14 @@ Graphical demonstration is identical to **UavFntsmcParam**.
 A ground vehicle, the control outputs are the expected linear and angular accelections. The objective is to control the
 position of the UGV.
 
+UGV drives only **forward**
 <div align=center>
-    <img src="https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/envs/UGV.gif" width="400px">
+    <img src="https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/envs/UGVForward.gif" width="400px">
+</div>
+
+UGV drives both **forward** and **backward**
+<div align=center>
+    <img src="https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/envs/UGVBidirectional.gif" width="400px">
 </div>
 
 # demonstration
