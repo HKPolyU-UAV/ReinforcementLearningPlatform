@@ -164,6 +164,7 @@ A ground vehicle, the control outputs are the expected linear and angular accele
     <img src="https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/envs/UGVForwardObstacleAvoidance.gif" width="400px">
 </div>
 
+
 # demonstration
 
 All demos are classified by RL algorithms. For example, in folder SAC, all environments are controled by a SAC-trained
