@@ -309,10 +309,10 @@ class UGVForwardObstacleAvoidance(rl_base, Map):
             b = y - m * x  # 截距
 
             '''2. 确定当前机器人与四个角点的连接'''
-            theta1 = cal_vector_rad([1, 0], [xm - x, ym - y])  # 左上
-            theta2 = cal_vector_rad([1, 0], [0 - x, ym - y])  # 右上
-            theta3 = -cal_vector_rad([1, 0], [0 - x, 0 - y])  # 右下
-            theta4 = -cal_vector_rad([1, 0], [xm - x, 0 - y])  # 左下
+            theta1 = cal_vector_rad([1, 0], [xm - x, ym - y])  # 右上
+            theta2 = cal_vector_rad([1, 0], [0 - x, ym - y])  # 左上
+            theta3 = -cal_vector_rad([1, 0], [0 - x, 0 - y])  # 左下
+            theta4 = -cal_vector_rad([1, 0], [xm - x, 0 - y])  # 右下
             '''2. 确定当前机器人与四个角点的连接'''
 
             '''3. 找到终点'''
