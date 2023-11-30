@@ -80,6 +80,44 @@ class Map:
         return ['circle', center, [r]]
 
     @staticmethod
+    def __generate_poly_points(poly):
+        """
+        生成多边形各个点坐标
+        """
+        [name, [x, y], constraints] = poly
+        pt = []
+        if name == 'triangle':  # ['triangle',  [pt1, pt2], [r, theta0, theta_bias]]
+            [r, theta0, theta_bias] = constraints
+            pt.append([x + r * cosd(90 + theta_bias), y + r * sind(90 + theta_bias)])
+            pt.append([x + r * cosd(270 - theta0 + theta_bias), y + r * sind(270 - theta0 + theta_bias)])
+            pt.append([x + r * cosd(theta0 - 90 + theta_bias), y + r * sind(theta0 - 90 + theta_bias)])
+        elif name == 'rectangle':
+            [r, theta0, theta_bias] = constraints
+            pt.append([x + r * cosd(theta0 + theta_bias), y + r * sind(theta0 + theta_bias)])
+            pt.append([x + r * cosd(180 - theta0 + theta_bias), y + r * sind(180 - theta0 + theta_bias)])
+            pt.append([x + r * cosd(180 + theta0 + theta_bias), y + r * sind(180 + theta0 + theta_bias)])
+            pt.append([x + r * cosd(-theta0 + theta_bias), y + r * sind(-theta0 + theta_bias)])
+        elif name == 'pentagon':
+            [r, theta_bias] = constraints
+            for i in range(5):
+                pt.append([x + r * cosd(90 + 72 * i + theta_bias), y + r * sind(90 + 72 * i + theta_bias)])
+        elif name == 'hexagon':
+            [r, theta_bias] = constraints
+            for i in range(6):
+                pt.append([x + r * cosd(90 + 60 * i + theta_bias), y + r * sind(90 + 60 * i + theta_bias)])
+        elif name == 'heptagon':
+            [r, theta_bias] = constraints
+            for i in range(7):
+                pt.append([x + r * cosd(90 + 360 / 7 * i + theta_bias), y + r * sind(90 + 360 / 7 * i + theta_bias)])
+        elif name == 'octagon':
+            [r, theta_bias] = constraints
+            for i in range(8):
+                pt.append([x + r * cosd(90 + 45 * i + theta_bias), y + r * sind(90 + 45 * i + theta_bias)])
+        else:
+            print('Unknown obstacle type')
+        return pt
+
+    @staticmethod
     def __is_new_obs_in_obs(obs, new_obs, safety_dis_obs):
         name1, c1, r1 = obs
         name2, c2, r2 = new_obs
@@ -102,7 +140,14 @@ class Map:
         elif name == 'ellipse':
             return False
         else:
-            return False
+            poly_points = self.__generate_poly_points(obs)
+            if point_is_in_poly(center, constraints[0] + safety_dis_st, poly_points, s) \
+                    or point_is_in_poly(center, constraints[0] + safety_dis_st, poly_points, t):
+                return False
+            for _o in self.obs:
+                if self.__is_new_obs_in_obs(obs=_o, new_obs=obs, safety_dis_obs=safety_dis_obs):
+                    return False
+            return True
 
     def generate_circle_obs_training(self,
                                      xMax: float = 5.0,

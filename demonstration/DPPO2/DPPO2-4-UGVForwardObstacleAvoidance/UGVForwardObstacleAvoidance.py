@@ -1,10 +1,8 @@
 import cv2 as cv
-import numpy as np
-
 from utils.functions import *
 from algorithm.rl_base import rl_base
 from environment.color import Color
-from map import Map
+from environment.UGVForwardObstacleAvoidance.map import Map
 
 
 class UGVForwardObstacleAvoidance(rl_base, Map):
@@ -39,7 +37,7 @@ class UGVForwardObstacleAvoidance(rl_base, Map):
         self.r_vehicle = 0.15  # 车的半径
 
         '''hyper-parameters'''
-        self.dt = 0.1  # 50Hz
+        self.dt = 0.05  # 50Hz
         self.time = 0.  # time
         self.time_max = 15.0  # 每回合最大时间
         self.a_linear = 0.  # 等效线加速度
@@ -422,8 +420,8 @@ class UGVForwardObstacleAvoidance(rl_base, Map):
 
     def is_success(self):
         b1 = np.fabs(self.error) <= 0.05
-        b2 = np.fabs(self.omega) < 0.01
-        # b2 = True
+        # b2 = np.fabs(self.omega) < 0.01
+        b2 = True
         b3 = np.fabs(self.vel) < 0.01
 
         return b1 and b2 and b3
@@ -440,31 +438,39 @@ class UGVForwardObstacleAvoidance(rl_base, Map):
             self.terminal_flag = 2
             self.is_terminal = True
         if self.is_success():
-            print('...success...')
+            # print('...success...')
             self.terminal_flag = 3
             self.is_terminal = True
         if self.collision_check():
-            print('...collision...')
+            # print('...collision...')
             self.terminal_flag = 4
             self.is_terminal = True
 
     def get_reward(self, param=None):
-        Q_pos = 2.
-        Q_vel = 0.0
-        Q_phi = 2.
-        Q_omega = 1.0
+        r1 = -1 - np.fabs(self.omega) * 0.1
 
-        u_pos = -np.fabs(self.error) * Q_pos
-        u_vel = -np.fabs(self.vel) * Q_vel
-        u_phi = -np.fabs(self.e_phi) * Q_phi if self.error > 0.1 else 0.0
-        u_omega = -np.fabs(self.omega) * Q_omega
+        if self.current_state[0] > self.next_state[0] + 1e-3:
+            r2 = 5
+        elif 1e-3 + self.current_state[0] < self.next_state[0]:
+            r2 = -5
+        else:
+            r2 = 0
 
-        u_psi = 0.
-        if self.terminal_flag == 1:  # 出界
-            _n = (self.time_max - self.time) / self.dt
-            u_psi = _n * (u_pos + u_vel + u_phi + u_omega)
+        if np.fabs(self.current_state[1]) > np.fabs(self.next_state[1]) + 1e-2:
+            r3 = 2
+        elif 1e-2 + np.fabs(self.current_state[1]) < np.fabs(self.next_state[1]):
+            r3 = -2
+        else:
+            r3 = 0
 
-        self.reward = u_pos + u_vel + u_phi + u_omega + u_psi
+        if self.is_success():
+            r4 = 500
+        elif self.terminal_flag == 4:
+            r4 = -300
+        else:
+            r4 = 0
+
+        self.reward = r1 + r2 + r3 + r4
 
     def ode(self, xx: np.ndarray):
         """
@@ -487,9 +493,11 @@ class UGVForwardObstacleAvoidance(rl_base, Map):
         K3 = self.dt * self.ode(xx + K2 / 2)
         K4 = self.dt * self.ode(xx + K3)
         xx = xx + (K1 + 2 * K2 + 2 * K3 + K4) / 6
-        [self.pos[0], self.pos[1], self.vel, self.phi, self.omega] = xx[:]
         if self.vel < 0.:
+            [_, _, _, self.phi, self.omega] = xx[:]
             self.vel = 0.
+        else:
+            [self.pos[0], self.pos[1], self.vel, self.phi, self.omega] = xx[:]
         self.time += self.dt
 
         if self.phi > np.pi:
@@ -532,7 +540,7 @@ class UGVForwardObstacleAvoidance(rl_base, Map):
                                                                                                        safety_dis_st=4 * self.r_vehicle,
                                                                                                        rMin=0.2,
                                                                                                        rMax=0.5,
-                                                                                                       obsNum=10,
+                                                                                                       obsNum=15,
                                                                                                        S=None,
                                                                                                        T=None)
             self.init_phi = np.random.uniform(-np.pi, np.pi)
