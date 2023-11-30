@@ -172,10 +172,12 @@ NN controller. Currently, we have: 3 for DDPG, 2 for DoubleDQN, 7 for DPPO, 7 fo
 for PPO, 7 for PPO2, 7 for SAC, 3 for TD3, which are **50 demonstrations** (嗨嗨嗨，奥利给兄弟们干了).
 
 **Noting!!!**
+
 One needs to copy the corresponding environment file into a new folder and rewrite it when yor are training it.
 The 'environment' folder only contains the foundamental of environments.
 Some details, for example, the max time per episode, the sampling period, graphic demonstration, reward function, may be different if you are using different RL algorithms.
 Further, if you are using DPPO2, besides the environment, you also need to copy 'Distributed_PPO2.py' into the new training folder.
+
 **Noting!!!**
 
 We put each demo a gif here:
