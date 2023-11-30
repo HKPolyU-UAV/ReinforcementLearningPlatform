@@ -73,7 +73,7 @@ the center of the beam by adjusting the joints' angle of the of manipulator.
     <img src="https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/envs/BallBalancer1D.gif" width="400px">
 </div>
 
-### 2. CartPole
+### 2 (3). CartPole
 
 A cartpole, nothing special. Two environments are integrated. The first is angluar only, the objectove is to balance the
 pole by adjusting the force added on the cart. The objective of the second is to control both the angle of the cart and
@@ -91,7 +91,7 @@ CartPole with **angle** only
     <img src="https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/envs/CartPoleAngleOnly.gif" width="400px">
 </div>
 
-### 3. FlightAttitudeSimulator
+### 4. FlightAttitudeSimulator
 
 This is an intermediate fixed rod with free rotational capability. We need to keep the rod in a horizontal position by
 adjusting the force added at the end of the rod.
@@ -100,7 +100,7 @@ adjusting the force added at the end of the rod.
     <img src="https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/envs/Flight_Attitude_Simulator.gif" width="400px">
 </div>
 
-### 4. RobotManipulator
+### 5. RobotManipulator
 
 A two-link manipulator. The objective is to control the position of the end of the manipulator.
 
@@ -108,7 +108,7 @@ A two-link manipulator. The objective is to control the position of the end of t
     <img src="https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/envs/TwoLinkManipulator.gif" width="400px">
 </div>
 
-### 5. SecondOrderIntegration
+### 6. SecondOrderIntegration
 
 A mass point, the control input is the two-dimensional accelection, we need to control its position.
 
@@ -116,7 +116,7 @@ A mass point, the control input is the two-dimensional accelection, we need to c
     <img src="https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/envs/SecondOrderIntegration.gif" width="400px">
 </div>
 
-### 6. UavFntsmcParam
+### 7. UavFntsmcParam
 
 A quadrotor has already controlled by fast nonsingular terminal sliding mode controller (FNTSMC). We use RL to
 automatically tune the hyper-parameters of the FNTSMC to achieve a better tracking performance. Also, we have position
@@ -134,7 +134,7 @@ tracking mode and attitude tracking mode.
     <img src="https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/envs/UavFntsmcPos.gif" width="600px">
 </div>
 
-### 7. UavRobust
+### 8. UavRobust
 
 Just quadrotor fixed-point control. The difference between **UavFntsmcParam** and **UavRobust** is that **UavRobust**
 directly use RL to control the quadrotor while **UavFntsmcParam** utilizes RL to optimize the hyper-parameters of
@@ -142,7 +142,7 @@ FNTSMC.
 
 Graphical demonstration is identical to **UavFntsmcParam**.
 
-### 8. UGV
+### 9 (10). UGV
 
 A ground vehicle, the control outputs are the expected linear and angular accelections. The objective is to control the
 position of the UGV.
@@ -157,11 +157,24 @@ UGV drives both **forward** and **backward**
     <img src="https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/envs/UGVBidirectional.gif" width="400px">
 </div>
 
+### 11. UGVForwardObstacleAvoidance
+A ground vehicle, the control outputs are the expected linear and angular accelections. The states are those in environment 9 (10) and the data of laser.
+
+<div align=center>
+    <img src="https://github.com/ReinforcementLearning-StudyNote/ReinforcementLearning_V2/blob/main/gifs/envs/UGVForwardObstacleAvoidance.gif" width="400px">
+</div>
 # demonstration
 
-All demos are classified by Rl algorithms. For example, in folder SAC, all environments are controled by a SAC-trained
-NN controller. Currently, we have: 3 for DDPG, 2 for DoubleDQN, 7 for DPPO, 3 for DPPO2, 2 for DQN, 2 for DuelingDQN, 10
-for PPO, 7 for PPO2, 7 for SAC, 3 for TD3, which are **46 demonstrations** (嗨嗨嗨，奥利给兄弟们干了).
+All demos are classified by RL algorithms. For example, in folder SAC, all environments are controled by a SAC-trained
+NN controller. Currently, we have: 3 for DDPG, 2 for DoubleDQN, 7 for DPPO, 7 for DPPO2, 2 for DQN, 2 for DuelingDQN, 10
+for PPO, 7 for PPO2, 7 for SAC, 3 for TD3, which are **50 demonstrations** (嗨嗨嗨，奥利给兄弟们干了).
+
+**Noting!!!**
+One needs to copy the corresponding environment file into a new folder and rewrite it when yor are training it.
+The 'environment' folder only contains the foundamental of environments.
+Some details, for example, the max time per episode, the sampling period, graphic demonstration, reward function, may be different if you are using different RL algorithms.
+Further, if you are using DPPO2, besides the environment, you also need to copy 'Distributed_PPO2.py' into the new training folder.
+**Noting!!!**
 
 We put each demo a gif here:
 
