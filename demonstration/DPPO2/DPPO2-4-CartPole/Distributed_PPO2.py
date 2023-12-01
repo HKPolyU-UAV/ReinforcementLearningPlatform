@@ -62,8 +62,8 @@ class Worker(mp.Process):
         adv = []
         gae = 0.
         with torch.no_grad():
-            vs = self.l_critic.net(s)  # TODO YYF 也改了
-            vs_ = self.l_critic.net(s_)  # TODO YYF 也改了
+            vs = self.l_critic.net(s)
+            vs_ = self.l_critic.net(s_)
             deltas = r + self.gamma * (1.0 - success) * vs_ - vs
             for delta, d in zip(reversed(deltas.flatten().numpy()), reversed(done.flatten().numpy())):
                 gae = delta + self.gamma * self.lmd * gae * (1.0 - d)
